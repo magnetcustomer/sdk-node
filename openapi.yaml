@@ -43,8 +43,8 @@ info:
     \ quando algo muda no CRM, em vez de consultar a API de tempos em tempos, use webhooks. Um administrador cria o webhook no CRM, em **Integrações\
     \ › Webhooks**, informando a URL do seu sistema e os eventos. A lista de eventos está em `GET /api/webhooks/triggers`; o formato da entrega,\
     \ a assinatura e os reenvios estão na seção Webhooks do portal.\n\n# Cobertura\n\nEsta referência cobre Contatos (leads, prospects e clientes),\
-    \ Empresas, Oportunidades, Pipelines, etapas e motivos de perda, Jornadas, Reuniões, Tarefas, Observações, Tickets, Atendimentos, Usuários,\
-    \ Equipes, Áreas de trabalho, Campos personalizados e os eventos de webhook.\n"
+    \ Empresas, Oportunidades, Pipelines, etapas e motivos de perda, Produtos, tabelas de preço e itens de produto, Jornadas, Reuniões, Tarefas,\
+    \ Observações, Tickets, Atendimentos, Usuários, Equipes, Áreas de trabalho, Campos personalizados e os eventos de webhook.\n"
   contact:
     name: Suporte Magnet Customer
     email: suporte@magnetcustomer.com
@@ -72,6 +72,12 @@ tags:
   description: 'Negócios em andamento: pipeline, etapa, responsável, valor e fechamento.'
 - name: Pipelines e etapas
   description: Consulta dos pipelines, das etapas e dos motivos de perda, para criar, mover e fechar oportunidades.
+- name: Produtos
+  description: Catálogo de produtos e serviços da conta.
+- name: Tabelas de preço
+  description: 'Preços por tabela: a padrão e as específicas, como parceiros ou regiões.'
+- name: Itens de produto
+  description: Produtos vinculados a oportunidades, contatos e empresas, com quantidade, preço e desconto.
 - name: Jornadas
   description: 'Acompanhamento do cliente depois da venda: fase, contrato, renovação e health score. Somente leitura.'
 - name: Reuniões
@@ -107,6 +113,11 @@ x-tagGroups:
   - Oportunidades
   - Pipelines e etapas
   - Jornadas
+- name: Catálogo
+  tags:
+  - Produtos
+  - Tabelas de preço
+  - Itens de produto
 - name: Atividades
   tags:
   - Reuniões
@@ -563,7 +574,7 @@ paths:
       - Oportunidades
       operationId: moveDealStage
       summary: Mover de etapa
-      description: A resposta vem em um envelope com `deal` e `oldStageId`, não a oportunidade direta.
+      description: Devolve a oportunidade já na nova etapa.
       parameters:
       - $ref: '#/components/parameters/Id'
       requestBody:
@@ -593,20 +604,43 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  deal:
-                    $ref: '#/components/schemas/Deal'
-                  oldStageId:
-                    type: string
-                    pattern: ^[a-fA-F0-9]{24}$
-                    example: 507f1f77bcf86cd799439011
-                    description: Etapa anterior.
+                $ref: '#/components/schemas/Deal'
               example:
-                deal:
-                  _id: 507f1f77bcf86cd799439015
-                  stage: 507f191e810c19729de860ef
-                oldStageId: 507f191e810c19729de860ea
+                _id: 507f1f77bcf86cd799439015
+                code: 39
+                title: Implantação CRM Enterprise
+                amount: 75000
+                expectedCloseDate: '2026-06-30T23:59:59Z'
+                won: false
+                lost: false
+                closed: false
+                closedDate: null
+                enteredStageDate: '2026-04-28T10:30:00Z'
+                source: platform
+                active: true
+                pipeline: 507f1f77bcf86cd799439011
+                stage:
+                  _id: 507f191e810c19729de860ef
+                  name: Proposta
+                staff:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  email: joao@acme.com
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                  lifeCycle: customer
+                  owners:
+                  - 507f191e810c19729de860eb
+                participants: []
+                observers: []
+                labels: []
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -670,7 +704,7 @@ paths:
       - Oportunidades
       operationId: reopenDeal
       summary: Reabrir oportunidade
-      description: Reabre uma oportunidade ganha ou perdida. Responde `409` se ela não estiver fechada.
+      description: Reabre uma oportunidade ganha ou perdida. Se ela já estiver aberta, a resposta é `200` com a oportunidade sem alteração.
       parameters:
       - $ref: '#/components/parameters/Id'
       requestBody:
@@ -702,8 +736,6 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '404':
           $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
   /api/deals/{id}/validate:
     get:
       tags:
@@ -1779,7 +1811,7 @@ paths:
       parameters:
       - $ref: '#/components/parameters/Id'
       responses:
-        '200':
+        '204':
           description: Tarefa excluída.
         '400':
           $ref: '#/components/responses/ValidationError'
@@ -2248,6 +2280,7 @@ paths:
       - Observações
       operationId: getObservation
       summary: Obter observação
+      description: Aqui as referências vêm como ID, não resumidas.
       parameters:
       - $ref: '#/components/parameters/Id'
       responses:
@@ -2260,19 +2293,10 @@ paths:
               example:
                 _id: 507f1f77bcf86cd799439060
                 observation: Cliente pediu desconto de 15%. Aguardando aprovação.
+                staff: 507f191e810c19729de860eb
+                contact: 507f1f77bcf86cd799439012
+                deal: 507f1f77bcf86cd799439015
                 active: true
-                staff:
-                  _id: 507f191e810c19729de860eb
-                  fullname: João Silva
-                  email: joao@acme.com
-                contact:
-                  _id: 507f1f77bcf86cd799439012
-                  fullname: Maria Santos
-                  email: maria@cliente.com
-                organization: null
-                deal:
-                  _id: 507f1f77bcf86cd799439015
-                  title: Implantação CRM
                 createdAt: '2026-04-28T14:30:00Z'
                 updatedAt: '2026-04-28T14:30:00Z'
         '400':
@@ -2668,7 +2692,7 @@ paths:
       description: 'Exige a permissão de excluir.
 
 
-        **Permissão do Service Account:** `contacts.delete`'
+        **Permissão do Service Account:** `contacts.remove`. Ela não aparece na lista de permissões da tela: vem no modelo **Acesso CRM Completo**'
       parameters:
       - $ref: '#/components/parameters/Id'
       responses:
@@ -3769,7 +3793,8 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '404':
           $ref: '#/components/responses/NotFound'
-      description: '**Permissão do Service Account:** `organizations.delete`'
+      description: '**Permissão do Service Account:** `organizations.remove`. Ela não aparece na lista de permissões da tela: vem no modelo **Acesso
+        CRM Completo**'
   /api/pipelines:
     get:
       tags:
@@ -4221,8 +4246,24 @@ paths:
                   status:
                     _id: 507f1f77bcf86cd799439081
                     name: Aguardando responsável
+                    slug: aguardando-responsavel
                     category: waiting
-                  tags: []
+                  sender:
+                    _id: 507f191e810c19729de860eb
+                    fullname: João Silva
+                    name: João
+                    lastname: Silva
+                    email: joao@acme.com
+                  workspaceReceiver:
+                    _id: 507f1f77bcf86cd799439100
+                    name: Geral
+                  contact:
+                    _id: 507f1f77bcf86cd799439012
+                    fullname: Maria Santos
+                    lifeCycle: customer
+                  participants: []
+                  observers: []
+                  labels: []
                   customFields: []
                   active: true
                   createdAt: '2026-04-28T10:30:00Z'
@@ -4244,8 +4285,8 @@ paths:
       - Tickets
       operationId: createTicket
       summary: Criar ticket
-      description: 'O único campo obrigatório é `subject`. O ticket é aberto em nome do usuário da credencial. Referências aceitam só o ID em
-        texto.
+      description: 'Obrigatórios: `subject` e `workspaceReceiver`. O ticket é aberto em nome do usuário da credencial e nasce na situação padrão
+        da área. A `description` vira a primeira mensagem do ticket. Referências aceitam só o ID em texto.
 
 
         **Permissão do Service Account:** `tickets.create`'
@@ -4259,6 +4300,7 @@ paths:
               subject: Erro ao emitir boleto
               description: Cliente relata erro 500 ao gerar a segunda via.
               priority: high
+              workspaceReceiver: 507f1f77bcf86cd799439100
               contact: 507f1f77bcf86cd799439012
       responses:
         '201':
@@ -4276,8 +4318,24 @@ paths:
                 status:
                   _id: 507f1f77bcf86cd799439081
                   name: Aguardando responsável
+                  slug: aguardando-responsavel
                   category: waiting
-                tags: []
+                sender:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                  email: joao@acme.com
+                workspaceReceiver:
+                  _id: 507f1f77bcf86cd799439100
+                  name: Geral
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                  lifeCycle: customer
+                participants: []
+                observers: []
+                labels: []
                 customFields: []
                 active: true
                 createdAt: '2026-04-28T10:30:00Z'
@@ -4314,8 +4372,24 @@ paths:
                 status:
                   _id: 507f1f77bcf86cd799439081
                   name: Aguardando responsável
+                  slug: aguardando-responsavel
                   category: waiting
-                tags: []
+                sender:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                  email: joao@acme.com
+                workspaceReceiver:
+                  _id: 507f1f77bcf86cd799439100
+                  name: Geral
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                  lifeCycle: customer
+                participants: []
+                observers: []
+                labels: []
                 customFields: []
                 active: true
                 createdAt: '2026-04-28T10:30:00Z'
@@ -4366,8 +4440,24 @@ paths:
                 status:
                   _id: 507f1f77bcf86cd799439081
                   name: Aguardando responsável
+                  slug: aguardando-responsavel
                   category: waiting
-                tags: []
+                sender:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                  email: joao@acme.com
+                workspaceReceiver:
+                  _id: 507f1f77bcf86cd799439100
+                  name: Geral
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                  lifeCycle: customer
+                participants: []
+                observers: []
+                labels: []
                 customFields: []
                 active: true
                 createdAt: '2026-04-28T10:30:00Z'
@@ -4409,7 +4499,7 @@ paths:
       - Tickets
       operationId: startTicket
       summary: Iniciar atendimento do ticket
-      description: O usuário da credencial assume o ticket como responsável. Sem corpo.
+      description: 'O usuário da credencial assume o ticket: a resposta traz `receiver` e `startAt`. Sem corpo.'
       parameters:
       - $ref: '#/components/parameters/Id'
       responses:
@@ -4461,10 +4551,20 @@ paths:
       - Tickets
       operationId: listTicketMessages
       summary: Listar mensagens do ticket
+      description: 'Devolve as mensagens mais recentes. Não usa `page`: para ler as anteriores, repita a chamada com `beforeTimestamp` igual a
+        `pagination.oldestMessageTimestamp`, enquanto `pagination.hasOlderMessages` for `true`.'
       parameters:
       - $ref: '#/components/parameters/Id'
-      - $ref: '#/components/parameters/Page'
-      - $ref: '#/components/parameters/Limit'
+      - name: limit
+        in: query
+        description: Quantidade de mensagens.
+        schema:
+          type: integer
+      - name: beforeTimestamp
+        in: query
+        description: Só mensagens anteriores a este momento (milissegundos).
+        schema:
+          type: integer
       responses:
         '200':
           description: Sucesso.
@@ -4472,7 +4572,34 @@ paths:
             application/json:
               schema:
                 type: object
-                description: Página de mensagens do ticket.
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TicketMessage'
+                    description: Mensagens.
+                  pagination:
+                    type: object
+                    properties:
+                      oldestMessageTimestamp:
+                        type: integer
+                        description: Momento da mensagem mais antiga devolvida.
+                      hasOlderMessages:
+                        type: boolean
+                        description: Há mensagens anteriores.
+              example:
+                messages:
+                - _id: 507f1f77bcf86cd799439090
+                  ticket: 507f1f77bcf86cd799439080
+                  type: text
+                  content: Segunda via reenviada por e-mail.
+                  internal: false
+                  source: staff
+                  timestamp: 1777374000000
+                  createdAt: '2026-04-28T11:00:00Z'
+                pagination:
+                  oldestMessageTimestamp: 1777374000000
+                  hasOlderMessages: false
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -4488,7 +4615,7 @@ paths:
       - Tickets
       operationId: createTicketMessage
       summary: Enviar mensagem no ticket
-      description: Registra uma resposta ou uma nota interna. Um ticket finalizado não aceita mensagens.
+      description: Registra uma resposta ou uma nota interna. `type` é obrigatório.
       parameters:
       - $ref: '#/components/parameters/Id'
       requestBody:
@@ -4498,21 +4625,22 @@ paths:
             schema:
               type: object
               required:
+              - type
               - content
               properties:
-                content:
-                  type: string
-                  description: Texto da mensagem.
                 type:
                   type: string
                   enum:
                   - text
-                  default: text
                   description: Use `text`.
+                content:
+                  type: string
+                  description: Texto da mensagem.
                 internal:
                   type: boolean
                   description: 'Com `true`, grava como nota interna. Padrão: `false`.'
             example:
+              type: text
               content: Segunda via reenviada por e-mail.
               internal: false
       responses:
@@ -4524,9 +4652,12 @@ paths:
                 $ref: '#/components/schemas/TicketMessage'
               example:
                 _id: 507f1f77bcf86cd799439090
+                ticket: 507f1f77bcf86cd799439080
                 type: text
                 content: Segunda via reenviada por e-mail.
                 internal: false
+                source: staff
+                timestamp: 1777374000000
                 createdAt: '2026-04-28T11:00:00Z'
         '400':
           $ref: '#/components/responses/ValidationError'
@@ -4690,12 +4821,23 @@ paths:
               example:
                 docs:
                 - _id: 507f1f77bcf86cd799439111
+                  code: 771
                   subject: Ligação de acompanhamento
                   description: Cliente confirmou o recebimento da proposta.
                   type:
                     _id: 507f1f77bcf86cd799439110
                     name: Ligação
-                  contact: 507f1f77bcf86cd799439012
+                    slug: ligacao
+                  contact:
+                    _id: 507f1f77bcf86cd799439012
+                    fullname: Maria Santos
+                  staff:
+                    _id: 507f191e810c19729de860eb
+                    fullname: João Silva
+                    name: João
+                    lastname: Silva
+                    email: joao@acme.com
+                  done: true
                   active: true
                   createdAt: '2026-04-28T10:30:00Z'
                   updatedAt: '2026-04-28T10:30:00Z'
@@ -4742,12 +4884,23 @@ paths:
                 $ref: '#/components/schemas/Treatment'
               example:
                 _id: 507f1f77bcf86cd799439111
+                code: 771
                 subject: Ligação de acompanhamento
                 description: Cliente confirmou o recebimento da proposta.
                 type:
                   _id: 507f1f77bcf86cd799439110
                   name: Ligação
-                contact: 507f1f77bcf86cd799439012
+                  slug: ligacao
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                staff:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                  email: joao@acme.com
+                done: true
                 active: true
                 createdAt: '2026-04-28T10:30:00Z'
                 updatedAt: '2026-04-28T10:30:00Z'
@@ -4776,12 +4929,23 @@ paths:
                 $ref: '#/components/schemas/Treatment'
               example:
                 _id: 507f1f77bcf86cd799439111
+                code: 771
                 subject: Ligação de acompanhamento
                 description: Cliente confirmou o recebimento da proposta.
                 type:
                   _id: 507f1f77bcf86cd799439110
                   name: Ligação
-                contact: 507f1f77bcf86cd799439012
+                  slug: ligacao
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                staff:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                  email: joao@acme.com
+                done: true
                 active: true
                 createdAt: '2026-04-28T10:30:00Z'
                 updatedAt: '2026-04-28T10:30:00Z'
@@ -4824,12 +4988,23 @@ paths:
                 $ref: '#/components/schemas/Treatment'
               example:
                 _id: 507f1f77bcf86cd799439111
+                code: 771
                 subject: Ligação de acompanhamento
                 description: Cliente confirmou o recebimento da proposta.
                 type:
                   _id: 507f1f77bcf86cd799439110
                   name: Ligação
-                contact: 507f1f77bcf86cd799439012
+                  slug: ligacao
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                staff:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                  email: joao@acme.com
+                done: true
                 active: true
                 createdAt: '2026-04-28T10:30:00Z'
                 updatedAt: '2026-04-28T10:30:00Z'
@@ -4865,7 +5040,8 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '404':
           $ref: '#/components/responses/NotFound'
-      description: '**Permissão do Service Account:** `treatments.delete`'
+      description: '**Permissão do Service Account:** `treatments.remove`. Ela não aparece na lista de permissões da tela: vem no modelo **Acesso
+        CRM Completo**'
   /api/treatments/types:
     get:
       tags:
@@ -5358,6 +5534,1043 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+  /api/products:
+    get:
+      tags:
+      - Produtos
+      operationId: listProducts
+      summary: Listar produtos
+      description: 'Ordenação padrão: `name` crescente. Devolve o envelope de paginação mesmo sem `page`.
+
+
+        **Permissão do Service Account:** `products.list`'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - name: search
+        in: query
+        description: Busca no nome e no código.
+        schema:
+          type: string
+      - name: category
+        in: query
+        description: Categoria.
+        schema:
+          type: string
+          enum:
+          - CATALOG
+          - PORTFOLIO
+          description: '`CATALOG`: produto com preço, vendido em oportunidades. `PORTFOLIO`: produto de carteira, sem preço. Padrão: `CATALOG`.'
+      - name: type
+        in: query
+        description: Tipo.
+        schema:
+          type: string
+          enum:
+          - ONE_TIME
+          - RECURRING
+          description: '`ONE_TIME`: venda única. `RECURRING`: assinatura. Padrão: `ONE_TIME`.'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Product'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439150
+                  name: Plano Enterprise
+                  code: ENT-001
+                  description: Licença anual.
+                  type: ONE_TIME
+                  category: CATALOG
+                  price: 1200
+                  recurring:
+                    interval: 1
+                  inventoryControl:
+                    enabled: false
+                    allowNegative: false
+                    lowStockThreshold: 0
+                    trackQuantity: true
+                  stockQuantity: 0
+                  active: true
+                  customFields: []
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 8
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Produtos
+      operationId: createProduct
+      summary: Criar produto
+      description: 'O único campo obrigatório é `name`.
+
+
+        **Permissão do Service Account:** `products.create`'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: '#/components/schemas/ProductInput'
+              - type: object
+                required:
+                - name
+            example:
+              name: Plano Enterprise
+              code: ENT-001
+              description: Licença anual.
+              type: ONE_TIME
+              category: CATALOG
+              price: 1200
+      responses:
+        '201':
+          description: Produto criado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+              example:
+                _id: 507f1f77bcf86cd799439150
+                name: Plano Enterprise
+                code: ENT-001
+                description: Licença anual.
+                type: ONE_TIME
+                category: CATALOG
+                price: 1200
+                recurring:
+                  interval: 1
+                inventoryControl:
+                  enabled: false
+                  allowNegative: false
+                  lowStockThreshold: 0
+                  trackQuantity: true
+                stockQuantity: 0
+                active: true
+                customFields: []
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/products/{id}:
+    get:
+      tags:
+      - Produtos
+      operationId: getProduct
+      summary: Obter produto
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+              example:
+                _id: 507f1f77bcf86cd799439150
+                name: Plano Enterprise
+                code: ENT-001
+                description: Licença anual.
+                type: ONE_TIME
+                category: CATALOG
+                price: 1200
+                recurring:
+                  interval: 1
+                inventoryControl:
+                  enabled: false
+                  allowNegative: false
+                  lowStockThreshold: 0
+                  trackQuantity: true
+                stockQuantity: 0
+                active: true
+                customFields: []
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `products.read`'
+    patch:
+      tags:
+      - Produtos
+      operationId: updateProduct
+      summary: Atualizar produto
+      description: 'Envie só os campos que mudam. `PUT` no mesmo endereço tem o mesmo efeito.
+
+
+        **Permissão do Service Account:** `products.update`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+            example:
+              price: 1500
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+              example:
+                _id: 507f1f77bcf86cd799439150
+                name: Plano Enterprise
+                code: ENT-001
+                description: Licença anual.
+                type: ONE_TIME
+                category: CATALOG
+                price: 1500
+                recurring:
+                  interval: 1
+                inventoryControl:
+                  enabled: false
+                  allowNegative: false
+                  lowStockThreshold: 0
+                  trackQuantity: true
+                stockQuantity: 0
+                active: true
+                customFields: []
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Produtos
+      operationId: deleteProduct
+      summary: Excluir produto
+      description: 'Exclusão lógica: o produto fica com `active: false` e o `code` ganha um sufixo, liberando o código para um novo produto.
+
+
+        **Permissão do Service Account:** `products.delete`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Produto excluído.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+              example:
+                _id: 507f1f77bcf86cd799439150
+                name: Plano Enterprise
+                code: ENT-001
+                description: Licença anual.
+                type: ONE_TIME
+                category: CATALOG
+                price: 1200
+                recurring:
+                  interval: 1
+                inventoryControl:
+                  enabled: false
+                  allowNegative: false
+                  lowStockThreshold: 0
+                  trackQuantity: true
+                stockQuantity: 0
+                active: false
+                customFields: []
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/products/{id}/pricebooks:
+    get:
+      tags:
+      - Produtos
+      operationId: listProductPricebooks
+      summary: Listar preços do produto por tabela
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/PricebookEntry'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439160
+                  pricebook:
+                    _id: 507f1f77bcf86cd799439161
+                    name: Standard Pricebook
+                    isStandard: true
+                  price: 1100
+                  currency: BRL
+                  createdAt: '2026-04-28T10:30:00Z'
+                total: 1
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `products.read`'
+  /api/pricebooks:
+    get:
+      tags:
+      - Tabelas de preço
+      operationId: listPricebooks
+      summary: Listar tabelas de preço
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Pricebook'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439161
+                  name: Standard Pricebook
+                  description: Tabela padrão.
+                  isStandard: true
+                  active: true
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 1
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+      description: '**Permissão do Service Account:** `pricebooks.list`'
+    post:
+      tags:
+      - Tabelas de preço
+      operationId: createPricebook
+      summary: Criar tabela de preço
+      description: 'Só os campos abaixo são aceitos; um campo a mais devolve `400`.
+
+
+        **Permissão do Service Account:** `pricebooks.create`'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: '#/components/schemas/PricebookInput'
+              - type: object
+                required:
+                - name
+            example:
+              name: Parceiros
+              description: Preços para parceiros.
+      responses:
+        '201':
+          description: Tabela criada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pricebook'
+              example:
+                _id: 507f1f77bcf86cd799439161
+                name: Parceiros
+                description: Tabela padrão.
+                isStandard: false
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/pricebooks/{id}:
+    get:
+      tags:
+      - Tabelas de preço
+      operationId: getPricebook
+      summary: Obter tabela de preço
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pricebook'
+              example:
+                _id: 507f1f77bcf86cd799439161
+                name: Standard Pricebook
+                description: Tabela padrão.
+                isStandard: true
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `pricebooks.read`'
+    put:
+      tags:
+      - Tabelas de preço
+      operationId: updatePricebook
+      summary: Atualizar tabela de preço
+      description: 'Envie só os campos que mudam.
+
+
+        **Permissão do Service Account:** `pricebooks.update`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PricebookInput'
+            example:
+              description: Vigente em 2027.
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pricebook'
+              example:
+                _id: 507f1f77bcf86cd799439161
+                name: Standard Pricebook
+                description: Tabela padrão.
+                isStandard: true
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Tabelas de preço
+      operationId: deletePricebook
+      summary: Excluir tabela de preço
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Tabela excluída.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `pricebooks.delete`'
+  /api/pricebooks/{id}/products:
+    get:
+      tags:
+      - Tabelas de preço
+      operationId: listPricebookProducts
+      summary: Listar produtos da tabela
+      description: 'Devolve uma lista simples, sem envelope de paginação. Cada item traz o produto completo em `product`.
+
+
+        **Permissão do Service Account:** `pricebooks.read`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PricebookEntry'
+              example:
+              - _id: 507f1f77bcf86cd799439160
+                product:
+                  _id: 507f1f77bcf86cd799439150
+                  name: Plano Enterprise
+                  code: ENT-001
+                  description: Licença anual.
+                  type: ONE_TIME
+                  category: CATALOG
+                  price: 1200
+                  recurring:
+                    interval: 1
+                  inventoryControl:
+                    enabled: false
+                    allowNegative: false
+                    lowStockThreshold: 0
+                    trackQuantity: true
+                  stockQuantity: 0
+                  active: true
+                  customFields: []
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                pricebook: 507f1f77bcf86cd799439161
+                price: 1100
+                currency: BRL
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+      - Tabelas de preço
+      operationId: addPricebookProduct
+      summary: Incluir produto na tabela
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - product
+              - price
+              properties:
+                product:
+                  type: string
+                  pattern: ^[a-fA-F0-9]{24}$
+                  example: 507f1f77bcf86cd799439011
+                  description: ID do produto.
+                price:
+                  type: number
+                  description: Preço nesta tabela.
+                  example: 1100
+                currency:
+                  type: string
+                  description: 'Moeda. Padrão: `BRL`.'
+            example:
+              product: 507f1f77bcf86cd799439150
+              price: 1100
+      responses:
+        '201':
+          description: Produto incluído.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricebookEntry'
+              example:
+                _id: 507f1f77bcf86cd799439160
+                product: 507f1f77bcf86cd799439150
+                pricebook: 507f1f77bcf86cd799439161
+                price: 1100
+                currency: BRL
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `pricebooks.update`'
+  /api/pricebooks/{id}/products/{entryId}:
+    put:
+      tags:
+      - Tabelas de preço
+      operationId: updatePricebookProduct
+      summary: Alterar preço do produto na tabela
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      - name: entryId
+        in: path
+        required: true
+        description: ID do preço na tabela (`_id` devolvido ao incluir o produto).
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                price:
+                  type: number
+                  description: Novo preço.
+                currency:
+                  type: string
+                  description: Moeda.
+            example:
+              price: 1150
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricebookEntry'
+              example:
+                _id: 507f1f77bcf86cd799439160
+                product: 507f1f77bcf86cd799439150
+                pricebook: 507f1f77bcf86cd799439161
+                price: 1150
+                currency: BRL
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `pricebooks.update`'
+    delete:
+      tags:
+      - Tabelas de preço
+      operationId: removePricebookProduct
+      summary: Retirar produto da tabela
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      - name: entryId
+        in: path
+        required: true
+        description: ID do preço na tabela (`_id` devolvido ao incluir o produto).
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Produto retirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricebookEntry'
+              example:
+                _id: 507f1f77bcf86cd799439160
+                product: 507f1f77bcf86cd799439150
+                pricebook: 507f1f77bcf86cd799439161
+                price: 1100
+                currency: BRL
+                active: false
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `pricebooks.update`'
+  /api/{entityType}/{entityId}/products:
+    get:
+      tags:
+      - Itens de produto
+      operationId: listEntityProducts
+      summary: Listar produtos de um registro
+      description: 'Produtos vinculados a uma oportunidade, um contato ou uma empresa.
+
+
+        **Permissão do Service Account:** `products.read`'
+      parameters:
+      - name: entityType
+        in: path
+        required: true
+        description: Tipo do registro.
+        schema:
+          type: string
+          enum:
+          - deals
+          - contacts
+          - organizations
+          - customers
+          - leads
+          - prospects
+      - name: entityId
+        in: path
+        required: true
+        description: ID do registro.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/ProductItem'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439170
+                  product:
+                    _id: 507f1f77bcf86cd799439150
+                    name: Plano Enterprise
+                    code: ENT-001
+                  pricebookEntry: 507f1f77bcf86cd799439160
+                  category: CATALOG
+                  quantity: 2
+                  unitPrice: 1200
+                  discount: 100
+                  totalPrice: 2300
+                  deal: 507f1f77bcf86cd799439015
+                  active: true
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 1
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+      - Itens de produto
+      operationId: addEntityProduct
+      summary: Vincular produto a um registro
+      description: 'Sem `unitPrice`, vale o preço do produto na tabela (`pricebookId`, ou a tabela padrão). Sem `quantity`, vale 1. Produtos `PORTFOLIO`
+        entram sem preço.
+
+
+        **Permissão do Service Account:** `products.create`'
+      parameters:
+      - name: entityType
+        in: path
+        required: true
+        description: Tipo do registro.
+        schema:
+          type: string
+          enum:
+          - deals
+          - contacts
+          - organizations
+          - customers
+          - leads
+          - prospects
+      - name: entityId
+        in: path
+        required: true
+        description: ID do registro.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - productId
+              properties:
+                productId:
+                  type: string
+                  pattern: ^[a-fA-F0-9]{24}$
+                  example: 507f1f77bcf86cd799439011
+                  description: ID do produto.
+                pricebookId:
+                  type: string
+                  pattern: ^[a-fA-F0-9]{24}$
+                  example: 507f1f77bcf86cd799439011
+                  description: 'Tabela de preço. Padrão: a tabela padrão da conta.'
+                quantity:
+                  type: number
+                  description: 'Quantidade. Padrão: 1.'
+                unitPrice:
+                  type: number
+                  description: 'Preço unitário. Padrão: o da tabela.'
+                discount:
+                  type: number
+                  description: 'Desconto em valor. Padrão: 0.'
+            example:
+              productId: 507f1f77bcf86cd799439150
+              quantity: 2
+              discount: 100
+      responses:
+        '201':
+          description: Produto vinculado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductItem'
+              example:
+                _id: 507f1f77bcf86cd799439170
+                product: 507f1f77bcf86cd799439150
+                pricebookEntry: 507f1f77bcf86cd799439160
+                category: CATALOG
+                quantity: 2
+                unitPrice: 1200
+                discount: 100
+                totalPrice: 2300
+                deal: 507f1f77bcf86cd799439015
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/product-items/{itemId}:
+    put:
+      tags:
+      - Itens de produto
+      operationId: updateProductItem
+      summary: Atualizar item
+      description: 'O `totalPrice` é recalculado.
+
+
+        **Permissão do Service Account:** `products.update`'
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        description: ID do item (`_id` devolvido ao vincular).
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: number
+                  description: Quantidade.
+                unitPrice:
+                  type: number
+                  description: Preço unitário.
+                discount:
+                  type: number
+                  description: Desconto em valor.
+            example:
+              quantity: 3
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductItem'
+              example:
+                _id: 507f1f77bcf86cd799439170
+                product: 507f1f77bcf86cd799439150
+                pricebookEntry: 507f1f77bcf86cd799439160
+                category: CATALOG
+                quantity: 3
+                unitPrice: 1200
+                discount: 100
+                totalPrice: 3500
+                deal: 507f1f77bcf86cd799439015
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Itens de produto
+      operationId: removeProductItem
+      summary: Remover item
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        description: ID do item (`_id` devolvido ao vincular).
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Item removido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductItem'
+              example:
+                _id: 507f1f77bcf86cd799439170
+                product: 507f1f77bcf86cd799439150
+                pricebookEntry: 507f1f77bcf86cd799439160
+                category: CATALOG
+                quantity: 2
+                unitPrice: 1200
+                discount: 100
+                totalPrice: 2300
+                deal: 507f1f77bcf86cd799439015
+                active: false
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `products.delete`'
 components:
   securitySchemes:
     ServiceAccount:
@@ -6923,7 +8136,7 @@ components:
           type: string
           pattern: ^[a-fA-F0-9]{24}$
           example: 507f1f77bcf86cd799439011
-          description: ID da área de trabalho que recebe o ticket (de `GET /api/workspaces`). Se omitido, a API escolhe a área padrão de tickets.
+          description: ID da área de trabalho que recebe o ticket (de `GET /api/workspaces`).
         contact:
           type: string
           pattern: ^[a-fA-F0-9]{24}$
@@ -6968,6 +8181,7 @@ components:
       - type: object
         required:
         - subject
+        - workspaceReceiver
     Ticket:
       type: object
       description: Ticket. Além dos campos abaixo, a resposta traz os demais dados do registro.
@@ -6994,27 +8208,70 @@ components:
           - urgent
           description: Prioridade.
         status:
-          description: Situação atual. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+          type: object
+          description: Situação atual.
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            name:
+              type: string
+              description: Nome.
+            slug:
+              type: string
+              description: Chave.
+            category:
+              type: string
+              description: Categoria.
+              example: waiting
+        statusChangedAt:
+          type: string
+          format: date-time
+          description: Última troca de situação.
+          example: '2026-05-15T14:00:00Z'
         sender:
-          description: Quem abriu o ticket. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+          description: Quem abriu o ticket.
+          allOf:
+          - $ref: '#/components/schemas/StaffSummary'
         receiver:
-          description: Responsável pelo atendimento. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+          description: Responsável pelo atendimento. Ausente até alguém assumir.
+          allOf:
+          - $ref: '#/components/schemas/StaffSummary'
         workspaceReceiver:
-          description: Área de trabalho que recebeu o ticket. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+          type: object
+          description: Área de trabalho que recebeu o ticket.
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            name:
+              type: string
+              description: Nome.
         contact:
-          description: Contato vinculado. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
-        organization:
-          description: Empresa vinculada. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
-        deal:
-          description: Oportunidade vinculada. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
-        tags:
+          $ref: '#/components/schemas/ContactSummary'
+        participants:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/StaffSummary'
+        observers:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffSummary'
+        labels:
+          type: array
+          items:
+            type: object
         customFields:
           type: array
           items:
             $ref: '#/components/schemas/CustomFieldValue'
+        startAt:
+          type: string
+          format: date-time
+          description: Quando o atendimento foi iniciado.
+          example: '2026-05-15T14:00:00Z'
         finishedAt:
           type: string
           format: date-time
@@ -7041,6 +8298,11 @@ components:
           type: string
           pattern: ^[a-fA-F0-9]{24}$
           example: 507f1f77bcf86cd799439011
+        ticket:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do ticket.
         type:
           type: string
           description: Tipo da mensagem.
@@ -7051,6 +8313,17 @@ components:
         internal:
           type: boolean
           description: '`true` em nota interna, que o contato não vê.'
+        source:
+          type: string
+          description: 'Quem escreveu: `staff` para usuários.'
+          example: staff
+        owner:
+          description: Autor.
+          allOf:
+          - $ref: '#/components/schemas/StaffSummary'
+        timestamp:
+          type: integer
+          description: Momento do envio, em milissegundos.
         createdAt:
           type: string
           format: date-time
@@ -7157,6 +8430,9 @@ components:
           type: string
           pattern: ^[a-fA-F0-9]{24}$
           example: 507f1f77bcf86cd799439011
+        code:
+          type: integer
+          description: Número sequencial do atendimento na conta.
         subject:
           type: string
           description: Assunto.
@@ -7164,11 +8440,18 @@ components:
           type: string
           description: O que foi tratado.
         type:
-          description: Tipo de atendimento. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+          description: Tipo de atendimento.
+          allOf:
+          - $ref: '#/components/schemas/TreatmentType'
         staff:
-          description: Usuário que registrou. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+          description: Usuário que registrou.
+          allOf:
+          - $ref: '#/components/schemas/StaffSummary'
+        done:
+          type: boolean
+          description: Atendimento concluído.
         contact:
-          description: Contato atendido. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+          $ref: '#/components/schemas/ContactSummary'
         organization:
           description: Empresa vinculada. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
         deal:
@@ -7465,3 +8748,304 @@ components:
                 type: string
                 description: Nome do grupo.
           description: Eventos do grupo.
+    ProductInput:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Nome do produto.
+          example: Plano Enterprise
+        code:
+          type: string
+          description: Código interno (SKU).
+          example: ENT-001
+        description:
+          type: string
+          description: Descrição.
+        family:
+          type: string
+          description: Família do produto.
+        type:
+          type: string
+          enum:
+          - ONE_TIME
+          - RECURRING
+          description: '`ONE_TIME`: venda única. `RECURRING`: assinatura. Padrão: `ONE_TIME`.'
+        category:
+          type: string
+          enum:
+          - CATALOG
+          - PORTFOLIO
+          description: '`CATALOG`: produto com preço, vendido em oportunidades. `PORTFOLIO`: produto de carteira, sem preço. Padrão: `CATALOG`.'
+        price:
+          type: number
+          description: Preço base.
+          example: 1200
+        unitOfMeasure:
+          type: string
+          description: Unidade de medida.
+        recurring:
+          type: object
+          description: Para `RECURRING`.
+          properties:
+            frequency:
+              type: string
+              description: Periodicidade.
+            interval:
+              type: integer
+              description: A cada quantos períodos.
+        inventoryControl:
+          type: object
+          description: Controle de estoque.
+          properties:
+            enabled:
+              type: boolean
+            allowNegative:
+              type: boolean
+            lowStockThreshold:
+              type: number
+            trackQuantity:
+              type: boolean
+        stockQuantity:
+          type: number
+          description: Quantidade em estoque.
+        attributes:
+          type: object
+          description: Atributos livres.
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+          description: Campos personalizados.
+        active:
+          type: boolean
+          description: 'Padrão: `true`.'
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          description: Nome do produto.
+          example: Plano Enterprise
+        code:
+          type: string
+          description: Código interno (SKU).
+          example: ENT-001
+        description:
+          type: string
+          description: Descrição.
+        family:
+          type: string
+          description: Família do produto.
+        type:
+          type: string
+          enum:
+          - ONE_TIME
+          - RECURRING
+          description: '`ONE_TIME`: venda única. `RECURRING`: assinatura. Padrão: `ONE_TIME`.'
+        category:
+          type: string
+          enum:
+          - CATALOG
+          - PORTFOLIO
+          description: '`CATALOG`: produto com preço, vendido em oportunidades. `PORTFOLIO`: produto de carteira, sem preço. Padrão: `CATALOG`.'
+        price:
+          type: number
+          description: Preço base.
+          example: 1200
+        unitOfMeasure:
+          type: string
+          description: Unidade de medida.
+        recurring:
+          type: object
+          description: Para `RECURRING`.
+          properties:
+            frequency:
+              type: string
+              description: Periodicidade.
+            interval:
+              type: integer
+              description: A cada quantos períodos.
+        inventoryControl:
+          type: object
+          description: Controle de estoque.
+          properties:
+            enabled:
+              type: boolean
+            allowNegative:
+              type: boolean
+            lowStockThreshold:
+              type: number
+            trackQuantity:
+              type: boolean
+        stockQuantity:
+          type: number
+          description: Quantidade em estoque.
+        attributes:
+          type: object
+          description: Atributos livres.
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+          description: Campos personalizados.
+        active:
+          type: boolean
+          description: 'Padrão: `true`.'
+        createdBy:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Quem criou.
+        updatedBy:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Quem alterou por último.
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    PricebookEntry:
+      type: object
+      description: Preço de um produto numa tabela.
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        product:
+          description: 'Produto: ID ao gravar; objeto ao listar os produtos da tabela.'
+        pricebook:
+          description: 'Tabela de preço: ID, ou objeto ao listar as tabelas de um produto.'
+        price:
+          type: number
+          description: Preço nesta tabela.
+          example: 1100
+        currency:
+          type: string
+          description: Moeda.
+          example: BRL
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    PricebookInput:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: Nome da tabela.
+          example: Parceiros
+        description:
+          type: string
+          description: Descrição.
+        isStandard:
+          type: boolean
+          description: 'Tabela padrão da conta: usada quando o item não informa outra.'
+        active:
+          type: boolean
+          description: 'Padrão: `true`.'
+    Pricebook:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          description: Nome da tabela.
+          example: Parceiros
+        description:
+          type: string
+          description: Descrição.
+        isStandard:
+          type: boolean
+          description: 'Tabela padrão da conta: usada quando o item não informa outra.'
+        active:
+          type: boolean
+          description: 'Padrão: `true`.'
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    ProductItem:
+      type: object
+      description: Produto vinculado a um registro, com quantidade e preço.
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        product:
+          description: 'Produto: ID na gravação, objeto nas listagens.'
+        pricebookEntry:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Preço de tabela usado.
+        category:
+          type: string
+          enum:
+          - CATALOG
+          - PORTFOLIO
+          description: '`CATALOG`: produto com preço, vendido em oportunidades. `PORTFOLIO`: produto de carteira, sem preço. Padrão: `CATALOG`.'
+        quantity:
+          type: number
+          description: Quantidade.
+          example: 2
+        unitPrice:
+          type: number
+          description: Preço unitário.
+          example: 1200
+        discount:
+          type: number
+          description: Desconto em valor.
+          example: 100
+        totalPrice:
+          type: number
+          description: '`unitPrice × quantity − discount`.'
+          example: 2300
+        deal:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Oportunidade, quando o item é de uma.
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
