@@ -61,6 +61,8 @@ Cada método devolve a resposta do [axios](https://axios-http.com): o corpo est�
 | `crm.organizations` | Empresas |
 | `crm.deals` | Oportunidades |
 | `crm.pipelines` | Pipelines, etapas e motivos de perda |
+| `crm.products`, `crm.pricebooks` | Produtos e tabelas de preço |
+| `crm.productItems` | Produtos vinculados a oportunidades, contatos e empresas |
 | `crm.journeys` | Jornadas (leitura) |
 | `crm.meetings` | Reuniões, tipos e salas |
 | `crm.tasks`, `crm.taskTypes` | Tarefas e tipos de tarefa |
