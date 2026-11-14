@@ -1,0 +1,28 @@
+{
+  "name": "@magnetcustomer/sdk",
+  "version": "2.0.0",
+  "description": "SDK oficial da API da Magnet Customer para Node.js",
+  "author": "Magnet Customer <suporte@magnetcustomer.com>",
+  "homepage": "https://magnetcustomer.com/developers/sdks",
+  "repository": { "type": "git", "url": "git+https://github.com/magnetcustomer/sdk-node.git" },
+  "bugs": { "url": "https://github.com/magnetcustomer/sdk-node/issues" },
+  "keywords": ["magnetcustomer", "crm", "sdk", "api", "typescript"],
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "README.md", "LICENSE"],
+  "engines": { "node": ">=18" },
+  "sideEffects": false,
+  "scripts": {
+    "generate": "python3 scripts/prepare_spec.py openapi.yaml .sdk-spec.yaml && openapi-generator-cli generate -i .sdk-spec.yaml -g typescript-axios -o src/generated --additional-properties=supportsES6=true,withSeparateModelsAndApi=true,apiPackage=api,modelPackage=models,useSingleRequestParameter=true,enumPropertyNaming=original && rm -rf src/generated/docs src/generated/git_push.sh src/generated/.gitignore src/generated/.npmignore .sdk-spec.yaml",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "test": "tsc -p tsconfig.json && node --test dist-test/test/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": { "axios": "^1.13.5" },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "2.25.2",
+    "@types/node": "^20.17.0",
+    "typescript": "^5.6.0"
+  }
+}

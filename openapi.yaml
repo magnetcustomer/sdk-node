@@ -1,0 +1,5544 @@
+openapi: 3.0.3
+info:
+  title: API da Magnet Customer
+  version: 2026-11
+  description: "A API REST da Magnet Customer permite ler e gravar os registros do CRM a partir dos seus sistemas.\n\n# Comece aqui\n\n## 1. Crie\
+    \ um Service Account\n\nNo CRM, abra **Configurações › Service Accounts** (apenas administradores), clique em **Novo service account**, escolha\
+    \ a validade e as permissões, e copie o **Client ID** e o **Client Secret**. O secret aparece uma única vez.\n\n## 2. Solicite um token\n\n\
+    ```bash\ncurl -X POST https://magnetcustomer.net/realms/platform/protocol/openid-connect/token \\\n  -H \"Content-Type: application/x-www-form-urlencoded\"\
+    \ \\\n  -d \"grant_type=client_credentials\" \\\n  -d \"client_id=SEU_CLIENT_ID\" \\\n  -d \"client_secret=SEU_CLIENT_SECRET\"\n```\n\n```json\n\
+    { \"access_token\": \"eyJhbGciOiJSUzI1NiIs...\", \"expires_in\": 900, \"token_type\": \"Bearer\" }\n```\n\nO token vale 15 minutos e este\
+    \ fluxo não tem refresh token: quando vencer, ou ao receber `401`, repita o pedido.\n\n## 3. Chame a API\n\nCada conta tem o seu endereço.\
+    \ Troque `sua-conta` pelo subdomínio que você usa para abrir o CRM:\n\n```bash\ncurl \"https://sua-conta.platform-api.magnetcustomer.com/api/deals?page=1&limit=15\"\
+    \ \\\n  -H \"Authorization: Bearer SEU_TOKEN\"\n```\n\nRequisições com corpo levam também `Content-Type: application/json`.\n\n# Convenções\n\
+    \n## Paginação\n\nEnvie sempre `page`. Com ele, toda listagem devolve o mesmo envelope:\n\n```json\n{ \"docs\": [], \"total\": 132, \"pages\"\
+    : 9, \"page\": 1, \"limit\": 15 }\n```\n\n| Parâmetro | Padrão | Descrição |\n|---|---|---|\n| `page` | — | Página, a partir de 1. **Obrigatório\
+    \ na prática** |\n| `limit` | 15 | Registros por página. Máximo 100: acima disso a API usa 100 |\n| `sortBy` | varia por recurso | Campo de\
+    \ ordenação |\n| `sortType` | `desc` | `asc` ou `desc` |\n| `search` | — | Busca textual, quando o recurso aceita |\n\nSem `page`, a maioria\
+    \ das listagens devolve uma lista simples (`[...]`), sem o envelope, e ignora `limit`. Para percorrer tudo, peça `page=1` e avance até `page`\
+    \ ser igual a `pages`. Uma página além do fim devolve `docs` vazio.\n\nO tamanho de página padrão é 15, com duas exceções: 25 em Leads, Prospects\
+    \ e Clientes, e 100 em Usuários. Um `limit` inválido cai no padrão.\n\n## Identificadores e datas\n\nTodo ID é um texto de 24 caracteres hexadecimais,\
+    \ como `507f1f77bcf86cd799439011`. Ao gravar, envie a referência como **ID em texto** — nunca o objeto.\n\nUm ID fora desse formato hoje é\
+    \ respondido com `500`, não `400`: valide o formato antes de enviar.\n\nNo corpo e nas respostas, datas são ISO 8601 em UTC, como `2026-05-15T10:00:00Z`.\
+    \ Nos filtros de data da URL (`minDate`, `dateOfExpires_minDate`...), o valor é um **timestamp em milissegundos**, como `1798761600000`; uma\
+    \ data ISO ali não filtra o que você espera.\n\n## Campos ausentes\n\nCampo sem valor costuma vir **ausente** da resposta, não como `null`.\
+    \ Trate a falta da chave como vazio.\n\n## Campos personalizados\n\nOs campos criados pelo administrador da conta vão na lista `customFields`:\n\
+    \n```json\n{ \"customFields\": [ { \"customField\": \"507f1f77bcf86cd799439014\", \"k\": \"segmento\", \"v\": \"Tecnologia\" } ] }\n```\n\n\
+    O valor vai em **`v`**. Um item com `value` é aceito sem erro, mas o campo fica vazio. Descubra os campos e os IDs com `GET /api/customfields?page=1&feature=deal`\
+    \ (troque `deal` por `meeting`, `task`, `contact`...). Com `&required=true` vêm só os obrigatórios da conta.\n\n## Erros\n\n```json\n{\n \
+    \ \"reason\": \"Missing required parameters\",\n  \"message\": \"Missing required parameters\",\n  \"code\": \"VALIDATION_ERROR\",\n  \"errors\"\
+    : [ { \"field\": \"title\", \"message\": \"must NOT have fewer than 1 characters\", \"keyword\": \"minLength\" } ]\n}\n```\n\n| Status | Quando\
+    \ |\n|---|---|\n| `400` | Corpo inválido: campo obrigatório ausente, tipo errado, valor fora da lista |\n| `401` | Token ausente, inválido\
+    \ ou vencido. Corpo: `{\"reason\": \"Access Denied\"}` |\n| `403` | O Service Account não tem a permissão da rota (`type: SA_PERMISSION_DENIED`,\
+    \ com `requiredPermission`) ou a rota exige administrador (`type: ADMIN_REQUIRED`) |\n| `404` | Registro não encontrado |\n| `409` | O registro\
+    \ não está no estado que a operação exige |\n| `429` | Limite de requisições excedido. Espere o tempo de `Retry-After` |\n\n## Limite de requisições\n\
+    \nOs limites são aplicados por conta. Ao receber `429`, espere os segundos indicados em `Retry-After` e tente de novo com intervalo crescente.\n\
+    \n## Área de trabalho\n\nEm contas com áreas de trabalho, a API define a área do registro pela credencial ou pelo registro pai. Não envie\
+    \ `workspace`.\n\n# Cobertura\n\nEsta referência cobre Contatos (leads, prospects e clientes), Empresas, Oportunidades, Pipelines e etapas,\
+    \ Reuniões, Tarefas, Observações, Usuários e Campos personalizados. Tickets, Atendimentos e Webhooks entram nas próximas revisões.\n"
+  contact:
+    name: Suporte Magnet Customer
+    email: suporte@magnetcustomer.com
+servers:
+- url: https://{conta}.platform-api.magnetcustomer.com
+  description: API da sua conta
+  variables:
+    conta:
+      default: sua-conta
+      description: Subdomínio da sua conta — o mesmo que você usa para abrir o CRM.
+security:
+- ServiceAccount: []
+tags:
+- name: Contatos
+  description: 'Pessoas em qualquer fase: lead, prospect ou cliente.'
+- name: Leads
+  description: Contatos na fase `lead`. Mesmos campos de Contatos.
+- name: Prospects
+  description: Contatos na fase `prospect`. Mesmos campos de Contatos.
+- name: Clientes
+  description: Contatos na fase `customer`. Mesmos campos de Contatos.
+- name: Empresas
+  description: Organizações às quais os contatos pertencem.
+- name: Oportunidades
+  description: 'Negócios em andamento: pipeline, etapa, responsável, valor e fechamento.'
+- name: Pipelines e etapas
+  description: Consulta dos pipelines e das etapas, para criar e mover oportunidades.
+- name: Reuniões
+  description: Compromissos com contato, empresa ou oportunidade.
+- name: Tarefas
+  description: Atividades com responsável, tipo e vencimento.
+- name: Tipos de tarefa
+  description: Cadastro dos tipos usados no campo `type` das tarefas.
+- name: Observações
+  description: Anotações em contatos, empresas, oportunidades e produtos, com menção a usuários.
+- name: Usuários
+  description: Consulta dos usuários da conta, para preencher responsáveis e participantes.
+- name: Campos personalizados
+  description: 'Consulta dos campos da conta: IDs, chaves e quais são obrigatórios.'
+x-tagGroups:
+- name: Cadastros
+  tags:
+  - Contatos
+  - Leads
+  - Prospects
+  - Clientes
+  - Empresas
+- name: Vendas
+  tags:
+  - Oportunidades
+  - Pipelines e etapas
+- name: Atividades
+  tags:
+  - Reuniões
+  - Tarefas
+  - Tipos de tarefa
+  - Observações
+- name: Configuração da conta
+  tags:
+  - Usuários
+  - Campos personalizados
+paths:
+  /api/deals:
+    get:
+      tags:
+      - Oportunidades
+      operationId: listDeals
+      summary: Listar oportunidades
+      description: 'Ordenação padrão: `createdAt` decrescente.'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: pipeline
+        in: query
+        description: ID do pipeline.
+        schema:
+          type: string
+      - name: stage
+        in: query
+        description: ID da etapa.
+        schema:
+          type: string
+      - name: contact
+        in: query
+        description: ID do contato.
+        schema:
+          type: string
+      - name: organization
+        in: query
+        description: ID da empresa.
+        schema:
+          type: string
+      - name: staffs
+        in: query
+        description: 'Usuários: busca em responsável, participantes e observadores. Repita o parâmetro para enviar vários (`?staffs=id1&staffs=id2`).'
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: contacts
+        in: query
+        description: Vários contatos. Repita o parâmetro para enviar vários (`?contacts=id1&contacts=id2`).
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: minDate
+        in: query
+        description: Fechamento previsto (`expectedCloseDate`) a partir de. Timestamp em milissegundos, não data ISO.
+        schema:
+          type: integer
+          example: 1798761600000
+      - name: maxDate
+        in: query
+        description: Fechamento previsto até. Timestamp em milissegundos.
+        schema:
+          type: integer
+      - name: search
+        in: query
+        description: Busca em título, nome e e-mail do contato.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Deal'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439015
+                  code: 39
+                  title: Implantação CRM Enterprise
+                  amount: 75000
+                  expectedCloseDate: '2026-06-30T23:59:59Z'
+                  won: false
+                  lost: false
+                  closed: false
+                  closedDate: null
+                  enteredStageDate: '2026-04-28T10:30:00Z'
+                  source: platform
+                  active: true
+                  pipeline: 507f1f77bcf86cd799439011
+                  stage:
+                    _id: 507f191e810c19729de860ea
+                    name: Prospecção
+                    position: 0
+                    won: false
+                    lost: false
+                  staff:
+                    _id: 507f191e810c19729de860eb
+                    fullname: João Silva
+                    email: joao@acme.com
+                  contact:
+                    _id: 507f1f77bcf86cd799439012
+                    fullname: Maria Santos
+                    lifeCycle: customer
+                    owners:
+                    - 507f191e810c19729de860eb
+                  participants: []
+                  observers: []
+                  labels: []
+                  customFields:
+                  - customField: 507f1f77bcf86cd799439014
+                    k: segmento
+                    v: Tecnologia
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 132
+                pages: 9
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Oportunidades
+      operationId: createDeal
+      summary: Criar oportunidade
+      description: 'Se `staff` não for enviado, a API usa o usuário da credencial.
+
+
+        A criação é idempotente por 5 minutos: reenviar o mesmo corpo não duplica o registro. Para controlar a chave, envie o cabeçalho `Idempotency-Key`.'
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DealCreate'
+            example:
+              title: Implantação CRM Enterprise
+              pipeline: 507f1f77bcf86cd799439011
+              stage: 507f191e810c19729de860ea
+              staff: 507f191e810c19729de860eb
+              amount: 75000
+              contact: 507f1f77bcf86cd799439012
+              expectedCloseDate: '2026-06-30T23:59:59Z'
+              customFields:
+              - customField: 507f1f77bcf86cd799439014
+                k: segmento
+                v: Tecnologia
+      responses:
+        '201':
+          description: Oportunidade criada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deal'
+              example:
+                _id: 507f1f77bcf86cd799439015
+                code: 39
+                title: Implantação CRM Enterprise
+                amount: 75000
+                expectedCloseDate: '2026-06-30T23:59:59Z'
+                won: false
+                lost: false
+                closed: false
+                closedDate: null
+                enteredStageDate: '2026-04-28T10:30:00Z'
+                source: platform
+                active: true
+                pipeline: 507f1f77bcf86cd799439011
+                stage:
+                  _id: 507f191e810c19729de860ea
+                  name: Prospecção
+                  position: 0
+                  won: false
+                  lost: false
+                staff:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  email: joao@acme.com
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                  lifeCycle: customer
+                  owners:
+                  - 507f191e810c19729de860eb
+                participants: []
+                observers: []
+                labels: []
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/deals/{id}:
+    get:
+      tags:
+      - Oportunidades
+      operationId: getDeal
+      summary: Obter oportunidade
+      description: No detalhe, `pipeline` vem como objeto (`_id`, `title`) e `contact` vem com o cadastro completo.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deal'
+              example:
+                _id: 507f1f77bcf86cd799439015
+                code: 39
+                title: Implantação CRM Enterprise
+                amount: 75000
+                expectedCloseDate: '2026-06-30T23:59:59Z'
+                won: false
+                lost: false
+                closed: false
+                closedDate: null
+                enteredStageDate: '2026-04-28T10:30:00Z'
+                source: platform
+                active: true
+                pipeline:
+                  _id: 507f1f77bcf86cd799439011
+                  title: Comercial
+                stage:
+                  _id: 507f191e810c19729de860ea
+                  name: Prospecção
+                staff:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  email: joao@acme.com
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                  lifeCycle: customer
+                  owners:
+                  - 507f191e810c19729de860eb
+                participants: []
+                observers: []
+                labels: []
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Oportunidades
+      operationId: updateDeal
+      summary: Atualizar oportunidade
+      description: Envie só os campos que mudam.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DealInput'
+            example:
+              amount: 90000
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deal'
+              example:
+                _id: 507f1f77bcf86cd799439015
+                code: 39
+                title: Implantação CRM Enterprise
+                amount: 90000
+                expectedCloseDate: '2026-06-30T23:59:59Z'
+                won: false
+                lost: false
+                closed: false
+                closedDate: null
+                enteredStageDate: '2026-04-28T10:30:00Z'
+                source: platform
+                active: true
+                pipeline: 507f1f77bcf86cd799439011
+                stage:
+                  _id: 507f191e810c19729de860ea
+                  name: Prospecção
+                  position: 0
+                  won: false
+                  lost: false
+                staff:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  email: joao@acme.com
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                  lifeCycle: customer
+                  owners:
+                  - 507f191e810c19729de860eb
+                participants: []
+                observers: []
+                labels: []
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Oportunidades
+      operationId: deleteDeal
+      summary: Excluir oportunidade
+      description: 'Exclusão lógica (`active: false`). Responde `400` com `code: DEAL_HAS_LINKED_JOURNEYS` se houver jornadas ativas vinculadas.'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Oportunidade excluída.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deal'
+              example:
+                _id: 507f1f77bcf86cd799439015
+                code: 39
+                title: Implantação CRM Enterprise
+                amount: 75000
+                expectedCloseDate: '2026-06-30T23:59:59Z'
+                won: false
+                lost: false
+                closed: false
+                closedDate: null
+                enteredStageDate: '2026-04-28T10:30:00Z'
+                source: platform
+                active: false
+                pipeline: 507f1f77bcf86cd799439011
+                stage:
+                  _id: 507f191e810c19729de860ea
+                  name: Prospecção
+                  position: 0
+                  won: false
+                  lost: false
+                staff:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  email: joao@acme.com
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                  lifeCycle: customer
+                  owners:
+                  - 507f191e810c19729de860eb
+                participants: []
+                observers: []
+                labels: []
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '204':
+          description: A oportunidade não existe ou já estava excluída.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/deals/{id}/stage:
+    patch:
+      tags:
+      - Oportunidades
+      operationId: moveDealStage
+      summary: Mover de etapa
+      description: A resposta vem em um envelope com `deal` e `oldStageId`, não a oportunidade direta.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - stageId
+              properties:
+                stageId:
+                  type: string
+                  pattern: ^[a-fA-F0-9]{24}$
+                  example: 507f1f77bcf86cd799439011
+                  description: ID da nova etapa.
+                enteredStageDate:
+                  type: string
+                  format: date-time
+                  description: 'Quando entrou na etapa. Padrão: agora.'
+                  example: '2026-05-15T14:00:00Z'
+            example:
+              stageId: 507f191e810c19729de860ef
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deal:
+                    $ref: '#/components/schemas/Deal'
+                  oldStageId:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                    description: Etapa anterior.
+              example:
+                deal:
+                  _id: 507f1f77bcf86cd799439015
+                  stage: 507f191e810c19729de860ef
+                oldStageId: 507f191e810c19729de860ea
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/deals/{id}/close:
+    put:
+      tags:
+      - Oportunidades
+      operationId: closeDeal
+      summary: Fechar como ganha ou perdida
+      description: 'Envie `won: true` para ganha, ou `lost: true` com `lostReason` para perdida.'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                won:
+                  type: boolean
+                  description: Marca como ganha.
+                lost:
+                  type: boolean
+                  description: Marca como perdida.
+                lostReason:
+                  type: string
+                  pattern: ^[a-fA-F0-9]{24}$
+                  example: 507f1f77bcf86cd799439011
+                  description: Motivo da perda, configurado no pipeline.
+            example:
+              lost: true
+              lostReason: 507f1f77bcf86cd799439016
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deal'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/deals/{id}/reopen:
+    put:
+      tags:
+      - Oportunidades
+      operationId: reopenDeal
+      summary: Reabrir oportunidade
+      description: Reabre uma oportunidade ganha ou perdida. Responde `409` se ela não estiver fechada.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pipeline:
+                  type: string
+                  pattern: ^[a-fA-F0-9]{24}$
+                  example: 507f1f77bcf86cd799439011
+                  description: 'Opcional: move para outro pipeline ao reabrir.'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deal'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/deals/{id}/validate:
+    get:
+      tags:
+      - Oportunidades
+      operationId: validateDeal
+      summary: Validar pendências antes de fechar
+      description: Diz se a oportunidade tem ações ou campos obrigatórios pendentes. Cada lista traz o que falta; vazia quando não falta nada.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  validation:
+                    type: boolean
+                    description: '`true` quando não há pendência.'
+                  requiredActionsPending:
+                    type: object
+                    properties:
+                      validation:
+                        type: boolean
+                      task:
+                        type: array
+                        items:
+                          type: object
+                        description: Tarefas exigidas pela etapa.
+                      meeting:
+                        type: array
+                        items:
+                          type: object
+                        description: Reuniões exigidas pela etapa.
+                      ticket:
+                        type: array
+                        items:
+                          type: object
+                        description: Tickets exigidos pela etapa.
+                  requiredFieldPending:
+                    type: object
+                    properties:
+                      validation:
+                        type: boolean
+                      contact:
+                        type: array
+                        items:
+                          type: object
+                        description: Campos do contato que faltam.
+                      deal:
+                        type: array
+                        items:
+                          type: object
+                        description: Campos da oportunidade que faltam.
+              example:
+                requiredActionsPending:
+                  task: []
+                  meeting: []
+                  ticket: []
+                  validation: true
+                requiredFieldPending:
+                  contact: []
+                  deal: []
+                  validation: true
+                validation: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/deals/{id}/stage-history:
+    get:
+      tags:
+      - Oportunidades
+      operationId: getDealStageHistory
+      summary: Histórico de etapas
+      description: Uma entrada por passagem em etapa, com a duração de cada uma e os totais.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dealId:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                          pattern: ^[a-fA-F0-9]{24}$
+                          example: 507f1f77bcf86cd799439011
+                        stage:
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              pattern: ^[a-fA-F0-9]{24}$
+                              example: 507f1f77bcf86cd799439011
+                            name:
+                              type: string
+                            position:
+                              type: integer
+                            probability:
+                              type: number
+                        staff:
+                          type: string
+                          pattern: ^[a-fA-F0-9]{24}$
+                          example: 507f1f77bcf86cd799439011
+                          description: Quem moveu.
+                        startDate:
+                          type: string
+                          format: date-time
+                          description: Entrada na etapa.
+                          example: '2026-05-15T14:00:00Z'
+                        closingDate:
+                          type: string
+                          format: date-time
+                          description: Saída da etapa. Ausente na etapa atual.
+                          example: '2026-05-15T14:00:00Z'
+                        open:
+                          type: boolean
+                          description: Etapa atual.
+                        durationMs:
+                          type: integer
+                          description: Tempo na etapa, em milissegundos.
+                  totals:
+                    type: object
+                    properties:
+                      totalDurationMs:
+                        type: integer
+                      openStages:
+                        type: integer
+              example:
+                dealId: 507f1f77bcf86cd799439015
+                history:
+                - _id: 507f1f77bcf86cd799439070
+                  stage:
+                    _id: 507f191e810c19729de860ea
+                    name: Prospecção
+                    position: 0
+                    probability: 10
+                  staff: 507f191e810c19729de860eb
+                  startDate: '2026-04-28T10:00:00Z'
+                  closingDate: '2026-04-29T15:10:00Z'
+                  open: false
+                  durationMs: 105000000
+                totals:
+                  totalDurationMs: 105000000
+                  openStages: 0
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/meetings:
+    get:
+      tags:
+      - Reuniões
+      operationId: listMeetings
+      summary: Listar reuniões
+      description: 'Ordenação padrão: `start` decrescente.'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: staff
+        in: query
+        description: ID do organizador.
+        schema:
+          type: string
+      - name: staffs
+        in: query
+        description: 'Usuários: busca em organizador, participantes e observadores. Repita o parâmetro para enviar vários (`?staffs=id1&staffs=id2`).'
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: type
+        in: query
+        description: ID do tipo de reunião.
+        schema:
+          type: string
+      - name: room
+        in: query
+        description: ID da sala.
+        schema:
+          type: string
+      - name: contact
+        in: query
+        description: ID do contato.
+        schema:
+          type: string
+      - name: deal
+        in: query
+        description: ID da oportunidade.
+        schema:
+          type: string
+      - name: organization
+        in: query
+        description: ID da empresa.
+        schema:
+          type: string
+      - name: priority
+        in: query
+        description: Prioridade.
+        schema:
+          type: string
+          enum:
+          - p1
+          - p2
+          - p3
+          - p4
+          description: Prioridade.
+      - name: status
+        in: query
+        description: Situação.
+        schema:
+          type: string
+          enum:
+          - pending
+          - cancelled
+          - finished
+          - no-show
+          description: 'Padrão: `pending`. Com `finished`, `cancelled` ou `no-show`, a API preenche `dateFinished`.'
+      - name: labels
+        in: query
+        description: Etiquetas. Repita o parâmetro para enviar vários (`?labels=id1&labels=id2`).
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: start_minDate
+        in: query
+        description: Início a partir de (timestamp em ms ou data ISO).
+        schema:
+          type: string
+      - name: start_maxDate
+        in: query
+        description: Início até (timestamp em ms ou data ISO).
+        schema:
+          type: string
+      - name: createdAt_minDate
+        in: query
+        description: Criada a partir de (timestamp em milissegundos).
+        schema:
+          type: integer
+      - name: createdAt_maxDate
+        in: query
+        description: Criada até (timestamp em milissegundos).
+        schema:
+          type: integer
+      - name: visualization
+        in: query
+        description: Atalho de período.
+        schema:
+          type: string
+          enum:
+          - all
+          - dueDateToday
+          - dueDateWeek
+          - nextWeek
+          - finished
+      - name: search
+        in: query
+        description: Busca em título, descrição, contato, empresa, oportunidade e organizador.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Meeting'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439030
+                  title: Apresentação da proposta — Acme
+                  description: Demonstração técnica e comercial
+                  start: '2026-05-15T14:00:00Z'
+                  end: '2026-05-15T15:30:00Z'
+                  status: pending
+                  priority: p2
+                  active: true
+                  staff:
+                    _id: 507f191e810c19729de860eb
+                    fullname: João Silva
+                    name: João
+                    lastname: Silva
+                    email: joao@acme.com
+                  contact:
+                    _id: 507f1f77bcf86cd799439012
+                    fullname: Maria Santos
+                    lifeCycle: customer
+                  deal:
+                    _id: 507f1f77bcf86cd799439015
+                    title: Implantação CRM
+                    amount: 75000
+                  participants: []
+                  observers: []
+                  labels: []
+                  customFields: []
+                  createdAt: '2026-04-28T10:00:00Z'
+                  updatedAt: '2026-04-28T10:00:00Z'
+                total: 47
+                pages: 4
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Reuniões
+      operationId: createMeeting
+      summary: Criar reunião
+      description: 'Obrigatórios por padrão: `title` e `start`. `staff` e `calendar` são preenchidos pela API quando omitidos.
+
+
+        Os campos obrigatórios podem variar por conta: o administrador define quais campos de sistema são obrigatórios. `GET /api/customfields?feature=meeting&required=true`
+        devolve os campos obrigatórios da conta. Quando falta um deles, a API responde `400` com `code: MISSING_REQUIRED` e a lista em `fields`.
+
+
+        Referências (`staff`, `contact`, `deal`...) aceitam só o ID em texto. Enviar o objeto (`{"_id": "..."}`) devolve `400 VALIDATION_ERROR`.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeetingCreate'
+            example:
+              title: Apresentação da proposta — Acme
+              description: Demonstração técnica e comercial
+              start: '2026-05-15T14:00:00Z'
+              end: '2026-05-15T15:30:00Z'
+              staff: 507f191e810c19729de860eb
+              priority: p2
+              contact: 507f1f77bcf86cd799439012
+              deal: 507f1f77bcf86cd799439015
+              participants:
+              - 507f191e810c19729de860ec
+      responses:
+        '201':
+          description: Reunião criada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+              example:
+                _id: 507f1f77bcf86cd799439030
+                title: Apresentação da proposta — Acme
+                description: Demonstração técnica e comercial
+                start: '2026-05-15T14:00:00Z'
+                end: '2026-05-15T15:30:00Z'
+                status: pending
+                priority: p2
+                active: true
+                staff:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                  email: joao@acme.com
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                  lifeCycle: customer
+                deal:
+                  _id: 507f1f77bcf86cd799439015
+                  title: Implantação CRM
+                  amount: 75000
+                participants: []
+                observers: []
+                labels: []
+                customFields: []
+                createdAt: '2026-04-28T10:00:00Z'
+                updatedAt: '2026-04-28T10:00:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/meetings/{id}:
+    get:
+      tags:
+      - Reuniões
+      operationId: getMeeting
+      summary: Obter reunião
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+              example:
+                _id: 507f1f77bcf86cd799439030
+                title: Apresentação da proposta — Acme
+                description: Demonstração técnica e comercial
+                start: '2026-05-15T14:00:00Z'
+                end: '2026-05-15T15:30:00Z'
+                status: pending
+                priority: p2
+                active: true
+                staff:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                  email: joao@acme.com
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                  lifeCycle: customer
+                deal:
+                  _id: 507f1f77bcf86cd799439015
+                  title: Implantação CRM
+                  amount: 75000
+                participants: []
+                observers: []
+                labels: []
+                customFields: []
+                createdAt: '2026-04-28T10:00:00Z'
+                updatedAt: '2026-04-28T10:00:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Reuniões
+      operationId: replaceMeeting
+      summary: Substituir reunião
+      description: 'Substitui o registro: reenvie o objeto completo. Para alterar só alguns campos, use `PATCH`.'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeetingCreate'
+            example:
+              title: Apresentação da proposta — Acme
+              description: Demonstração técnica e comercial
+              start: '2026-05-15T14:00:00Z'
+              end: '2026-05-15T15:30:00Z'
+              staff: 507f191e810c19729de860eb
+              priority: p2
+              contact: 507f1f77bcf86cd799439012
+              deal: 507f1f77bcf86cd799439015
+              participants:
+              - 507f191e810c19729de860ec
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+              example:
+                _id: 507f1f77bcf86cd799439030
+                title: Apresentação da proposta — Acme
+                description: Demonstração técnica e comercial
+                start: '2026-05-15T14:00:00Z'
+                end: '2026-05-15T15:30:00Z'
+                status: pending
+                priority: p2
+                active: true
+                staff:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                  email: joao@acme.com
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                  lifeCycle: customer
+                deal:
+                  _id: 507f1f77bcf86cd799439015
+                  title: Implantação CRM
+                  amount: 75000
+                participants: []
+                observers: []
+                labels: []
+                customFields: []
+                createdAt: '2026-04-28T10:00:00Z'
+                updatedAt: '2026-04-28T10:00:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags:
+      - Reuniões
+      operationId: updateMeeting
+      summary: Atualizar reunião
+      description: 'Atualização parcial: envie só os campos que mudam.'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeetingInput'
+            example:
+              start: '2026-05-16T14:00:00Z'
+              end: '2026-05-16T15:30:00Z'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+              example:
+                _id: 507f1f77bcf86cd799439030
+                title: Apresentação da proposta — Acme
+                description: Demonstração técnica e comercial
+                start: '2026-05-15T14:00:00Z'
+                end: '2026-05-15T15:30:00Z'
+                status: pending
+                priority: p2
+                active: true
+                staff:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                  email: joao@acme.com
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                  lifeCycle: customer
+                deal:
+                  _id: 507f1f77bcf86cd799439015
+                  title: Implantação CRM
+                  amount: 75000
+                participants: []
+                observers: []
+                labels: []
+                customFields: []
+                createdAt: '2026-04-28T10:00:00Z'
+                updatedAt: '2026-04-28T10:00:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Reuniões
+      operationId: deleteMeeting
+      summary: Excluir reunião
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Reunião excluída.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/meetings/{id}/finish:
+    put:
+      tags:
+      - Reuniões
+      operationId: finishMeeting
+      summary: Concluir reunião
+      description: Marca como `finished` e registra `dateFinished`.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                dateFinished:
+                  type: string
+                  format: date-time
+                  description: 'Quando terminou. Padrão: agora.'
+                  example: '2026-05-15T14:00:00Z'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/meetings/selected/remove:
+    put:
+      tags:
+      - Reuniões
+      operationId: deleteMeetings
+      summary: Excluir várias reuniões
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - meetingList
+              properties:
+                meetingList:
+                  type: array
+                  items:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                  description: IDs das reuniões.
+            example:
+              meetingList:
+              - 507f1f77bcf86cd799439030
+              - 507f1f77bcf86cd799439031
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  removed:
+                    type: integer
+                    description: Quantas foram excluídas.
+                  blocked:
+                    type: integer
+                    description: Quantas não puderam ser excluídas.
+              example:
+                removed: 2
+                blocked: 0
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/tasks:
+    get:
+      tags:
+      - Tarefas
+      operationId: listTasks
+      summary: Listar tarefas
+      description: 'Ordenação padrão: `status` decrescente. Campos aceitos em `sortBy`: `title`, `dateOfExpires`, `createdAt`, `updatedAt`, `status`,
+        `priority`, `type`, `owner`, `dueDate`.'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: owner
+        in: query
+        description: ID do responsável.
+        schema:
+          type: string
+      - name: staffs
+        in: query
+        description: 'Usuários: busca em responsável, participantes e observadores. Repita o parâmetro para enviar vários (`?staffs=id1&staffs=id2`).'
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: type
+        in: query
+        description: ID do tipo.
+        schema:
+          type: string
+      - name: status
+        in: query
+        description: Situação.
+        schema:
+          type: string
+          enum:
+          - pending
+          - finished
+          description: 'Padrão: `pending`.'
+      - name: priority
+        in: query
+        description: Prioridade.
+        schema:
+          type: string
+          enum:
+          - p1
+          - p2
+          - p3
+          - p4
+          description: Prioridade.
+      - name: source
+        in: query
+        description: Origem.
+        schema:
+          type: string
+      - name: contact
+        in: query
+        description: ID do contato.
+        schema:
+          type: string
+      - name: deal
+        in: query
+        description: ID da oportunidade.
+        schema:
+          type: string
+      - name: organization
+        in: query
+        description: ID da empresa.
+        schema:
+          type: string
+      - name: dateOfExpires_minDate
+        in: query
+        description: Vencimento a partir de. Timestamp em milissegundos, não data ISO.
+        schema:
+          type: integer
+          example: 1798761600000
+      - name: dateOfExpires_maxDate
+        in: query
+        description: Vencimento até. Timestamp em milissegundos.
+        schema:
+          type: integer
+      - name: visualization
+        in: query
+        description: 'Atalho: `dueDate` traz as atrasadas.'
+        schema:
+          type: string
+          enum:
+          - all
+          - dueDateToday
+          - dueDate
+          - pending
+          - finished
+      - name: search
+        in: query
+        description: Busca em título, detalhes, responsável, contato e oportunidade.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Task'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439050
+                  code: 126
+                  title: Enviar proposta comercial
+                  dateOfExpires: '2026-05-15T17:00:00Z'
+                  status: pending
+                  priority: p2
+                  source: deal
+                  active: true
+                  type:
+                    _id: 507f1f77bcf86cd799439040
+                    name: Ligação
+                  owner:
+                    _id: 507f191e810c19729de860eb
+                    fullname: João Silva
+                    name: João
+                    lastname: Silva
+                    email: joao@acme.com
+                  deal:
+                    _id: 507f1f77bcf86cd799439015
+                    title: Implantação CRM
+                    amount: 75000
+                  participants: []
+                  observers: []
+                  customFields: []
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 89
+                pages: 6
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Tarefas
+      operationId: createTask
+      summary: Criar tarefa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+            example:
+              title: Enviar proposta comercial
+              dateOfExpires: '2026-05-15T17:00:00Z'
+              type: 507f1f77bcf86cd799439040
+              owner: 507f191e810c19729de860eb
+              priority: p2
+              source: deal
+              deal: 507f1f77bcf86cd799439015
+              estimatedMinutes: 60
+      responses:
+        '201':
+          description: Tarefa criada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              example:
+                _id: 507f1f77bcf86cd799439050
+                code: 126
+                title: Enviar proposta comercial
+                dateOfExpires: '2026-05-15T17:00:00Z'
+                status: pending
+                priority: p2
+                source: deal
+                active: true
+                type:
+                  _id: 507f1f77bcf86cd799439040
+                  name: Ligação
+                owner:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                  email: joao@acme.com
+                deal:
+                  _id: 507f1f77bcf86cd799439015
+                  title: Implantação CRM
+                  amount: 75000
+                participants: []
+                observers: []
+                customFields: []
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/tasks/{id}:
+    get:
+      tags:
+      - Tarefas
+      operationId: getTask
+      summary: Obter tarefa
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              example:
+                _id: 507f1f77bcf86cd799439050
+                code: 126
+                title: Enviar proposta comercial
+                dateOfExpires: '2026-05-15T17:00:00Z'
+                status: pending
+                priority: p2
+                source: deal
+                active: true
+                type:
+                  _id: 507f1f77bcf86cd799439040
+                  name: Ligação
+                owner:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                  email: joao@acme.com
+                deal:
+                  _id: 507f1f77bcf86cd799439015
+                  title: Implantação CRM
+                  amount: 75000
+                participants: []
+                observers: []
+                customFields: []
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Tarefas
+      operationId: updateTask
+      summary: Atualizar tarefa
+      description: Envie só os campos que mudam.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskInput'
+            example:
+              priority: p1
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              example:
+                _id: 507f1f77bcf86cd799439050
+                code: 126
+                title: Enviar proposta comercial
+                dateOfExpires: '2026-05-15T17:00:00Z'
+                status: pending
+                priority: p2
+                source: deal
+                active: true
+                type:
+                  _id: 507f1f77bcf86cd799439040
+                  name: Ligação
+                owner:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                  email: joao@acme.com
+                deal:
+                  _id: 507f1f77bcf86cd799439015
+                  title: Implantação CRM
+                  amount: 75000
+                participants: []
+                observers: []
+                customFields: []
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Tarefas
+      operationId: deleteTask
+      summary: Excluir tarefa
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Tarefa excluída.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/tasks/{id}/finish:
+    put:
+      tags:
+      - Tarefas
+      operationId: finishTask
+      summary: Concluir tarefa
+      description: Marca como `finished`. Sem corpo.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/tasks/selected/finish:
+    put:
+      tags:
+      - Tarefas
+      operationId: finishTasks
+      summary: Concluir várias tarefas
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - taskList
+              properties:
+                taskList:
+                  type: array
+                  items:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                  description: IDs das tarefas. Não pode ser vazio.
+            example:
+              taskList:
+              - 507f1f77bcf86cd799439050
+      responses:
+        '200':
+          description: Tarefas concluídas.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/tasks/selected/remove:
+    put:
+      tags:
+      - Tarefas
+      operationId: deleteTasks
+      summary: Excluir várias tarefas
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - taskList
+              properties:
+                taskList:
+                  type: array
+                  items:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                  description: IDs das tarefas. Não pode ser vazio.
+            example:
+              taskList:
+              - 507f1f77bcf86cd799439050
+      responses:
+        '200':
+          description: Tarefas excluídas.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/tasks/types:
+    get:
+      tags:
+      - Tipos de tarefa
+      operationId: listTaskTypes
+      summary: Listar tipos de tarefa
+      description: Sem `page`, devolve uma lista simples com todos os tipos. Com `page`, devolve o envelope paginado.
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - name: search
+        in: query
+        description: Busca no nome.
+        schema:
+          type: string
+      - name: active
+        in: query
+        description: Filtra por ativos.
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/TaskType'
+                - allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - type: object
+                    properties:
+                      docs:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TaskType'
+              example:
+              - _id: 507f1f77bcf86cd799439040
+                name: Ligação
+                slug: ligacao
+                active: true
+                default: false
+                defaultForNewTask: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Tipos de tarefa
+      operationId: createTaskType
+      summary: Criar tipo de tarefa
+      description: 'Não envie `slug`: ele é gerado a partir do nome.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+              - type: object
+                properties:
+                  name:
+                    type: string
+                    description: Nome do tipo.
+                  active:
+                    type: boolean
+                  default:
+                    type: boolean
+                    description: Tipo padrão da conta.
+                  defaultForNewTask:
+                    type: boolean
+                    description: Vem selecionado ao criar tarefa.
+              - type: object
+                required:
+                - name
+            example:
+              name: Ligação
+              defaultForNewTask: true
+      responses:
+        '201':
+          description: Tipo criado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskType'
+              example:
+                _id: 507f1f77bcf86cd799439040
+                name: Ligação
+                slug: ligacao
+                active: true
+                default: false
+                defaultForNewTask: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/tasks/types/{id}:
+    get:
+      tags:
+      - Tipos de tarefa
+      operationId: getTaskType
+      summary: Obter tipo de tarefa
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskType'
+              example:
+                _id: 507f1f77bcf86cd799439040
+                name: Ligação
+                slug: ligacao
+                active: true
+                default: false
+                defaultForNewTask: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Tipos de tarefa
+      operationId: updateTaskType
+      summary: Atualizar tipo de tarefa
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Nome do tipo.
+                active:
+                  type: boolean
+                default:
+                  type: boolean
+                  description: Tipo padrão da conta.
+                defaultForNewTask:
+                  type: boolean
+                  description: Vem selecionado ao criar tarefa.
+            example:
+              name: Ligação telefônica
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskType'
+              example:
+                _id: 507f1f77bcf86cd799439040
+                name: Ligação
+                slug: ligacao
+                active: true
+                default: false
+                defaultForNewTask: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Tipos de tarefa
+      operationId: deleteTaskType
+      summary: Excluir tipo de tarefa
+      description: Exclusão definitiva. As tarefas que usam o tipo continuam existindo, apontando para um tipo que não existe mais.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Tipo excluído.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/observations:
+    get:
+      tags:
+      - Observações
+      operationId: listObservations
+      summary: Listar observações
+      description: 'Devolve só as ativas. Ordenação padrão: `createdAt` decrescente.'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: deal
+        in: query
+        description: ID da oportunidade.
+        schema:
+          type: string
+      - name: contact
+        in: query
+        description: ID do contato.
+        schema:
+          type: string
+      - name: contacts
+        in: query
+        description: Vários contatos. Repita o parâmetro para enviar vários (`?contacts=id1&contacts=id2`).
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: organization
+        in: query
+        description: ID da empresa.
+        schema:
+          type: string
+      - name: search
+        in: query
+        description: Busca no texto, contato, empresa, oportunidade e produto.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Observation'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439060
+                  observation: Cliente pediu desconto de 15%. Aguardando aprovação.
+                  active: true
+                  staff:
+                    _id: 507f191e810c19729de860eb
+                    fullname: João Silva
+                    email: joao@acme.com
+                  contact:
+                    _id: 507f1f77bcf86cd799439012
+                    fullname: Maria Santos
+                    email: maria@cliente.com
+                  organization: null
+                  deal:
+                    _id: 507f1f77bcf86cd799439015
+                    title: Implantação CRM
+                  createdAt: '2026-04-28T14:30:00Z'
+                  updatedAt: '2026-04-28T14:30:00Z'
+                total: 5
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Observações
+      operationId: createObservation
+      summary: Criar observação
+      description: Vincule a pelo menos um registro (contato, empresa, oportunidade ou produto). As referências aceitam só o ID em texto.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: '#/components/schemas/ObservationInput'
+              - type: object
+                required:
+                - observation
+                - staff
+            example:
+              observation: Cliente pediu desconto de 15%. Aguardando aprovação.
+              staff: 507f191e810c19729de860eb
+              contact: 507f1f77bcf86cd799439012
+              deal: 507f1f77bcf86cd799439015
+      responses:
+        '201':
+          description: Observação criada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Observation'
+              example:
+                _id: 507f1f77bcf86cd799439060
+                observation: Cliente pediu desconto de 15%. Aguardando aprovação.
+                staff: 507f191e810c19729de860eb
+                contact: 507f1f77bcf86cd799439012
+                deal: 507f1f77bcf86cd799439015
+                active: true
+                createdAt: '2026-04-28T14:30:00Z'
+                updatedAt: '2026-04-28T14:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/observations/{id}:
+    get:
+      tags:
+      - Observações
+      operationId: getObservation
+      summary: Obter observação
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Observation'
+              example:
+                _id: 507f1f77bcf86cd799439060
+                observation: Cliente pediu desconto de 15%. Aguardando aprovação.
+                active: true
+                staff:
+                  _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  email: joao@acme.com
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                  email: maria@cliente.com
+                organization: null
+                deal:
+                  _id: 507f1f77bcf86cd799439015
+                  title: Implantação CRM
+                createdAt: '2026-04-28T14:30:00Z'
+                updatedAt: '2026-04-28T14:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Observações
+      operationId: updateObservation
+      summary: Atualizar observação
+      description: Envie só os campos que mudam.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ObservationInput'
+            example:
+              observation: Desconto aprovado.
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Observation'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Observações
+      operationId: deleteObservation
+      summary: Excluir observação
+      description: 'Exclusão lógica (`active: false`).'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Observação excluída.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/observations/selected/remove:
+    put:
+      tags:
+      - Observações
+      operationId: deleteObservations
+      summary: Excluir várias observações
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - observationList
+              properties:
+                observationList:
+                  type: array
+                  items:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                  description: IDs das observações. Não pode ser vazio.
+            example:
+              observationList:
+              - 507f1f77bcf86cd799439060
+      responses:
+        '200':
+          description: Observações excluídas.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/contacts:
+    get:
+      tags:
+      - Contatos
+      operationId: listContacts
+      summary: Listar contatos
+      description: 'Ordenação padrão: `fullname` crescente. Devolve só os registros ativos.'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: staffs
+        in: query
+        description: Usuários responsáveis. Repita o parâmetro para enviar vários (`?staffs=id1&staffs=id2`).
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: organization
+        in: query
+        description: ID da empresa vinculada.
+        schema:
+          type: string
+      - name: search
+        in: query
+        description: Busca em nome, e-mail, telefone e documento.
+        schema:
+          type: string
+      - name: emailsEmpty
+        in: query
+        description: Com `true`, só os sem e-mail.
+        schema:
+          type: boolean
+      - name: phonesEmpty
+        in: query
+        description: Com `true`, só os sem telefone.
+        schema:
+          type: boolean
+      - name: lifeCycle
+        in: query
+        description: Fase do contato.
+        schema:
+          type: string
+          enum:
+          - lead
+          - prospect
+          - customer
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Contact'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439012
+                  lifeCycle: customer
+                  fullname: Maria Santos
+                  name: Maria
+                  lastname: Santos
+                  email: maria@cliente.com
+                  type: physical
+                  active: true
+                  owners:
+                  - _id: 507f191e810c19729de860eb
+                    fullname: João Silva
+                    name: João
+                    lastname: Silva
+                  phones:
+                  - number: '11987654321'
+                    ddi: '+55'
+                    typePhone: cellphone
+                  source: site
+                  customFields:
+                  - customField: 507f1f77bcf86cd799439014
+                    k: segmento
+                    v: Tecnologia
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 250
+                pages: 17
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Contatos
+      operationId: createContact
+      summary: Criar contato
+      description: 'O corpo não tem campo obrigatório fixo: o administrador da conta define quais são. `GET /api/customfields?feature=contact&required=true`
+        devolve os campos obrigatórios da conta. Quando falta um deles, a API responde `400` com `code: MISSING_REQUIRED` e a lista em `fields`.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactInput'
+            example:
+              fullname: Maria Santos
+              email: maria@cliente.com
+              phones:
+              - number: '11987654321'
+                ddi: '+55'
+                typePhone: cellphone
+              source: site
+              customFields:
+              - customField: 507f1f77bcf86cd799439014
+                k: segmento
+                v: Tecnologia
+      responses:
+        '201':
+          description: Registro criado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+              example:
+                _id: 507f1f77bcf86cd799439012
+                lifeCycle: customer
+                fullname: Maria Santos
+                name: Maria
+                lastname: Santos
+                email: maria@cliente.com
+                type: physical
+                active: true
+                owners:
+                - _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                phones:
+                - number: '11987654321'
+                  ddi: '+55'
+                  typePhone: cellphone
+                source: site
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/contacts/{id}:
+    get:
+      tags:
+      - Contatos
+      operationId: getContact
+      summary: Obter contato
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+              example:
+                _id: 507f1f77bcf86cd799439012
+                lifeCycle: customer
+                fullname: Maria Santos
+                name: Maria
+                lastname: Santos
+                email: maria@cliente.com
+                type: physical
+                active: true
+                owners:
+                - _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                phones:
+                - number: '11987654321'
+                  ddi: '+55'
+                  typePhone: cellphone
+                source: site
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Contatos
+      operationId: updateContact
+      summary: Atualizar contato
+      description: Envie só os campos que mudam.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactInput'
+            example:
+              email: maria.santos@cliente.com
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+              example:
+                _id: 507f1f77bcf86cd799439012
+                lifeCycle: customer
+                fullname: Maria Santos
+                name: Maria
+                lastname: Santos
+                email: maria@cliente.com
+                type: physical
+                active: true
+                owners:
+                - _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                phones:
+                - number: '11987654321'
+                  ddi: '+55'
+                  typePhone: cellphone
+                source: site
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Contatos
+      operationId: deleteContact
+      summary: Excluir contato
+      description: Exige a permissão de excluir.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Registro excluído.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/leads:
+    get:
+      tags:
+      - Leads
+      operationId: listLeads
+      summary: Listar leads
+      description: 'Ordenação padrão: `createdAt` decrescente. Tamanho de página padrão: 25.
+
+
+        **Atenção:** esta listagem traz também os registros excluídos (`active: false`). Para receber só os ativos, descarte os que vêm com `active:
+        false` ou use `GET /api/contacts?lifeCycle=lead`.'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: staffs
+        in: query
+        description: Usuários responsáveis. Repita o parâmetro para enviar vários (`?staffs=id1&staffs=id2`).
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: organization
+        in: query
+        description: ID da empresa vinculada.
+        schema:
+          type: string
+      - name: search
+        in: query
+        description: Busca em nome, e-mail, telefone e documento.
+        schema:
+          type: string
+      - name: emailsEmpty
+        in: query
+        description: Com `true`, só os sem e-mail.
+        schema:
+          type: boolean
+      - name: phonesEmpty
+        in: query
+        description: Com `true`, só os sem telefone.
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Contact'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439012
+                  lifeCycle: lead
+                  fullname: Maria Santos
+                  name: Maria
+                  lastname: Santos
+                  email: maria@cliente.com
+                  type: physical
+                  active: true
+                  owners:
+                  - _id: 507f191e810c19729de860eb
+                    fullname: João Silva
+                    name: João
+                    lastname: Silva
+                  phones:
+                  - number: '11987654321'
+                    ddi: '+55'
+                    typePhone: cellphone
+                  source: site
+                  customFields:
+                  - customField: 507f1f77bcf86cd799439014
+                    k: segmento
+                    v: Tecnologia
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 250
+                pages: 17
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Leads
+      operationId: createLead
+      summary: Criar lead
+      description: 'O corpo não tem campo obrigatório fixo: o administrador da conta define quais são. `GET /api/customfields?feature=contact&required=true`
+        devolve os campos obrigatórios da conta. Quando falta um deles, a API responde `400` com `code: MISSING_REQUIRED` e a lista em `fields`.
+        Os registros criados por aqui entram como `lead`.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactInput'
+            example:
+              fullname: Maria Santos
+              email: maria@cliente.com
+              phones:
+              - number: '11987654321'
+                ddi: '+55'
+                typePhone: cellphone
+              source: site
+              customFields:
+              - customField: 507f1f77bcf86cd799439014
+                k: segmento
+                v: Tecnologia
+      responses:
+        '201':
+          description: Registro criado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+              example:
+                _id: 507f1f77bcf86cd799439012
+                lifeCycle: lead
+                fullname: Maria Santos
+                name: Maria
+                lastname: Santos
+                email: maria@cliente.com
+                type: physical
+                active: true
+                owners:
+                - _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                phones:
+                - number: '11987654321'
+                  ddi: '+55'
+                  typePhone: cellphone
+                source: site
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/leads/{id}:
+    get:
+      tags:
+      - Leads
+      operationId: getLead
+      summary: Obter lead
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+              example:
+                _id: 507f1f77bcf86cd799439012
+                lifeCycle: lead
+                fullname: Maria Santos
+                name: Maria
+                lastname: Santos
+                email: maria@cliente.com
+                type: physical
+                active: true
+                owners:
+                - _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                phones:
+                - number: '11987654321'
+                  ddi: '+55'
+                  typePhone: cellphone
+                source: site
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Leads
+      operationId: updateLead
+      summary: Atualizar lead
+      description: Envie só os campos que mudam.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactInput'
+            example:
+              email: maria.santos@cliente.com
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+              example:
+                _id: 507f1f77bcf86cd799439012
+                lifeCycle: lead
+                fullname: Maria Santos
+                name: Maria
+                lastname: Santos
+                email: maria@cliente.com
+                type: physical
+                active: true
+                owners:
+                - _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                phones:
+                - number: '11987654321'
+                  ddi: '+55'
+                  typePhone: cellphone
+                source: site
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Leads
+      operationId: deleteLead
+      summary: Excluir lead
+      description: Exige a permissão de excluir.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Registro excluído.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/prospects:
+    get:
+      tags:
+      - Prospects
+      operationId: listProspects
+      summary: Listar prospects
+      description: 'Ordenação padrão: `fullname` crescente. Tamanho de página padrão: 25.
+
+
+        **Atenção:** esta listagem traz também os registros excluídos (`active: false`). Para receber só os ativos, descarte os que vêm com `active:
+        false` ou use `GET /api/contacts?lifeCycle=prospect`.'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: staffs
+        in: query
+        description: Usuários responsáveis. Repita o parâmetro para enviar vários (`?staffs=id1&staffs=id2`).
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: organization
+        in: query
+        description: ID da empresa vinculada.
+        schema:
+          type: string
+      - name: search
+        in: query
+        description: Busca em nome, e-mail, telefone e documento.
+        schema:
+          type: string
+      - name: emailsEmpty
+        in: query
+        description: Com `true`, só os sem e-mail.
+        schema:
+          type: boolean
+      - name: phonesEmpty
+        in: query
+        description: Com `true`, só os sem telefone.
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Contact'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439012
+                  lifeCycle: prospect
+                  fullname: Maria Santos
+                  name: Maria
+                  lastname: Santos
+                  email: maria@cliente.com
+                  type: physical
+                  active: true
+                  owners:
+                  - _id: 507f191e810c19729de860eb
+                    fullname: João Silva
+                    name: João
+                    lastname: Silva
+                  phones:
+                  - number: '11987654321'
+                    ddi: '+55'
+                    typePhone: cellphone
+                  source: site
+                  customFields:
+                  - customField: 507f1f77bcf86cd799439014
+                    k: segmento
+                    v: Tecnologia
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 250
+                pages: 17
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Prospects
+      operationId: createProspect
+      summary: Criar prospect
+      description: 'O corpo não tem campo obrigatório fixo: o administrador da conta define quais são. `GET /api/customfields?feature=contact&required=true`
+        devolve os campos obrigatórios da conta. Quando falta um deles, a API responde `400` com `code: MISSING_REQUIRED` e a lista em `fields`.
+        Os registros criados por aqui entram como `prospect`.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactInput'
+            example:
+              fullname: Maria Santos
+              email: maria@cliente.com
+              phones:
+              - number: '11987654321'
+                ddi: '+55'
+                typePhone: cellphone
+              source: site
+              customFields:
+              - customField: 507f1f77bcf86cd799439014
+                k: segmento
+                v: Tecnologia
+      responses:
+        '201':
+          description: Registro criado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+              example:
+                _id: 507f1f77bcf86cd799439012
+                lifeCycle: prospect
+                fullname: Maria Santos
+                name: Maria
+                lastname: Santos
+                email: maria@cliente.com
+                type: physical
+                active: true
+                owners:
+                - _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                phones:
+                - number: '11987654321'
+                  ddi: '+55'
+                  typePhone: cellphone
+                source: site
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/prospects/{id}:
+    get:
+      tags:
+      - Prospects
+      operationId: getProspect
+      summary: Obter prospect
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+              example:
+                _id: 507f1f77bcf86cd799439012
+                lifeCycle: prospect
+                fullname: Maria Santos
+                name: Maria
+                lastname: Santos
+                email: maria@cliente.com
+                type: physical
+                active: true
+                owners:
+                - _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                phones:
+                - number: '11987654321'
+                  ddi: '+55'
+                  typePhone: cellphone
+                source: site
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Prospects
+      operationId: updateProspect
+      summary: Atualizar prospect
+      description: Envie só os campos que mudam.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactInput'
+            example:
+              email: maria.santos@cliente.com
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+              example:
+                _id: 507f1f77bcf86cd799439012
+                lifeCycle: prospect
+                fullname: Maria Santos
+                name: Maria
+                lastname: Santos
+                email: maria@cliente.com
+                type: physical
+                active: true
+                owners:
+                - _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                phones:
+                - number: '11987654321'
+                  ddi: '+55'
+                  typePhone: cellphone
+                source: site
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Prospects
+      operationId: deleteProspect
+      summary: Excluir prospect
+      description: Exige a permissão de excluir.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Registro excluído.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/customers:
+    get:
+      tags:
+      - Clientes
+      operationId: listCustomers
+      summary: Listar clientes
+      description: 'Ordenação padrão: `createdAt` decrescente. Tamanho de página padrão: 25.
+
+
+        **Atenção:** esta listagem traz também os registros excluídos (`active: false`). Para receber só os ativos, descarte os que vêm com `active:
+        false` ou use `GET /api/contacts?lifeCycle=customer`.'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: staffs
+        in: query
+        description: Usuários responsáveis. Repita o parâmetro para enviar vários (`?staffs=id1&staffs=id2`).
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: organization
+        in: query
+        description: ID da empresa vinculada.
+        schema:
+          type: string
+      - name: search
+        in: query
+        description: Busca em nome, e-mail, telefone e documento.
+        schema:
+          type: string
+      - name: emailsEmpty
+        in: query
+        description: Com `true`, só os sem e-mail.
+        schema:
+          type: boolean
+      - name: phonesEmpty
+        in: query
+        description: Com `true`, só os sem telefone.
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Contact'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439012
+                  lifeCycle: customer
+                  fullname: Maria Santos
+                  name: Maria
+                  lastname: Santos
+                  email: maria@cliente.com
+                  type: physical
+                  active: true
+                  owners:
+                  - _id: 507f191e810c19729de860eb
+                    fullname: João Silva
+                    name: João
+                    lastname: Silva
+                  phones:
+                  - number: '11987654321'
+                    ddi: '+55'
+                    typePhone: cellphone
+                  source: site
+                  customFields:
+                  - customField: 507f1f77bcf86cd799439014
+                    k: segmento
+                    v: Tecnologia
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 250
+                pages: 17
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Clientes
+      operationId: createCustomer
+      summary: Criar cliente
+      description: 'O corpo não tem campo obrigatório fixo: o administrador da conta define quais são. `GET /api/customfields?feature=contact&required=true`
+        devolve os campos obrigatórios da conta. Quando falta um deles, a API responde `400` com `code: MISSING_REQUIRED` e a lista em `fields`.
+        Os registros criados por aqui entram como `customer`.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactInput'
+            example:
+              fullname: Maria Santos
+              email: maria@cliente.com
+              phones:
+              - number: '11987654321'
+                ddi: '+55'
+                typePhone: cellphone
+              source: site
+              customFields:
+              - customField: 507f1f77bcf86cd799439014
+                k: segmento
+                v: Tecnologia
+      responses:
+        '201':
+          description: Registro criado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+              example:
+                _id: 507f1f77bcf86cd799439012
+                lifeCycle: customer
+                fullname: Maria Santos
+                name: Maria
+                lastname: Santos
+                email: maria@cliente.com
+                type: physical
+                active: true
+                owners:
+                - _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                phones:
+                - number: '11987654321'
+                  ddi: '+55'
+                  typePhone: cellphone
+                source: site
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/customers/{id}:
+    get:
+      tags:
+      - Clientes
+      operationId: getCustomer
+      summary: Obter cliente
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+              example:
+                _id: 507f1f77bcf86cd799439012
+                lifeCycle: customer
+                fullname: Maria Santos
+                name: Maria
+                lastname: Santos
+                email: maria@cliente.com
+                type: physical
+                active: true
+                owners:
+                - _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                phones:
+                - number: '11987654321'
+                  ddi: '+55'
+                  typePhone: cellphone
+                source: site
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Clientes
+      operationId: updateCustomer
+      summary: Atualizar cliente
+      description: Envie só os campos que mudam.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactInput'
+            example:
+              email: maria.santos@cliente.com
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+              example:
+                _id: 507f1f77bcf86cd799439012
+                lifeCycle: customer
+                fullname: Maria Santos
+                name: Maria
+                lastname: Santos
+                email: maria@cliente.com
+                type: physical
+                active: true
+                owners:
+                - _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                phones:
+                - number: '11987654321'
+                  ddi: '+55'
+                  typePhone: cellphone
+                source: site
+                customFields:
+                - customField: 507f1f77bcf86cd799439014
+                  k: segmento
+                  v: Tecnologia
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Clientes
+      operationId: deleteCustomer
+      summary: Excluir cliente
+      description: Exige a permissão de excluir.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Registro excluído.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/organizations:
+    get:
+      tags:
+      - Empresas
+      operationId: listOrganizations
+      summary: Listar empresas
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: staffs
+        in: query
+        description: Usuários responsáveis. Repita o parâmetro para enviar vários (`?staffs=id1&staffs=id2`).
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: search
+        in: query
+        description: Busca em nome, e-mail e documento.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Organization'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439013
+                  fullname: Cliente XYZ Ltda
+                  doc: '12345678000190'
+                  email: contato@clientexyz.com.br
+                  phones: []
+                  customFields: []
+                  active: true
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 80
+                pages: 6
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Empresas
+      operationId: createOrganization
+      summary: Criar empresa
+      description: 'Os campos obrigatórios são definidos pelo administrador da conta: consulte `GET /api/customfields?feature=organization&required=true`.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationInput'
+            example:
+              fullname: Cliente XYZ Ltda
+              doc: '12345678000190'
+              email: contato@clientexyz.com.br
+      responses:
+        '201':
+          description: Empresa criada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+              example:
+                _id: 507f1f77bcf86cd799439013
+                fullname: Cliente XYZ Ltda
+                doc: '12345678000190'
+                email: contato@clientexyz.com.br
+                phones: []
+                customFields: []
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/organizations/{id}:
+    get:
+      tags:
+      - Empresas
+      operationId: getOrganization
+      summary: Obter empresa
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+              example:
+                _id: 507f1f77bcf86cd799439013
+                fullname: Cliente XYZ Ltda
+                doc: '12345678000190'
+                email: contato@clientexyz.com.br
+                phones: []
+                customFields: []
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Empresas
+      operationId: updateOrganization
+      summary: Atualizar empresa
+      description: Envie só os campos que mudam.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationInput'
+            example:
+              email: financeiro@clientexyz.com.br
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+              example:
+                _id: 507f1f77bcf86cd799439013
+                fullname: Cliente XYZ Ltda
+                doc: '12345678000190'
+                email: contato@clientexyz.com.br
+                phones: []
+                customFields: []
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Empresas
+      operationId: deleteOrganization
+      summary: Excluir empresa
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Empresa excluída.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/pipelines:
+    get:
+      tags:
+      - Pipelines e etapas
+      operationId: listPipelines
+      summary: Listar pipelines
+      description: Use para descobrir o `pipeline` de uma oportunidade.
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Pipeline'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439011
+                  title: Comercial
+                  active: true
+                  defaultView: true
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 3
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/pipelines/{id}:
+    get:
+      tags:
+      - Pipelines e etapas
+      operationId: getPipeline
+      summary: Obter pipeline
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pipeline'
+              example:
+                _id: 507f1f77bcf86cd799439011
+                title: Comercial
+                active: true
+                defaultView: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+                stages:
+                - _id: 507f191e810c19729de860ea
+                  name: Prospecção
+                  position: 0
+                  pipeline: 507f1f77bcf86cd799439011
+                  probability: 10
+                  active: true
+                  rottingEnabled: false
+                  rottingDays: null
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/pipelines/{id}/stages:
+    get:
+      tags:
+      - Pipelines e etapas
+      operationId: listPipelineStages
+      summary: Listar etapas do pipeline
+      description: Use para descobrir o `stage` de uma oportunidade. Devolve uma lista simples, sem envelope de paginação.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      - name: search
+        in: query
+        description: Busca no nome da etapa.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Stage'
+              example:
+              - _id: 507f191e810c19729de860ea
+                name: Prospecção
+                position: 0
+                pipeline: 507f1f77bcf86cd799439011
+                probability: 10
+                active: true
+                rottingEnabled: false
+                rottingDays: null
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/staffs:
+    get:
+      tags:
+      - Usuários
+      operationId: listStaffs
+      summary: Listar usuários
+      description: Use para descobrir o ID de responsáveis, participantes e autores. Nesta listagem o tamanho de página padrão é 100.
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: search
+        in: query
+        description: Busca em nome e e-mail.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Staff'
+              example:
+                docs:
+                - _id: 507f191e810c19729de860eb
+                  fullname: João Silva
+                  name: João
+                  lastname: Silva
+                  email: joao@acme.com
+                  active: true
+                  type: user
+                  roleName: Vendas
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 12
+                pages: 1
+                page: 1
+                limit: 100
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/staffs/{id}:
+    get:
+      tags:
+      - Usuários
+      operationId: getStaff
+      summary: Obter usuário
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Staff'
+              example:
+                _id: 507f191e810c19729de860eb
+                fullname: João Silva
+                name: João
+                lastname: Silva
+                email: joao@acme.com
+                active: true
+                type: user
+                roleName: Vendas
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/customfields:
+    get:
+      tags:
+      - Campos personalizados
+      operationId: listCustomFields
+      summary: Listar campos personalizados
+      description: 'Devolve os campos de um recurso: os criados pelo administrador e os de sistema. É aqui que você descobre os IDs para `customFields`
+        e quais campos a conta exige (`settings.required: true`).'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - name: feature
+        in: query
+        description: Recurso.
+        schema:
+          type: string
+          enum:
+          - contact
+          - organization
+          - deal
+          - task
+          - meeting
+          - ticket
+          - treatment
+          - staff
+          - product
+      - name: system
+        in: query
+        description: Com `true`, só os campos de sistema; com `false`, só os criados pelo administrador.
+        schema:
+          type: boolean
+      - name: required
+        in: query
+        description: Com `true`, só os obrigatórios.
+        schema:
+          type: boolean
+      - name: search
+        in: query
+        description: Busca no nome.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/CustomField'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439014
+                  name: Segmento
+                  slug: segmento
+                  feature: deal
+                  system: false
+                  active: true
+                  values: []
+                  settings:
+                    required: false
+                    unique: false
+                total: 20
+                pages: 2
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/customfields/{id}:
+    get:
+      tags:
+      - Campos personalizados
+      operationId: getCustomField
+      summary: Obter campo personalizado
+      description: 'Exige um Service Account com acesso de administrador; sem ele a resposta é `403` com `type: ADMIN_REQUIRED`. Para integrações,
+        prefira a listagem.'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomField'
+              example:
+                _id: 507f1f77bcf86cd799439014
+                name: Segmento
+                slug: segmento
+                feature: deal
+                system: false
+                active: true
+                values: []
+                settings:
+                  required: false
+                  unique: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  securitySchemes:
+    ServiceAccount:
+      type: oauth2
+      description: Token obtido com o Client ID e o Client Secret de um Service Account (Configurações › Service Accounts).
+      flows:
+        clientCredentials:
+          tokenUrl: https://magnetcustomer.net/realms/platform/protocol/openid-connect/token
+          scopes: {}
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      description: ID do registro.
+      schema:
+        type: string
+        pattern: ^[a-fA-F0-9]{24}$
+        example: 507f1f77bcf86cd799439011
+    Page:
+      name: page
+      in: query
+      description: 'Página, a partir de 1. **Envie sempre**: sem `page`, a resposta vem como lista simples, sem o envelope de paginação, e `limit`
+        é ignorado.'
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+        example: 1
+    Limit:
+      name: limit
+      in: query
+      description: 'Registros por página. Padrão: 15, salvo indicação na operação. Máximo: 100 — acima disso a API usa 100.'
+      schema:
+        type: integer
+        default: 15
+        minimum: 1
+        maximum: 100
+    SortBy:
+      name: sortBy
+      in: query
+      description: Campo de ordenação. O padrão varia por recurso.
+      schema:
+        type: string
+    SortType:
+      name: sortType
+      in: query
+      description: Direção da ordenação.
+      schema:
+        type: string
+        enum:
+        - asc
+        - desc
+        default: desc
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: Chave única da operação (UUID). Repita a mesma chave nas novas tentativas.
+      schema:
+        type: string
+        format: uuid
+  responses:
+    ValidationError:
+      description: Corpo ou parâmetros inválidos.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            reason: Missing required parameters
+            message: Missing required parameters
+            code: VALIDATION_ERROR
+            errors:
+            - field: title
+              message: must NOT have fewer than 1 characters
+              keyword: minLength
+    Unauthorized:
+      description: Token ausente, inválido ou vencido. Solicite um novo token.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              reason:
+                type: string
+          example:
+            reason: Access Denied
+    Forbidden:
+      description: O Service Account não tem a permissão que a rota exige.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              reason:
+                type: string
+              type:
+                type: string
+                description: '`SA_PERMISSION_DENIED` quando falta uma permissão; `ADMIN_REQUIRED` quando a rota exige administrador.'
+              requiredPermission:
+                type: string
+                description: 'Permissão que falta: ligue-a no Service Account.'
+          example:
+            reason: Service account sem permissão para este recurso.
+            type: SA_PERMISSION_DENIED
+            requiredPermission: deals.delete
+    NotFound:
+      description: Registro não encontrado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            reason: Contact not found
+            message: Contact not found
+            code: NOT_FOUND
+    Conflict:
+      description: O registro não está no estado que a operação exige.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequests:
+      description: Limite de requisições excedido. Espere o tempo do cabeçalho `Retry-After`.
+      headers:
+        Retry-After:
+          description: Segundos até poder tentar de novo.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Page:
+      type: object
+      description: Envelope de toda listagem paginada.
+      required:
+      - docs
+      - total
+      - pages
+      - page
+      - limit
+      properties:
+        docs:
+          type: array
+          items: {}
+          description: Registros da página.
+        total:
+          type: integer
+          description: Total de registros que casam com a consulta.
+          example: 132
+        pages:
+          type: integer
+          description: Total de páginas.
+          example: 9
+        page:
+          type: integer
+          description: Página atual.
+          example: 1
+        limit:
+          type: integer
+          description: Registros por página aplicados (no máximo 100).
+          example: 15
+    Error:
+      type: object
+      description: Formato de erro da API.
+      properties:
+        reason:
+          type: string
+          description: Mensagem do erro.
+        message:
+          type: string
+          description: Igual a `reason`.
+        code:
+          type: string
+          description: Código do erro.
+          enum:
+          - BAD_REQUEST
+          - VALIDATION_ERROR
+          - MISSING_REQUIRED
+          - NOT_FOUND
+          - PERMISSION_DENIED
+          - DUPLICATE
+          - INTERNAL_ERROR
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: Campo com problema.
+              message:
+                type: string
+                description: O que está errado.
+              keyword:
+                type: string
+                description: Regra violada.
+          description: Detalhes, em `VALIDATION_ERROR`.
+        fields:
+          type: array
+          items:
+            type: object
+          description: Campos obrigatórios que faltaram, em `MISSING_REQUIRED`.
+        details:
+          type: object
+          description: Detalhes adicionais, quando houver.
+    CustomFieldValue:
+      type: object
+      required:
+      - customField
+      - v
+      properties:
+        customField:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do campo personalizado (de `GET /api/customfields`).
+        k:
+          type: string
+          description: Chave (`slug`) do campo. Recomendado.
+          example: segmento
+        v:
+          description: 'Valor do campo: texto, número, booleano, lista ou objeto. Envie em `v` — `value` é ignorado sem erro.'
+          example: Tecnologia
+    StaffSummary:
+      type: object
+      description: Usuário resumido.
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        fullname:
+          type: string
+          description: Nome completo.
+        name:
+          type: string
+          description: Primeiro nome.
+        lastname:
+          type: string
+          description: Sobrenome.
+        email:
+          type: string
+          description: E-mail. Nem toda resposta traz.
+    ContactSummary:
+      type: object
+      description: Contato resumido.
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        fullname:
+          type: string
+          description: Nome completo.
+        lifeCycle:
+          type: string
+          description: 'Fase: `lead`, `prospect` ou `customer`.'
+        email:
+          type: string
+          description: E-mail, quando o contato tem.
+        phones:
+          type: array
+          items:
+            type: object
+          description: Telefones.
+        owners:
+          type: array
+          items: {}
+          description: 'Responsáveis: IDs nas listagens; objetos resumidos no detalhe.'
+    DealInput:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Título da oportunidade.
+          example: Implantação CRM Enterprise
+        pipeline:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do pipeline (de `GET /api/pipelines`).
+        stage:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID da etapa do pipeline (de `GET /api/pipelines/{id}/stages`).
+        staff:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do responsável (de `GET /api/staffs`).
+        amount:
+          type: number
+          description: Valor monetário.
+          example: 75000
+        expectedCloseDate:
+          type: string
+          format: date-time
+          description: Data prevista de fechamento.
+          example: '2026-05-15T14:00:00Z'
+        contact:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do contato vinculado.
+        organization:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID da empresa vinculada.
+        participants:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: IDs dos usuários participantes.
+        observers:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: IDs dos usuários observadores.
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tags livres.
+        observation:
+          type: string
+          description: Observação inicial.
+        avatarUrl:
+          type: string
+          description: URL de imagem.
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+          description: Campos personalizados.
+        active:
+          type: boolean
+          description: 'Padrão: `true`.'
+    DealCreate:
+      allOf:
+      - $ref: '#/components/schemas/DealInput'
+      - type: object
+        required:
+        - title
+        - pipeline
+        - stage
+        - staff
+    Deal:
+      type: object
+      description: Oportunidade. Nas listagens as referências vêm resumidas, com os campos abaixo.
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        code:
+          type: integer
+          description: Número sequencial da oportunidade na conta.
+          example: 39
+        title:
+          type: string
+          description: Título.
+        amount:
+          type: number
+          description: Valor.
+        expectedCloseDate:
+          type: string
+          format: date-time
+          description: Fechamento previsto. Ausente quando não informado.
+          example: '2026-05-15T14:00:00Z'
+        won:
+          type: boolean
+          description: Ganha.
+        lost:
+          type: boolean
+          description: Perdida.
+        closed:
+          type: boolean
+          description: Fechada (ganha ou perdida).
+        closedDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Quando foi fechada.
+        enteredStageDate:
+          type: string
+          format: date-time
+          description: Quando entrou na etapa atual.
+          example: '2026-05-15T14:00:00Z'
+        source:
+          type: string
+          description: Origem do registro.
+          example: platform
+        active:
+          type: boolean
+          description: '`false` quando excluída.'
+        pipeline:
+          description: Nas listagens, o ID do pipeline. Em `GET /api/deals/{id}`, um objeto com `_id` e `title`.
+          oneOf:
+          - type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          - type: object
+            properties:
+              _id:
+                type: string
+                pattern: ^[a-fA-F0-9]{24}$
+                example: 507f1f77bcf86cd799439011
+              title:
+                type: string
+                description: Nome do pipeline.
+        stage:
+          type: object
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            name:
+              type: string
+              description: Nome da etapa.
+            position:
+              type: integer
+              description: Só nas listagens.
+            won:
+              type: boolean
+              description: Só nas listagens.
+            lost:
+              type: boolean
+              description: Só nas listagens.
+        staff:
+          $ref: '#/components/schemas/StaffSummary'
+        contact:
+          $ref: '#/components/schemas/ContactSummary'
+        organization:
+          type: object
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            fullname:
+              type: string
+              description: Nome da empresa.
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffSummary'
+        observers:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffSummary'
+        lostReason:
+          type: string
+          nullable: true
+          description: ID do motivo de perda.
+        labels:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                pattern: ^[a-fA-F0-9]{24}$
+                example: 507f1f77bcf86cd799439011
+              name:
+                type: string
+              color:
+                type: string
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    MeetingInput:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Título da reunião.
+          example: Apresentação da proposta
+        start:
+          type: string
+          format: date-time
+          description: Início.
+          example: '2026-05-15T14:00:00Z'
+        end:
+          type: string
+          format: date-time
+          description: Término.
+          example: '2026-05-15T14:00:00Z'
+        staff:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do organizador. Se omitido, usa o usuário da credencial.
+        calendar:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do calendário do organizador. Se omitido, a API escolhe o calendário padrão dele.
+        description:
+          type: string
+          description: Descrição ou pauta.
+        visibility:
+          type: string
+          enum:
+          - public
+          - private
+          description: Quem vê a reunião.
+        status:
+          type: string
+          enum:
+          - pending
+          - cancelled
+          - finished
+          - no-show
+          description: 'Padrão: `pending`. Com `finished`, `cancelled` ou `no-show`, a API preenche `dateFinished`.'
+        priority:
+          type: string
+          enum:
+          - p1
+          - p2
+          - p3
+          - p4
+          description: Prioridade.
+        type:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do tipo de reunião (de `GET /api/meetingtypes`).
+        room:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID da sala (de `GET /api/meetingrooms`).
+        googleHangoutLink:
+          type: string
+          description: Link da videoconferência.
+        contact:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Contato vinculado.
+        organization:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Empresa vinculada.
+        deal:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Oportunidade vinculada.
+        product:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Produto vinculado.
+        participants:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: IDs dos usuários participantes.
+        observers:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: IDs dos usuários observadores.
+        labels:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: IDs de etiquetas.
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+          description: Campos personalizados.
+        active:
+          type: boolean
+          description: 'Padrão: `true`.'
+    MeetingCreate:
+      allOf:
+      - $ref: '#/components/schemas/MeetingInput'
+      - type: object
+        required:
+        - title
+        - start
+    Meeting:
+      type: object
+      description: Reunião. Nas listagens as referências vêm resumidas.
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        title:
+          type: string
+          description: Título.
+        description:
+          type: string
+          description: Descrição.
+        start:
+          type: string
+          format: date-time
+          description: Início.
+          example: '2026-05-15T14:00:00Z'
+        end:
+          type: string
+          format: date-time
+          description: Término.
+          example: '2026-05-15T14:00:00Z'
+        status:
+          type: string
+          enum:
+          - pending
+          - cancelled
+          - finished
+          - no-show
+          description: 'Padrão: `pending`. Com `finished`, `cancelled` ou `no-show`, a API preenche `dateFinished`.'
+        priority:
+          type: string
+          enum:
+          - p1
+          - p2
+          - p3
+          - p4
+          description: Prioridade.
+        active:
+          type: boolean
+        type:
+          type: object
+          nullable: true
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            name:
+              type: string
+            slug:
+              type: string
+        room:
+          type: object
+          nullable: true
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            name:
+              type: string
+        staff:
+          $ref: '#/components/schemas/StaffSummary'
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffSummary'
+        observers:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffSummary'
+        contact:
+          $ref: '#/components/schemas/ContactSummary'
+        organization:
+          type: object
+          nullable: true
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            name:
+              type: string
+        deal:
+          type: object
+          nullable: true
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            title:
+              type: string
+            amount:
+              type: number
+        dateFinished:
+          type: string
+          format: date-time
+          description: Quando foi concluída, cancelada ou marcada como não comparecimento.
+          example: '2026-05-15T14:00:00Z'
+        labels:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                pattern: ^[a-fA-F0-9]{24}$
+                example: 507f1f77bcf86cd799439011
+              name:
+                type: string
+              color:
+                type: string
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    TaskInput:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Título da tarefa.
+          minLength: 1
+          example: Enviar proposta comercial
+        dateOfExpires:
+          type: string
+          format: date-time
+          description: Vencimento.
+          example: '2026-05-15T14:00:00Z'
+        type:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do tipo de tarefa (de `GET /api/tasks/types`).
+        owner:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do responsável. Se omitido, usa o usuário da credencial.
+        status:
+          type: string
+          enum:
+          - pending
+          - finished
+          description: 'Padrão: `pending`.'
+        priority:
+          type: string
+          enum:
+          - p1
+          - p2
+          - p3
+          - p4
+          description: Prioridade.
+        source:
+          type: string
+          description: 'De onde a tarefa veio. Texto livre; padrão: `task`. Valores usados pelo CRM: `task`, `deal`, `contact`, `organization`,
+            `ticket`, `meeting`, `email`.'
+          example: deal
+        observation:
+          type: string
+          description: Detalhes.
+        participants:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: IDs dos usuários participantes.
+        observers:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: IDs dos usuários observadores.
+        contact:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Contato vinculado.
+        organization:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Empresa vinculada.
+        deal:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Oportunidade vinculada. Contato e empresa são herdados dela quando omitidos.
+        product:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Produto vinculado.
+        treatment:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Atendimento vinculado.
+        estimatedMinutes:
+          type: number
+          description: Tempo estimado, em minutos.
+          example: 60
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+          description: Campos personalizados.
+        active:
+          type: boolean
+          description: 'Padrão: `true`.'
+    TaskCreate:
+      allOf:
+      - $ref: '#/components/schemas/TaskInput'
+      - type: object
+        required:
+        - title
+        - dateOfExpires
+        - type
+    Task:
+      type: object
+      description: Tarefa. Nas listagens as referências vêm resumidas.
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        title:
+          type: string
+          description: Título.
+        observation:
+          type: string
+          description: Detalhes.
+        dateOfExpires:
+          type: string
+          format: date-time
+          description: Vencimento.
+          example: '2026-05-15T14:00:00Z'
+        status:
+          type: string
+          enum:
+          - pending
+          - finished
+          description: 'Padrão: `pending`.'
+        priority:
+          type: string
+          enum:
+          - p1
+          - p2
+          - p3
+          - p4
+          description: Prioridade.
+        source:
+          type: string
+          description: Origem.
+        active:
+          type: boolean
+        code:
+          type: integer
+          description: Número sequencial da tarefa na conta.
+        type:
+          type: object
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            name:
+              type: string
+        owner:
+          $ref: '#/components/schemas/StaffSummary'
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffSummary'
+        observers:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffSummary'
+        contact:
+          $ref: '#/components/schemas/ContactSummary'
+        organization:
+          type: object
+          nullable: true
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            name:
+              type: string
+        deal:
+          type: object
+          nullable: true
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            title:
+              type: string
+            amount:
+              type: number
+            pipeline:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+              description: ID do pipeline.
+            stage:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+              description: ID da etapa.
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    TaskType:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          description: Nome.
+          example: Ligação
+        slug:
+          type: string
+          description: Gerado a partir do nome; não muda depois.
+          example: ligacao
+        active:
+          type: boolean
+        default:
+          type: boolean
+          description: Tipo padrão da conta.
+        defaultForNewTask:
+          type: boolean
+          description: Vem selecionado ao criar tarefa.
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    ObservationInput:
+      type: object
+      properties:
+        observation:
+          type: string
+          description: 'Texto. Para mencionar um usuário, use `@[Nome](idDoUsuario)`: ele recebe uma notificação.'
+          example: Cliente pediu desconto de 15%.
+        staff:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do autor.
+        contact:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Contato vinculado.
+        organization:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Empresa vinculada.
+        deal:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Oportunidade vinculada.
+        product:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Produto vinculado.
+        active:
+          type: boolean
+          description: 'Padrão: `true`.'
+    Observation:
+      type: object
+      description: Observação. Na criação as referências vêm como ID; nas listagens, resumidas.
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        observation:
+          type: string
+          description: Texto.
+        active:
+          type: boolean
+        staff:
+          $ref: '#/components/schemas/StaffSummary'
+        contact:
+          $ref: '#/components/schemas/ContactSummary'
+        organization:
+          type: object
+          nullable: true
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            fullname:
+              type: string
+        deal:
+          type: object
+          nullable: true
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            title:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    ContactInput:
+      type: object
+      properties:
+        fullname:
+          type: string
+          description: Nome completo.
+          example: Maria Santos
+        email:
+          type: string
+          description: E-mail.
+          example: maria@cliente.com
+        phones:
+          type: array
+          items:
+            type: object
+            properties:
+              number:
+                type: string
+                description: Número, só dígitos.
+                example: '11987654321'
+              ddi:
+                type: string
+                description: Código do país, com `+`.
+                example: '+55'
+              typePhone:
+                type: string
+                description: Tipo do telefone.
+                example: cellphone
+          description: Telefones.
+        doc:
+          type: string
+          description: CPF ou CNPJ.
+        type:
+          type: string
+          description: Tipo de pessoa.
+        birthDate:
+          type: string
+          description: Data de nascimento (ISO 8601).
+        gender:
+          type: string
+          description: Gênero.
+        work:
+          type: string
+          description: Profissão.
+        maritalStatus:
+          type: string
+          description: Estado civil.
+        state:
+          type: string
+          description: Estado.
+        uf:
+          type: string
+          description: Sigla do estado.
+          example: SP
+        city:
+          type: string
+          description: Cidade.
+        address:
+          type: string
+          description: Logradouro.
+        addressNumber:
+          type: string
+          description: Número.
+        complement:
+          type: string
+          description: Complemento.
+        neighborhood:
+          type: string
+          description: Bairro.
+        cep:
+          type: string
+          description: CEP.
+          example: 01310-100
+        source:
+          type: string
+          description: Origem do contato.
+          example: site
+        owners:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: IDs dos usuários responsáveis.
+        participants:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: IDs dos usuários participantes.
+        observers:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: IDs dos usuários observadores.
+        avatarUrl:
+          type: string
+          description: URL da foto.
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+          description: Campos personalizados.
+    Contact:
+      type: object
+      description: Contato. Além dos campos abaixo, a resposta traz os demais dados do cadastro.
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        lifeCycle:
+          type: string
+          enum:
+          - lead
+          - prospect
+          - customer
+          description: Fase do contato.
+        fullname:
+          type: string
+          description: Nome completo.
+        name:
+          type: string
+          description: Primeiro nome.
+        lastname:
+          type: string
+          description: Sobrenome.
+        email:
+          type: string
+          description: E-mail. Ausente quando não informado.
+        phones:
+          type: array
+          items:
+            type: object
+            properties:
+              number:
+                type: string
+                description: Número, só dígitos.
+                example: '11987654321'
+              ddi:
+                type: string
+                description: Código do país, com `+`.
+                example: '+55'
+              typePhone:
+                type: string
+                description: Tipo do telefone.
+                example: cellphone
+        doc:
+          type: string
+          description: CPF ou CNPJ. Ausente quando não informado.
+        type:
+          type: string
+          description: Tipo de pessoa.
+          example: physical
+        active:
+          type: boolean
+          description: '`false` quando o registro foi excluído.'
+        owners:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffSummary'
+        source:
+          type: string
+          description: Origem.
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    OrganizationInput:
+      type: object
+      properties:
+        fullname:
+          type: string
+          description: Nome da empresa.
+          example: Cliente XYZ Ltda
+        doc:
+          type: string
+          description: CNPJ.
+        email:
+          type: string
+          description: E-mail.
+        phones:
+          type: array
+          items:
+            type: object
+            properties:
+              number:
+                type: string
+                description: Número, só dígitos.
+                example: '11987654321'
+              ddi:
+                type: string
+                description: Código do país, com `+`.
+                example: '+55'
+              typePhone:
+                type: string
+                description: Tipo do telefone.
+                example: cellphone
+          description: Telefones.
+        state:
+          type: string
+          description: Estado.
+        uf:
+          type: string
+          description: Sigla do estado.
+          example: SP
+        city:
+          type: string
+          description: Cidade.
+        address:
+          type: string
+          description: Logradouro.
+        addressNumber:
+          type: string
+          description: Número.
+        complement:
+          type: string
+          description: Complemento.
+        neighborhood:
+          type: string
+          description: Bairro.
+        cep:
+          type: string
+          description: CEP.
+          example: 01310-100
+        source:
+          type: string
+          description: Origem.
+        owners:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: IDs dos usuários responsáveis.
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+          description: Campos personalizados.
+    Organization:
+      type: object
+      description: Empresa. Além dos campos abaixo, a resposta traz os demais dados do cadastro.
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        fullname:
+          type: string
+          description: Nome.
+        doc:
+          type: string
+          description: CNPJ. Ausente quando não informado.
+        email:
+          type: string
+          description: E-mail. Ausente quando não informado.
+        phones:
+          type: array
+          items:
+            type: object
+            properties:
+              number:
+                type: string
+                description: Número, só dígitos.
+                example: '11987654321'
+              ddi:
+                type: string
+                description: Código do país, com `+`.
+                example: '+55'
+              typePhone:
+                type: string
+                description: Tipo do telefone.
+                example: cellphone
+        owners:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffSummary'
+        contacts:
+          type: array
+          items:
+            type: object
+          description: Contatos vinculados.
+        source:
+          type: string
+          description: Origem.
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    Pipeline:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        title:
+          type: string
+          description: Nome do pipeline.
+          example: Comercial
+        active:
+          type: boolean
+        defaultView:
+          type: boolean
+          description: Pipeline padrão da conta.
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Stage'
+          description: Etapas. Só em `GET /api/pipelines/{id}`.
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    Stage:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          description: Nome da etapa.
+          example: Prospecção
+        position:
+          type: integer
+          description: Ordem no pipeline.
+        pipeline:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do pipeline.
+        probability:
+          type: number
+          description: Probabilidade de ganho, em %.
+          example: 10
+        active:
+          type: boolean
+        rottingEnabled:
+          type: boolean
+          description: Alerta de oportunidade parada ligado.
+        rottingDays:
+          type: integer
+          nullable: true
+          description: Dias até a oportunidade ser considerada parada.
+    Staff:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        fullname:
+          type: string
+          description: Nome completo.
+        name:
+          type: string
+          description: Primeiro nome.
+        lastname:
+          type: string
+          description: Sobrenome.
+        email:
+          type: string
+          description: E-mail.
+        active:
+          type: boolean
+        type:
+          type: string
+          description: '`user` para pessoas; `service_account` para credenciais de integração.'
+        role:
+          description: 'Perfil de acesso: objeto na listagem, ID em `GET /api/staffs/{id}`.'
+        roleName:
+          type: string
+          description: Nome do perfil de acesso.
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    CustomField:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID a enviar em `customFields[].customField`.
+        name:
+          type: string
+          description: Nome exibido.
+          example: Segmento
+        slug:
+          type: string
+          description: Chave a enviar em `customFields[].k`.
+          example: segmento
+        feature:
+          type: string
+          description: Recurso a que o campo pertence.
+          example: deal
+        fieldRef:
+          type: string
+          description: Campo do registro, para campos de sistema.
+          example: title
+        system:
+          type: boolean
+          description: Campo de sistema.
+        active:
+          type: boolean
+        fieldTypeSlug:
+          type: string
+          description: Tipo do campo.
+        values:
+          type: array
+          items:
+            type: object
+          description: Opções, em campos de lista.
+        settings:
+          type: object
+          properties:
+            required:
+              type: boolean
+              description: Obrigatório.
+            unique:
+              type: boolean
+              description: Não aceita valor repetido.
