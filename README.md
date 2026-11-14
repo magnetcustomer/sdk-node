@@ -60,12 +60,17 @@ Cada método devolve a resposta do [axios](https://axios-http.com): o corpo est�
 | `crm.leads`, `crm.prospects`, `crm.customers` | Contatos por fase |
 | `crm.organizations` | Empresas |
 | `crm.deals` | Oportunidades |
-| `crm.pipelines` | Pipelines e etapas |
-| `crm.meetings` | Reuniões |
+| `crm.pipelines` | Pipelines, etapas e motivos de perda |
+| `crm.journeys` | Jornadas (leitura) |
+| `crm.meetings` | Reuniões, tipos e salas |
 | `crm.tasks`, `crm.taskTypes` | Tarefas e tipos de tarefa |
 | `crm.observations` | Observações |
+| `crm.tickets` | Tickets, situações e mensagens |
+| `crm.treatments` | Atendimentos e tipos |
 | `crm.staffs` | Usuários |
 | `crm.customFields` | Campos personalizados |
+| `crm.teams` | Equipes e áreas de trabalho |
+| `crm.webhooks` | Eventos de webhook disponíveis |
 
 Os parâmetros, o corpo aceito e a resposta de cada operação estão na [referência da API](https://magnetcustomer.com/developers/api-reference). Os nomes dos métodos são os `operationId` de lá.
 
@@ -82,6 +87,18 @@ async function* allDeals() {
   }
 }
 ```
+
+## Filtros com vários valores
+
+Passe uma lista; o SDK envia no formato que a API espera (`staffs[]=...`), inclusive com um valor só:
+
+```ts
+await crm.contacts.listContacts({ page: 1, staffs: [staffId] });
+```
+
+## Webhooks
+
+Os webhooks são criados por um administrador no CRM, em **Integrações › Webhooks**. O SDK lista os eventos disponíveis com `crm.webhooks.listWebhookTriggers()`.
 
 ## Erros
 
@@ -123,7 +140,7 @@ A 2.0 foi refeita a partir da referência atual da API e muda a interface:
 - Um cliente só (`new MagnetCustomer({ account, clientId, clientSecret })`) no lugar de `Configuration` + uma classe por API.
 - O token é obtido e renovado pelo SDK.
 - Os métodos têm os nomes da referência (`listDeals`, `createContact`...) e recebem um objeto de parâmetros.
-- A 2.0 cobre os recursos da tabela acima. Tickets, Atendimentos e Webhooks entram nas próximas versões; até lá, chame essas rotas com o token de `crm.tokens.getAccessToken()`.
+- A 2.x cobre os recursos da tabela acima, os mesmos da referência pública. Para uma rota fora dela, use o token de `crm.tokens.getAccessToken()` no seu cliente HTTP.
 
 ## Desenvolvimento
 

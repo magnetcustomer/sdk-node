@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * API da Magnet Customer
- * A API REST da Magnet Customer permite ler e gravar os registros do CRM a partir dos seus sistemas.  # Comece aqui  ## 1. Crie um Service Account  No CRM, abra **Configurações › Service Accounts** (apenas administradores), clique em **Novo service account**, escolha a validade e as permissões, e copie o **Client ID** e o **Client Secret**. O secret aparece uma única vez.  ## 2. Solicite um token  ```bash curl -X POST https://magnetcustomer.net/realms/platform/protocol/openid-connect/token \\   -H \"Content-Type: application/x-www-form-urlencoded\" \\   -d \"grant_type=client_credentials\" \\   -d \"client_id=SEU_CLIENT_ID\" \\   -d \"client_secret=SEU_CLIENT_SECRET\" ```  ```json { \"access_token\": \"eyJhbGciOiJSUzI1NiIs...\", \"expires_in\": 900, \"token_type\": \"Bearer\" } ```  O token vale 15 minutos e este fluxo não tem refresh token: quando vencer, ou ao receber `401`, repita o pedido.  ## 3. Chame a API  Cada conta tem o seu endereço. Troque `sua-conta` pelo subdomínio que você usa para abrir o CRM:  ```bash curl \"https://sua-conta.platform-api.magnetcustomer.com/api/deals?page=1&limit=15\" \\   -H \"Authorization: Bearer SEU_TOKEN\" ```  Requisições com corpo levam também `Content-Type: application/json`.  # Convenções  ## Paginação  Envie sempre `page`. Com ele, toda listagem devolve o mesmo envelope:  ```json { \"docs\": [], \"total\": 132, \"pages\": 9, \"page\": 1, \"limit\": 15 } ```  | Parâmetro | Padrão | Descrição | |---|---|---| | `page` | — | Página, a partir de 1. **Obrigatório na prática** | | `limit` | 15 | Registros por página. Máximo 100: acima disso a API usa 100 | | `sortBy` | varia por recurso | Campo de ordenação | | `sortType` | `desc` | `asc` ou `desc` | | `search` | — | Busca textual, quando o recurso aceita |  Sem `page`, a maioria das listagens devolve uma lista simples (`[...]`), sem o envelope, e ignora `limit`. Para percorrer tudo, peça `page=1` e avance até `page` ser igual a `pages`. Uma página além do fim devolve `docs` vazio.  O tamanho de página padrão é 15, com duas exceções: 25 em Leads, Prospects e Clientes, e 100 em Usuários. Um `limit` inválido cai no padrão.  ## Identificadores e datas  Todo ID é um texto de 24 caracteres hexadecimais, como `507f1f77bcf86cd799439011`. Ao gravar, envie a referência como **ID em texto** — nunca o objeto.  Um ID fora desse formato hoje é respondido com `500`, não `400`: valide o formato antes de enviar.  No corpo e nas respostas, datas são ISO 8601 em UTC, como `2026-05-15T10:00:00Z`. Nos filtros de data da URL (`minDate`, `dateOfExpires_minDate`...), o valor é um **timestamp em milissegundos**, como `1798761600000`; uma data ISO ali não filtra o que você espera.  ## Campos ausentes  Campo sem valor costuma vir **ausente** da resposta, não como `null`. Trate a falta da chave como vazio.  ## Campos personalizados  Os campos criados pelo administrador da conta vão na lista `customFields`:  ```json { \"customFields\": [ { \"customField\": \"507f1f77bcf86cd799439014\", \"k\": \"segmento\", \"v\": \"Tecnologia\" } ] } ```  O valor vai em **`v`**. Um item com `value` é aceito sem erro, mas o campo fica vazio. Descubra os campos e os IDs com `GET /api/customfields?page=1&feature=deal` (troque `deal` por `meeting`, `task`, `contact`...). Com `&required=true` vêm só os obrigatórios da conta.  ## Erros  ```json {   \"reason\": \"Missing required parameters\",   \"message\": \"Missing required parameters\",   \"code\": \"VALIDATION_ERROR\",   \"errors\": [ { \"field\": \"title\", \"message\": \"must NOT have fewer than 1 characters\", \"keyword\": \"minLength\" } ] } ```  | Status | Quando | |---|---| | `400` | Corpo inválido: campo obrigatório ausente, tipo errado, valor fora da lista | | `401` | Token ausente, inválido ou vencido. Corpo: `{\"reason\": \"Access Denied\"}` | | `403` | O Service Account não tem a permissão da rota (`type: SA_PERMISSION_DENIED`, com `requiredPermission`) ou a rota exige administrador (`type: ADMIN_REQUIRED`) | | `404` | Registro não encontrado | | `409` | O registro não está no estado que a operação exige | | `429` | Limite de requisições excedido. Espere o tempo de `Retry-After` |  ## Limite de requisições  Os limites são aplicados por conta. Ao receber `429`, espere os segundos indicados em `Retry-After` e tente de novo com intervalo crescente.  ## Área de trabalho  Em contas com áreas de trabalho, a API define a área do registro pela credencial ou pelo registro pai. Não envie `workspace`.  # Cobertura  Esta referência cobre Contatos (leads, prospects e clientes), Empresas, Oportunidades, Pipelines e etapas, Reuniões, Tarefas, Observações, Usuários e Campos personalizados. Tickets, Atendimentos e Webhooks entram nas próximas revisões. 
+ * A API REST da Magnet Customer permite ler e gravar os registros do CRM a partir dos seus sistemas.  # Comece aqui  ## 1. Crie um Service Account  No CRM, abra **Configurações › Service Accounts** (apenas administradores), clique em **Novo service account**, escolha a validade e as permissões, e copie o **Client ID** e o **Client Secret**. O secret aparece uma única vez.  ## 2. Solicite um token  ```bash curl -X POST https://magnetcustomer.net/realms/platform/protocol/openid-connect/token \\   -H \"Content-Type: application/x-www-form-urlencoded\" \\   -d \"grant_type=client_credentials\" \\   -d \"client_id=SEU_CLIENT_ID\" \\   -d \"client_secret=SEU_CLIENT_SECRET\" ```  ```json { \"access_token\": \"eyJhbGciOiJSUzI1NiIs...\", \"expires_in\": 900, \"token_type\": \"Bearer\" } ```  O token vale 15 minutos e este fluxo não tem refresh token: quando vencer, ou ao receber `401`, repita o pedido.  ## 3. Chame a API  Cada conta tem o seu endereço. Troque `sua-conta` pelo subdomínio que você usa para abrir o CRM:  ```bash curl \"https://sua-conta.platform-api.magnetcustomer.com/api/deals?page=1&limit=15\" \\   -H \"Authorization: Bearer SEU_TOKEN\" ```  Requisições com corpo levam também `Content-Type: application/json`.  # Convenções  ## Paginação  Envie sempre `page`. Com ele, toda listagem devolve o mesmo envelope:  ```json { \"docs\": [], \"total\": 132, \"pages\": 9, \"page\": 1, \"limit\": 15 } ```  | Parâmetro | Padrão | Descrição | |---|---|---| | `page` | — | Página, a partir de 1. **Obrigatório na prática** | | `limit` | 15 | Registros por página. Máximo 100: acima disso a API usa 100 | | `sortBy` | varia por recurso | Campo de ordenação | | `sortType` | `desc` | `asc` ou `desc` | | `search` | — | Busca textual, quando o recurso aceita |  Sem `page`, algumas listagens (Contatos, Pipelines, Campos personalizados e os cadastros de apoio, como tipos e situações) devolvem uma lista simples (`[...]`), sem o envelope, e ignoram `limit`. Para percorrer tudo, peça `page=1` e avance até `page` ser igual a `pages`. Uma página além do fim devolve `docs` vazio.  O tamanho de página padrão é 15, com duas exceções: 25 em Leads, Prospects e Clientes, e 100 em Usuários. Um `limit` inválido cai no padrão.  ## Identificadores e datas  Todo ID é um texto de 24 caracteres hexadecimais, como `507f1f77bcf86cd799439011`. Ao gravar, envie a referência como **ID em texto** — nunca o objeto.  Um ID fora desse formato hoje é respondido com `500`, não `400`: valide o formato antes de enviar.  No corpo e nas respostas, datas são ISO 8601 em UTC, como `2026-05-15T10:00:00Z`. Nos filtros de data da URL (`minDate`, `createdAt_minDate`, `dateOfExpires_minDate`...), envie um **timestamp em milissegundos**, como `1798761600000`.  ## Listas na URL  Filtros que aceitam vários valores levam colchetes no nome, mesmo quando o valor é um só:  ``` /api/contacts?page=1&staffs[]=507f191e810c19729de860eb&staffs[]=507f191e810c19729de860ec ```  Sem colchetes, um valor único é recusado com erro em parte das listagens.  ## Campos ausentes  Campo sem valor costuma vir **ausente** da resposta, não como `null`. Trate a falta da chave como vazio.  ## Campos personalizados  Os campos criados pelo administrador da conta vão na lista `customFields`:  ```json { \"customFields\": [ { \"customField\": \"507f1f77bcf86cd799439014\", \"k\": \"segmento\", \"v\": \"Tecnologia\" } ] } ```  O valor vai em **`v`**. Um item com `value` é aceito sem erro, mas o campo fica vazio. Descubra os campos e os IDs com `GET /api/customfields?page=1&feature=deal` (troque `deal` por `meeting`, `task`, `contact`...). Com `&required=true` vêm só os obrigatórios da conta.  ## Erros  ```json {   \"reason\": \"Missing required parameters\",   \"message\": \"Missing required parameters\",   \"code\": \"VALIDATION_ERROR\",   \"errors\": [ { \"field\": \"title\", \"message\": \"must NOT have fewer than 1 characters\", \"keyword\": \"minLength\" } ] } ```  | Status | Quando | |---|---| | `400` | Corpo inválido: campo obrigatório ausente, tipo errado, valor fora da lista | | `401` | Token ausente, inválido ou vencido. Corpo: `{\"reason\": \"Access Denied\"}` | | `403` | O Service Account não tem a permissão da rota (`type: SA_PERMISSION_DENIED`, com `requiredPermission`) | | `404` | Registro não encontrado | | `409` | O registro não está no estado que a operação exige | | `429` | Limite de requisições excedido. Espere o tempo de `Retry-After` |  ## Permissões  Um Service Account só chama as rotas que as permissões dele liberam. Cada operação desta referência informa a permissão exigida, quando há uma: marque-a ao criar o Service Account. Uma chamada sem a permissão devolve `403` com o nome dela em `requiredPermission`.  Rotas de administração da conta (usuários, perfis, criação de webhooks, configurações) exigem um usuário administrador e não estão disponíveis para Service Accounts; por isso não aparecem aqui.  ## Limite de requisições  Os limites são aplicados por conta. Ao receber `429`, espere os segundos indicados em `Retry-After` e tente de novo com intervalo crescente.  ## Área de trabalho  Em contas com áreas de trabalho, a API define a área do registro pela credencial ou pelo registro pai. Não envie `workspace`.  # Webhooks  Para ser avisado quando algo muda no CRM, em vez de consultar a API de tempos em tempos, use webhooks. Um administrador cria o webhook no CRM, em **Integrações › Webhooks**, informando a URL do seu sistema e os eventos. A lista de eventos está em `GET /api/webhooks/triggers`; o formato da entrega, a assinatura e os reenvios estão na seção Webhooks do portal.  # Cobertura  Esta referência cobre Contatos (leads, prospects e clientes), Empresas, Oportunidades, Pipelines, etapas e motivos de perda, Jornadas, Reuniões, Tarefas, Observações, Tickets, Atendimentos, Usuários, Equipes, Áreas de trabalho, Campos personalizados e os eventos de webhook. 
  *
  * The version of the OpenAPI document: 2026-11
  * Contact: suporte@magnetcustomer.com
@@ -41,7 +41,7 @@ import type { TaskInput } from '../models';
 export const TasksApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * 
+         * **Permissão do Service Account:** `tasks.create`
          * @summary Criar tarefa
          * @param {TaskCreate} taskCreate 
          * @param {*} [options] Override http request option.
@@ -80,7 +80,7 @@ export const TasksApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * 
+         * **Permissão do Service Account:** `tasks.delete`
          * @summary Excluir tarefa
          * @param {string} id ID do registro.
          * @param {*} [options] Override http request option.
@@ -157,7 +157,7 @@ export const TasksApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * Marca como `finished`. Sem corpo.
+         * Marca como `finished`. Sem corpo.  **Permissão do Service Account:** `tasks.finish`
          * @summary Concluir tarefa
          * @param {string} id ID do registro.
          * @param {*} [options] Override http request option.
@@ -195,7 +195,7 @@ export const TasksApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * 
+         * **Permissão do Service Account:** `tasks.finish`
          * @summary Concluir várias tarefas
          * @param {FinishTasksRequest} finishTasksRequest 
          * @param {*} [options] Override http request option.
@@ -234,7 +234,7 @@ export const TasksApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * 
+         * **Permissão do Service Account:** `tasks.read`
          * @summary Obter tarefa
          * @param {string} id ID do registro.
          * @param {*} [options] Override http request option.
@@ -272,14 +272,14 @@ export const TasksApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * Ordenação padrão: `status` decrescente. Campos aceitos em `sortBy`: `title`, `dateOfExpires`, `createdAt`, `updatedAt`, `status`, `priority`, `type`, `owner`, `dueDate`.
+         * Ordenação padrão: `status` decrescente. Campos aceitos em `sortBy`: `title`, `dateOfExpires`, `createdAt`, `updatedAt`, `status`, `priority`, `type`, `owner`, `dueDate`.  **Permissão do Service Account:** `tasks.list`
          * @summary Listar tarefas
          * @param {number} [page] Página, a partir de 1. **Envie sempre**: sem &#x60;page&#x60;, a resposta vem como lista simples, sem o envelope de paginação, e &#x60;limit&#x60; é ignorado.
          * @param {number} [limit] Registros por página. Padrão: 15, salvo indicação na operação. Máximo: 100 — acima disso a API usa 100.
          * @param {string} [sortBy] Campo de ordenação. O padrão varia por recurso.
          * @param {ListTasksSortTypeEnum} [sortType] Direção da ordenação.
          * @param {string} [owner] ID do responsável.
-         * @param {Array<string>} [staffs] Usuários: busca em responsável, participantes e observadores. Repita o parâmetro para enviar vários (&#x60;?staffs&#x3D;id1&amp;staffs&#x3D;id2&#x60;).
+         * @param {Array<string>} [staffs] Usuários: busca em responsável, participantes e observadores. Lista de IDs: envie com colchetes, mesmo para um só valor (&#x60;?staffs[]&#x3D;id1&amp;staffs[]&#x3D;id2&#x60;).
          * @param {string} [type] ID do tipo.
          * @param {ListTasksStatusEnum} [status] Situação.
          * @param {ListTasksPriorityEnum} [priority] Prioridade.
@@ -332,7 +332,7 @@ export const TasksApiAxiosParamCreator = function (configuration?: Configuration
             }
 
             if (staffs) {
-                localVarQueryParameter['staffs'] = staffs;
+                localVarQueryParameter['staffs[]'] = staffs;
             }
 
             if (type !== undefined) {
@@ -391,7 +391,7 @@ export const TasksApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * Envie só os campos que mudam.
+         * Envie só os campos que mudam.  **Permissão do Service Account:** `tasks.update`
          * @summary Atualizar tarefa
          * @param {string} id ID do registro.
          * @param {TaskInput} taskInput 
@@ -443,7 +443,7 @@ export const TasksApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = TasksApiAxiosParamCreator(configuration)
     return {
         /**
-         * 
+         * **Permissão do Service Account:** `tasks.create`
          * @summary Criar tarefa
          * @param {TaskCreate} taskCreate 
          * @param {*} [options] Override http request option.
@@ -456,7 +456,7 @@ export const TasksApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * 
+         * **Permissão do Service Account:** `tasks.delete`
          * @summary Excluir tarefa
          * @param {string} id ID do registro.
          * @param {*} [options] Override http request option.
@@ -482,7 +482,7 @@ export const TasksApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Marca como `finished`. Sem corpo.
+         * Marca como `finished`. Sem corpo.  **Permissão do Service Account:** `tasks.finish`
          * @summary Concluir tarefa
          * @param {string} id ID do registro.
          * @param {*} [options] Override http request option.
@@ -495,7 +495,7 @@ export const TasksApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * 
+         * **Permissão do Service Account:** `tasks.finish`
          * @summary Concluir várias tarefas
          * @param {FinishTasksRequest} finishTasksRequest 
          * @param {*} [options] Override http request option.
@@ -508,7 +508,7 @@ export const TasksApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * 
+         * **Permissão do Service Account:** `tasks.read`
          * @summary Obter tarefa
          * @param {string} id ID do registro.
          * @param {*} [options] Override http request option.
@@ -521,14 +521,14 @@ export const TasksApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Ordenação padrão: `status` decrescente. Campos aceitos em `sortBy`: `title`, `dateOfExpires`, `createdAt`, `updatedAt`, `status`, `priority`, `type`, `owner`, `dueDate`.
+         * Ordenação padrão: `status` decrescente. Campos aceitos em `sortBy`: `title`, `dateOfExpires`, `createdAt`, `updatedAt`, `status`, `priority`, `type`, `owner`, `dueDate`.  **Permissão do Service Account:** `tasks.list`
          * @summary Listar tarefas
          * @param {number} [page] Página, a partir de 1. **Envie sempre**: sem &#x60;page&#x60;, a resposta vem como lista simples, sem o envelope de paginação, e &#x60;limit&#x60; é ignorado.
          * @param {number} [limit] Registros por página. Padrão: 15, salvo indicação na operação. Máximo: 100 — acima disso a API usa 100.
          * @param {string} [sortBy] Campo de ordenação. O padrão varia por recurso.
          * @param {ListTasksSortTypeEnum} [sortType] Direção da ordenação.
          * @param {string} [owner] ID do responsável.
-         * @param {Array<string>} [staffs] Usuários: busca em responsável, participantes e observadores. Repita o parâmetro para enviar vários (&#x60;?staffs&#x3D;id1&amp;staffs&#x3D;id2&#x60;).
+         * @param {Array<string>} [staffs] Usuários: busca em responsável, participantes e observadores. Lista de IDs: envie com colchetes, mesmo para um só valor (&#x60;?staffs[]&#x3D;id1&amp;staffs[]&#x3D;id2&#x60;).
          * @param {string} [type] ID do tipo.
          * @param {ListTasksStatusEnum} [status] Situação.
          * @param {ListTasksPriorityEnum} [priority] Prioridade.
@@ -550,7 +550,7 @@ export const TasksApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Envie só os campos que mudam.
+         * Envie só os campos que mudam.  **Permissão do Service Account:** `tasks.update`
          * @summary Atualizar tarefa
          * @param {string} id ID do registro.
          * @param {TaskInput} taskInput 
@@ -573,7 +573,7 @@ export const TasksApiFactory = function (configuration?: Configuration, basePath
     const localVarFp = TasksApiFp(configuration)
     return {
         /**
-         * 
+         * **Permissão do Service Account:** `tasks.create`
          * @summary Criar tarefa
          * @param {TasksApiCreateTaskRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -583,7 +583,7 @@ export const TasksApiFactory = function (configuration?: Configuration, basePath
             return localVarFp.createTask(requestParameters.taskCreate, options).then((request) => request(axios, basePath));
         },
         /**
-         * 
+         * **Permissão do Service Account:** `tasks.delete`
          * @summary Excluir tarefa
          * @param {TasksApiDeleteTaskRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -603,7 +603,7 @@ export const TasksApiFactory = function (configuration?: Configuration, basePath
             return localVarFp.deleteTasks(requestParameters.finishTasksRequest, options).then((request) => request(axios, basePath));
         },
         /**
-         * Marca como `finished`. Sem corpo.
+         * Marca como `finished`. Sem corpo.  **Permissão do Service Account:** `tasks.finish`
          * @summary Concluir tarefa
          * @param {TasksApiFinishTaskRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -613,7 +613,7 @@ export const TasksApiFactory = function (configuration?: Configuration, basePath
             return localVarFp.finishTask(requestParameters.id, options).then((request) => request(axios, basePath));
         },
         /**
-         * 
+         * **Permissão do Service Account:** `tasks.finish`
          * @summary Concluir várias tarefas
          * @param {TasksApiFinishTasksRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -623,7 +623,7 @@ export const TasksApiFactory = function (configuration?: Configuration, basePath
             return localVarFp.finishTasks(requestParameters.finishTasksRequest, options).then((request) => request(axios, basePath));
         },
         /**
-         * 
+         * **Permissão do Service Account:** `tasks.read`
          * @summary Obter tarefa
          * @param {TasksApiGetTaskRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -633,7 +633,7 @@ export const TasksApiFactory = function (configuration?: Configuration, basePath
             return localVarFp.getTask(requestParameters.id, options).then((request) => request(axios, basePath));
         },
         /**
-         * Ordenação padrão: `status` decrescente. Campos aceitos em `sortBy`: `title`, `dateOfExpires`, `createdAt`, `updatedAt`, `status`, `priority`, `type`, `owner`, `dueDate`.
+         * Ordenação padrão: `status` decrescente. Campos aceitos em `sortBy`: `title`, `dateOfExpires`, `createdAt`, `updatedAt`, `status`, `priority`, `type`, `owner`, `dueDate`.  **Permissão do Service Account:** `tasks.list`
          * @summary Listar tarefas
          * @param {TasksApiListTasksRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -643,7 +643,7 @@ export const TasksApiFactory = function (configuration?: Configuration, basePath
             return localVarFp.listTasks(requestParameters.page, requestParameters.limit, requestParameters.sortBy, requestParameters.sortType, requestParameters.owner, requestParameters.staffs, requestParameters.type, requestParameters.status, requestParameters.priority, requestParameters.source, requestParameters.contact, requestParameters.deal, requestParameters.organization, requestParameters.dateOfExpiresMinDate, requestParameters.dateOfExpiresMaxDate, requestParameters.visualization, requestParameters.search, options).then((request) => request(axios, basePath));
         },
         /**
-         * Envie só os campos que mudam.
+         * Envie só os campos que mudam.  **Permissão do Service Account:** `tasks.update`
          * @summary Atualizar tarefa
          * @param {TasksApiUpdateTaskRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -736,7 +736,7 @@ export interface TasksApiListTasksRequest {
     readonly owner?: string
 
     /**
-     * Usuários: busca em responsável, participantes e observadores. Repita o parâmetro para enviar vários (&#x60;?staffs&#x3D;id1&amp;staffs&#x3D;id2&#x60;).
+     * Usuários: busca em responsável, participantes e observadores. Lista de IDs: envie com colchetes, mesmo para um só valor (&#x60;?staffs[]&#x3D;id1&amp;staffs[]&#x3D;id2&#x60;).
      */
     readonly staffs?: Array<string>
 
@@ -813,7 +813,7 @@ export interface TasksApiUpdateTaskRequest {
  */
 export class TasksApi extends BaseAPI {
     /**
-     * 
+     * **Permissão do Service Account:** `tasks.create`
      * @summary Criar tarefa
      * @param {TasksApiCreateTaskRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -824,7 +824,7 @@ export class TasksApi extends BaseAPI {
     }
 
     /**
-     * 
+     * **Permissão do Service Account:** `tasks.delete`
      * @summary Excluir tarefa
      * @param {TasksApiDeleteTaskRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -846,7 +846,7 @@ export class TasksApi extends BaseAPI {
     }
 
     /**
-     * Marca como `finished`. Sem corpo.
+     * Marca como `finished`. Sem corpo.  **Permissão do Service Account:** `tasks.finish`
      * @summary Concluir tarefa
      * @param {TasksApiFinishTaskRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -857,7 +857,7 @@ export class TasksApi extends BaseAPI {
     }
 
     /**
-     * 
+     * **Permissão do Service Account:** `tasks.finish`
      * @summary Concluir várias tarefas
      * @param {TasksApiFinishTasksRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -868,7 +868,7 @@ export class TasksApi extends BaseAPI {
     }
 
     /**
-     * 
+     * **Permissão do Service Account:** `tasks.read`
      * @summary Obter tarefa
      * @param {TasksApiGetTaskRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -879,7 +879,7 @@ export class TasksApi extends BaseAPI {
     }
 
     /**
-     * Ordenação padrão: `status` decrescente. Campos aceitos em `sortBy`: `title`, `dateOfExpires`, `createdAt`, `updatedAt`, `status`, `priority`, `type`, `owner`, `dueDate`.
+     * Ordenação padrão: `status` decrescente. Campos aceitos em `sortBy`: `title`, `dateOfExpires`, `createdAt`, `updatedAt`, `status`, `priority`, `type`, `owner`, `dueDate`.  **Permissão do Service Account:** `tasks.list`
      * @summary Listar tarefas
      * @param {TasksApiListTasksRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -890,7 +890,7 @@ export class TasksApi extends BaseAPI {
     }
 
     /**
-     * Envie só os campos que mudam.
+     * Envie só os campos que mudam.  **Permissão do Service Account:** `tasks.update`
      * @summary Atualizar tarefa
      * @param {TasksApiUpdateTaskRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.

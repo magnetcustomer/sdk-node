@@ -5,6 +5,7 @@ TAGS = {
     "Contatos": "Contacts", "Leads": "Leads", "Prospects": "Prospects", "Clientes": "Customers", "Empresas": "Organizations",
     "Oportunidades": "Deals", "Pipelines e etapas": "Pipelines", "Reuniões": "Meetings", "Tarefas": "Tasks",
     "Tipos de tarefa": "TaskTypes", "Observações": "Observations", "Usuários": "Staffs", "Campos personalizados": "CustomFields",
+    "Tickets": "Tickets", "Atendimentos": "Treatments", "Jornadas": "Journeys", "Equipes e áreas de trabalho": "Teams", "Webhooks": "Webhooks",
 }
 spec = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
 for methods in spec["paths"].values():
