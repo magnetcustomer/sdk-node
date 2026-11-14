@@ -2,8 +2,9 @@ import axios, { AxiosInstance } from 'axios';
 import { ServiceAccountCredentials, TokenManager } from './auth';
 import { Configuration } from './generated/configuration';
 import {
-    ContactsApi, CustomFieldsApi, CustomersApi, DealsApi, LeadsApi, MeetingsApi, ObservationsApi,
-    OrganizationsApi, PipelinesApi, ProspectsApi, StaffsApi, TaskTypesApi, TasksApi,
+    ContactsApi, CustomFieldsApi, CustomersApi, DealsApi, JourneysApi, LeadsApi, MeetingsApi, ObservationsApi,
+    OrganizationsApi, PipelinesApi, ProspectsApi, StaffsApi, TaskTypesApi, TasksApi, TeamsApi, TicketsApi,
+    TreatmentsApi, WebhooksApi,
 } from './generated/api';
 
 export interface MagnetCustomerOptions extends ServiceAccountCredentials {
@@ -40,6 +41,11 @@ export class MagnetCustomer {
     readonly observations: ObservationsApi;
     readonly staffs: StaffsApi;
     readonly customFields: CustomFieldsApi;
+    readonly tickets: TicketsApi;
+    readonly treatments: TreatmentsApi;
+    readonly journeys: JourneysApi;
+    readonly teams: TeamsApi;
+    readonly webhooks: WebhooksApi;
 
     readonly tokens: TokenManager;
     readonly baseUrl: string;
@@ -81,5 +87,10 @@ export class MagnetCustomer {
         this.observations = build(ObservationsApi);
         this.staffs = build(StaffsApi);
         this.customFields = build(CustomFieldsApi);
+        this.tickets = build(TicketsApi);
+        this.treatments = build(TreatmentsApi);
+        this.journeys = build(JourneysApi);
+        this.teams = build(TeamsApi);
+        this.webhooks = build(WebhooksApi);
     }
 }

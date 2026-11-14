@@ -14,28 +14,37 @@ info:
     \n## Paginação\n\nEnvie sempre `page`. Com ele, toda listagem devolve o mesmo envelope:\n\n```json\n{ \"docs\": [], \"total\": 132, \"pages\"\
     : 9, \"page\": 1, \"limit\": 15 }\n```\n\n| Parâmetro | Padrão | Descrição |\n|---|---|---|\n| `page` | — | Página, a partir de 1. **Obrigatório\
     \ na prática** |\n| `limit` | 15 | Registros por página. Máximo 100: acima disso a API usa 100 |\n| `sortBy` | varia por recurso | Campo de\
-    \ ordenação |\n| `sortType` | `desc` | `asc` ou `desc` |\n| `search` | — | Busca textual, quando o recurso aceita |\n\nSem `page`, a maioria\
-    \ das listagens devolve uma lista simples (`[...]`), sem o envelope, e ignora `limit`. Para percorrer tudo, peça `page=1` e avance até `page`\
-    \ ser igual a `pages`. Uma página além do fim devolve `docs` vazio.\n\nO tamanho de página padrão é 15, com duas exceções: 25 em Leads, Prospects\
-    \ e Clientes, e 100 em Usuários. Um `limit` inválido cai no padrão.\n\n## Identificadores e datas\n\nTodo ID é um texto de 24 caracteres hexadecimais,\
-    \ como `507f1f77bcf86cd799439011`. Ao gravar, envie a referência como **ID em texto** — nunca o objeto.\n\nUm ID fora desse formato hoje é\
-    \ respondido com `500`, não `400`: valide o formato antes de enviar.\n\nNo corpo e nas respostas, datas são ISO 8601 em UTC, como `2026-05-15T10:00:00Z`.\
-    \ Nos filtros de data da URL (`minDate`, `dateOfExpires_minDate`...), o valor é um **timestamp em milissegundos**, como `1798761600000`; uma\
-    \ data ISO ali não filtra o que você espera.\n\n## Campos ausentes\n\nCampo sem valor costuma vir **ausente** da resposta, não como `null`.\
-    \ Trate a falta da chave como vazio.\n\n## Campos personalizados\n\nOs campos criados pelo administrador da conta vão na lista `customFields`:\n\
-    \n```json\n{ \"customFields\": [ { \"customField\": \"507f1f77bcf86cd799439014\", \"k\": \"segmento\", \"v\": \"Tecnologia\" } ] }\n```\n\n\
-    O valor vai em **`v`**. Um item com `value` é aceito sem erro, mas o campo fica vazio. Descubra os campos e os IDs com `GET /api/customfields?page=1&feature=deal`\
-    \ (troque `deal` por `meeting`, `task`, `contact`...). Com `&required=true` vêm só os obrigatórios da conta.\n\n## Erros\n\n```json\n{\n \
-    \ \"reason\": \"Missing required parameters\",\n  \"message\": \"Missing required parameters\",\n  \"code\": \"VALIDATION_ERROR\",\n  \"errors\"\
-    : [ { \"field\": \"title\", \"message\": \"must NOT have fewer than 1 characters\", \"keyword\": \"minLength\" } ]\n}\n```\n\n| Status | Quando\
-    \ |\n|---|---|\n| `400` | Corpo inválido: campo obrigatório ausente, tipo errado, valor fora da lista |\n| `401` | Token ausente, inválido\
-    \ ou vencido. Corpo: `{\"reason\": \"Access Denied\"}` |\n| `403` | O Service Account não tem a permissão da rota (`type: SA_PERMISSION_DENIED`,\
-    \ com `requiredPermission`) ou a rota exige administrador (`type: ADMIN_REQUIRED`) |\n| `404` | Registro não encontrado |\n| `409` | O registro\
-    \ não está no estado que a operação exige |\n| `429` | Limite de requisições excedido. Espere o tempo de `Retry-After` |\n\n## Limite de requisições\n\
-    \nOs limites são aplicados por conta. Ao receber `429`, espere os segundos indicados em `Retry-After` e tente de novo com intervalo crescente.\n\
-    \n## Área de trabalho\n\nEm contas com áreas de trabalho, a API define a área do registro pela credencial ou pelo registro pai. Não envie\
-    \ `workspace`.\n\n# Cobertura\n\nEsta referência cobre Contatos (leads, prospects e clientes), Empresas, Oportunidades, Pipelines e etapas,\
-    \ Reuniões, Tarefas, Observações, Usuários e Campos personalizados. Tickets, Atendimentos e Webhooks entram nas próximas revisões.\n"
+    \ ordenação |\n| `sortType` | `desc` | `asc` ou `desc` |\n| `search` | — | Busca textual, quando o recurso aceita |\n\nSem `page`, algumas\
+    \ listagens (Contatos, Pipelines, Campos personalizados e os cadastros de apoio, como tipos e situações) devolvem uma lista simples (`[...]`),\
+    \ sem o envelope, e ignoram `limit`. Para percorrer tudo, peça `page=1` e avance até `page` ser igual a `pages`. Uma página além do fim devolve\
+    \ `docs` vazio.\n\nO tamanho de página padrão é 15, com duas exceções: 25 em Leads, Prospects e Clientes, e 100 em Usuários. Um `limit` inválido\
+    \ cai no padrão.\n\n## Identificadores e datas\n\nTodo ID é um texto de 24 caracteres hexadecimais, como `507f1f77bcf86cd799439011`. Ao gravar,\
+    \ envie a referência como **ID em texto** — nunca o objeto.\n\nUm ID fora desse formato hoje é respondido com `500`, não `400`: valide o formato\
+    \ antes de enviar.\n\nNo corpo e nas respostas, datas são ISO 8601 em UTC, como `2026-05-15T10:00:00Z`. Nos filtros de data da URL (`minDate`,\
+    \ `createdAt_minDate`, `dateOfExpires_minDate`...), envie um **timestamp em milissegundos**, como `1798761600000`.\n\n## Listas na URL\n\n\
+    Filtros que aceitam vários valores levam colchetes no nome, mesmo quando o valor é um só:\n\n```\n/api/contacts?page=1&staffs[]=507f191e810c19729de860eb&staffs[]=507f191e810c19729de860ec\n\
+    ```\n\nSem colchetes, um valor único é recusado com erro em parte das listagens.\n\n## Campos ausentes\n\nCampo sem valor costuma vir **ausente**\
+    \ da resposta, não como `null`. Trate a falta da chave como vazio.\n\n## Campos personalizados\n\nOs campos criados pelo administrador da\
+    \ conta vão na lista `customFields`:\n\n```json\n{ \"customFields\": [ { \"customField\": \"507f1f77bcf86cd799439014\", \"k\": \"segmento\"\
+    , \"v\": \"Tecnologia\" } ] }\n```\n\nO valor vai em **`v`**. Um item com `value` é aceito sem erro, mas o campo fica vazio. Descubra os campos\
+    \ e os IDs com `GET /api/customfields?page=1&feature=deal` (troque `deal` por `meeting`, `task`, `contact`...). Com `&required=true` vêm só\
+    \ os obrigatórios da conta.\n\n## Erros\n\n```json\n{\n  \"reason\": \"Missing required parameters\",\n  \"message\": \"Missing required parameters\"\
+    ,\n  \"code\": \"VALIDATION_ERROR\",\n  \"errors\": [ { \"field\": \"title\", \"message\": \"must NOT have fewer than 1 characters\", \"keyword\"\
+    : \"minLength\" } ]\n}\n```\n\n| Status | Quando |\n|---|---|\n| `400` | Corpo inválido: campo obrigatório ausente, tipo errado, valor fora\
+    \ da lista |\n| `401` | Token ausente, inválido ou vencido. Corpo: `{\"reason\": \"Access Denied\"}` |\n| `403` | O Service Account não tem\
+    \ a permissão da rota (`type: SA_PERMISSION_DENIED`, com `requiredPermission`) |\n| `404` | Registro não encontrado |\n| `409` | O registro\
+    \ não está no estado que a operação exige |\n| `429` | Limite de requisições excedido. Espere o tempo de `Retry-After` |\n\n## Permissões\n\
+    \nUm Service Account só chama as rotas que as permissões dele liberam. Cada operação desta referência informa a permissão exigida, quando\
+    \ há uma: marque-a ao criar o Service Account. Uma chamada sem a permissão devolve `403` com o nome dela em `requiredPermission`.\n\nRotas\
+    \ de administração da conta (usuários, perfis, criação de webhooks, configurações) exigem um usuário administrador e não estão disponíveis\
+    \ para Service Accounts; por isso não aparecem aqui.\n\n## Limite de requisições\n\nOs limites são aplicados por conta. Ao receber `429`,\
+    \ espere os segundos indicados em `Retry-After` e tente de novo com intervalo crescente.\n\n## Área de trabalho\n\nEm contas com áreas de\
+    \ trabalho, a API define a área do registro pela credencial ou pelo registro pai. Não envie `workspace`.\n\n# Webhooks\n\nPara ser avisado\
+    \ quando algo muda no CRM, em vez de consultar a API de tempos em tempos, use webhooks. Um administrador cria o webhook no CRM, em **Integrações\
+    \ › Webhooks**, informando a URL do seu sistema e os eventos. A lista de eventos está em `GET /api/webhooks/triggers`; o formato da entrega,\
+    \ a assinatura e os reenvios estão na seção Webhooks do portal.\n\n# Cobertura\n\nEsta referência cobre Contatos (leads, prospects e clientes),\
+    \ Empresas, Oportunidades, Pipelines, etapas e motivos de perda, Jornadas, Reuniões, Tarefas, Observações, Tickets, Atendimentos, Usuários,\
+    \ Equipes, Áreas de trabalho, Campos personalizados e os eventos de webhook.\n"
   contact:
     name: Suporte Magnet Customer
     email: suporte@magnetcustomer.com
@@ -62,7 +71,9 @@ tags:
 - name: Oportunidades
   description: 'Negócios em andamento: pipeline, etapa, responsável, valor e fechamento.'
 - name: Pipelines e etapas
-  description: Consulta dos pipelines e das etapas, para criar e mover oportunidades.
+  description: Consulta dos pipelines, das etapas e dos motivos de perda, para criar, mover e fechar oportunidades.
+- name: Jornadas
+  description: 'Acompanhamento do cliente depois da venda: fase, contrato, renovação e health score. Somente leitura.'
 - name: Reuniões
   description: Compromissos com contato, empresa ou oportunidade.
 - name: Tarefas
@@ -71,10 +82,18 @@ tags:
   description: Cadastro dos tipos usados no campo `type` das tarefas.
 - name: Observações
   description: Anotações em contatos, empresas, oportunidades e produtos, com menção a usuários.
+- name: Tickets
+  description: 'Pedidos de suporte: abertura, situação, responsável e mensagens.'
+- name: Atendimentos
+  description: 'Registro de cada contato feito com o cliente: ligação, visita, e-mail.'
 - name: Usuários
   description: Consulta dos usuários da conta, para preencher responsáveis e participantes.
 - name: Campos personalizados
   description: 'Consulta dos campos da conta: IDs, chaves e quais são obrigatórios.'
+- name: Equipes e áreas de trabalho
+  description: Consulta das equipes e das áreas de trabalho da conta.
+- name: Webhooks
+  description: Eventos que o CRM envia para o seu sistema. A assinatura é configurada no CRM; aqui você consulta os eventos disponíveis.
 x-tagGroups:
 - name: Cadastros
   tags:
@@ -87,16 +106,25 @@ x-tagGroups:
   tags:
   - Oportunidades
   - Pipelines e etapas
+  - Jornadas
 - name: Atividades
   tags:
   - Reuniões
   - Tarefas
   - Tipos de tarefa
   - Observações
+- name: Suporte
+  tags:
+  - Tickets
+  - Atendimentos
 - name: Configuração da conta
   tags:
   - Usuários
   - Campos personalizados
+  - Equipes e áreas de trabalho
+- name: Eventos
+  tags:
+  - Webhooks
 paths:
   /api/deals:
     get:
@@ -104,7 +132,10 @@ paths:
       - Oportunidades
       operationId: listDeals
       summary: Listar oportunidades
-      description: 'Ordenação padrão: `createdAt` decrescente.'
+      description: 'Ordenação padrão: `createdAt` decrescente.
+
+
+        **Permissão do Service Account:** `deals.list`'
       parameters:
       - $ref: '#/components/parameters/Page'
       - $ref: '#/components/parameters/Limit'
@@ -130,18 +161,19 @@ paths:
         description: ID da empresa.
         schema:
           type: string
-      - name: staffs
+      - name: staffs[]
         in: query
-        description: 'Usuários: busca em responsável, participantes e observadores. Repita o parâmetro para enviar vários (`?staffs=id1&staffs=id2`).'
+        description: 'Usuários: busca em responsável, participantes e observadores. Lista de IDs: envie com colchetes, mesmo para um só valor
+          (`?staffs[]=id1&staffs[]=id2`).'
         schema:
           type: array
           items:
             type: string
         style: form
         explode: true
-      - name: contacts
+      - name: contacts[]
         in: query
-        description: Vários contatos. Repita o parâmetro para enviar vários (`?contacts=id1&contacts=id2`).
+        description: 'Vários contatos. Lista de IDs: envie com colchetes, mesmo para um só valor (`?contacts[]=id1&contacts[]=id2`).'
         schema:
           type: array
           items:
@@ -238,7 +270,10 @@ paths:
       description: 'Se `staff` não for enviado, a API usa o usuário da credencial.
 
 
-        A criação é idempotente por 5 minutos: reenviar o mesmo corpo não duplica o registro. Para controlar a chave, envie o cabeçalho `Idempotency-Key`.'
+        A criação é idempotente por 5 minutos: reenviar o mesmo corpo não duplica o registro. Para controlar a chave, envie o cabeçalho `Idempotency-Key`.
+
+
+        **Permissão do Service Account:** `deals.create`'
       parameters:
       - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -319,7 +354,10 @@ paths:
       - Oportunidades
       operationId: getDeal
       summary: Obter oportunidade
-      description: No detalhe, `pipeline` vem como objeto (`_id`, `title`) e `contact` vem com o cadastro completo.
+      description: 'No detalhe, `pipeline` vem como objeto (`_id`, `title`) e `contact` vem com o cadastro completo.
+
+
+        **Permissão do Service Account:** `deals.read`'
       parameters:
       - $ref: '#/components/parameters/Id'
       responses:
@@ -382,7 +420,10 @@ paths:
       - Oportunidades
       operationId: updateDeal
       summary: Atualizar oportunidade
-      description: Envie só os campos que mudam.
+      description: 'Envie só os campos que mudam.
+
+
+        **Permissão do Service Account:** `deals.update`'
       parameters:
       - $ref: '#/components/parameters/Id'
       requestBody:
@@ -454,7 +495,10 @@ paths:
       - Oportunidades
       operationId: deleteDeal
       summary: Excluir oportunidade
-      description: 'Exclusão lógica (`active: false`). Responde `400` com `code: DEAL_HAS_LINKED_JOURNEYS` se houver jornadas ativas vinculadas.'
+      description: 'Exclusão lógica (`active: false`). Responde `400` com `code: DEAL_HAS_LINKED_JOURNEYS` se houver jornadas ativas vinculadas.
+
+
+        **Permissão do Service Account:** `deals.delete`'
       parameters:
       - $ref: '#/components/parameters/Id'
       responses:
@@ -599,7 +643,7 @@ paths:
                   type: string
                   pattern: ^[a-fA-F0-9]{24}$
                   example: 507f1f77bcf86cd799439011
-                  description: Motivo da perda, configurado no pipeline.
+                  description: ID do motivo da perda (de `GET /api/pipelines/settings/lostreasons`).
             example:
               lost: true
               lostReason: 507f1f77bcf86cd799439016
@@ -840,7 +884,10 @@ paths:
       - Reuniões
       operationId: listMeetings
       summary: Listar reuniões
-      description: 'Ordenação padrão: `start` decrescente.'
+      description: 'Ordenação padrão: `start` decrescente.
+
+
+        **Permissão do Service Account:** `meetings.list`'
       parameters:
       - $ref: '#/components/parameters/Page'
       - $ref: '#/components/parameters/Limit'
@@ -851,9 +898,10 @@ paths:
         description: ID do organizador.
         schema:
           type: string
-      - name: staffs
+      - name: staffs[]
         in: query
-        description: 'Usuários: busca em organizador, participantes e observadores. Repita o parâmetro para enviar vários (`?staffs=id1&staffs=id2`).'
+        description: 'Usuários: busca em organizador, participantes e observadores. Lista de IDs: envie com colchetes, mesmo para um só valor
+          (`?staffs[]=id1&staffs[]=id2`).'
         schema:
           type: array
           items:
@@ -907,9 +955,9 @@ paths:
           - finished
           - no-show
           description: 'Padrão: `pending`. Com `finished`, `cancelled` ou `no-show`, a API preenche `dateFinished`.'
-      - name: labels
+      - name: labels[]
         in: query
-        description: Etiquetas. Repita o parâmetro para enviar vários (`?labels=id1&labels=id2`).
+        description: 'Etiquetas. Lista de IDs: envie com colchetes, mesmo para um só valor (`?labels[]=id1&labels[]=id2`).'
         schema:
           type: array
           items:
@@ -1020,7 +1068,10 @@ paths:
         devolve os campos obrigatórios da conta. Quando falta um deles, a API responde `400` com `code: MISSING_REQUIRED` e a lista em `fields`.
 
 
-        Referências (`staff`, `contact`, `deal`...) aceitam só o ID em texto. Enviar o objeto (`{"_id": "..."}`) devolve `400 VALIDATION_ERROR`.'
+        Referências (`staff`, `contact`, `deal`...) aceitam só o ID em texto. Enviar o objeto (`{"_id": "..."}`) devolve `400 VALIDATION_ERROR`.
+
+
+        **Permissão do Service Account:** `meetings.create`'
       requestBody:
         required: true
         content:
@@ -1136,12 +1187,16 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '404':
           $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `meetings.read`'
     put:
       tags:
       - Reuniões
       operationId: replaceMeeting
       summary: Substituir reunião
-      description: 'Substitui o registro: reenvie o objeto completo. Para alterar só alguns campos, use `PATCH`.'
+      description: 'Substitui o registro: reenvie o objeto completo. Para alterar só alguns campos, use `PATCH`.
+
+
+        **Permissão do Service Account:** `meetings.update`'
       parameters:
       - $ref: '#/components/parameters/Id'
       requestBody:
@@ -1290,6 +1345,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '404':
           $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `meetings.delete`'
   /api/meetings/{id}/finish:
     put:
       tags:
@@ -1386,7 +1442,10 @@ paths:
       operationId: listTasks
       summary: Listar tarefas
       description: 'Ordenação padrão: `status` decrescente. Campos aceitos em `sortBy`: `title`, `dateOfExpires`, `createdAt`, `updatedAt`, `status`,
-        `priority`, `type`, `owner`, `dueDate`.'
+        `priority`, `type`, `owner`, `dueDate`.
+
+
+        **Permissão do Service Account:** `tasks.list`'
       parameters:
       - $ref: '#/components/parameters/Page'
       - $ref: '#/components/parameters/Limit'
@@ -1397,9 +1456,10 @@ paths:
         description: ID do responsável.
         schema:
           type: string
-      - name: staffs
+      - name: staffs[]
         in: query
-        description: 'Usuários: busca em responsável, participantes e observadores. Repita o parâmetro para enviar vários (`?staffs=id1&staffs=id2`).'
+        description: 'Usuários: busca em responsável, participantes e observadores. Lista de IDs: envie com colchetes, mesmo para um só valor
+          (`?staffs[]=id1&staffs[]=id2`).'
         schema:
           type: array
           items:
@@ -1594,6 +1654,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+      description: '**Permissão do Service Account:** `tasks.create`'
   /api/tasks/{id}:
     get:
       tags:
@@ -1646,12 +1707,16 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '404':
           $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `tasks.read`'
     put:
       tags:
       - Tarefas
       operationId: updateTask
       summary: Atualizar tarefa
-      description: Envie só os campos que mudam.
+      description: 'Envie só os campos que mudam.
+
+
+        **Permissão do Service Account:** `tasks.update`'
       parameters:
       - $ref: '#/components/parameters/Id'
       requestBody:
@@ -1726,13 +1791,17 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '404':
           $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `tasks.delete`'
   /api/tasks/{id}/finish:
     put:
       tags:
       - Tarefas
       operationId: finishTask
       summary: Concluir tarefa
-      description: Marca como `finished`. Sem corpo.
+      description: 'Marca como `finished`. Sem corpo.
+
+
+        **Permissão do Service Account:** `tasks.finish`'
       parameters:
       - $ref: '#/components/parameters/Id'
       responses:
@@ -1788,6 +1857,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+      description: '**Permissão do Service Account:** `tasks.finish`'
   /api/tasks/selected/remove:
     put:
       tags:
@@ -1830,7 +1900,10 @@ paths:
       - Tipos de tarefa
       operationId: listTaskTypes
       summary: Listar tipos de tarefa
-      description: Sem `page`, devolve uma lista simples com todos os tipos. Com `page`, devolve o envelope paginado.
+      description: 'Sem `page`, devolve uma lista simples com todos os tipos. Com `page`, devolve o envelope paginado.
+
+
+        **Permissão do Service Account:** `tasks.read`'
       parameters:
       - $ref: '#/components/parameters/Page'
       - $ref: '#/components/parameters/Limit'
@@ -2040,7 +2113,10 @@ paths:
       - Observações
       operationId: listObservations
       summary: Listar observações
-      description: 'Devolve só as ativas. Ordenação padrão: `createdAt` decrescente.'
+      description: 'Devolve só as ativas. Ordenação padrão: `createdAt` decrescente.
+
+
+        **Permissão do Service Account:** `observations.list`'
       parameters:
       - $ref: '#/components/parameters/Page'
       - $ref: '#/components/parameters/Limit'
@@ -2056,9 +2132,9 @@ paths:
         description: ID do contato.
         schema:
           type: string
-      - name: contacts
+      - name: contacts[]
         in: query
-        description: Vários contatos. Repita o parâmetro para enviar vários (`?contacts=id1&contacts=id2`).
+        description: 'Vários contatos. Lista de IDs: envie com colchetes, mesmo para um só valor (`?contacts[]=id1&contacts[]=id2`).'
         schema:
           type: array
           items:
@@ -2305,15 +2381,18 @@ paths:
       - Contatos
       operationId: listContacts
       summary: Listar contatos
-      description: 'Ordenação padrão: `fullname` crescente. Devolve só os registros ativos.'
+      description: 'Ordenação padrão: `fullname` crescente. Devolve só os registros ativos.
+
+
+        **Permissão do Service Account:** `contacts.list`'
       parameters:
       - $ref: '#/components/parameters/Page'
       - $ref: '#/components/parameters/Limit'
       - $ref: '#/components/parameters/SortBy'
       - $ref: '#/components/parameters/SortType'
-      - name: staffs
+      - name: staffs[]
         in: query
-        description: Usuários responsáveis. Repita o parâmetro para enviar vários (`?staffs=id1&staffs=id2`).
+        description: 'Usuários responsáveis. Lista de IDs: envie com colchetes, mesmo para um só valor (`?staffs[]=id1&staffs[]=id2`).'
         schema:
           type: array
           items:
@@ -2407,7 +2486,10 @@ paths:
       operationId: createContact
       summary: Criar contato
       description: 'O corpo não tem campo obrigatório fixo: o administrador da conta define quais são. `GET /api/customfields?feature=contact&required=true`
-        devolve os campos obrigatórios da conta. Quando falta um deles, a API responde `400` com `code: MISSING_REQUIRED` e a lista em `fields`.'
+        devolve os campos obrigatórios da conta. Quando falta um deles, a API responde `400` com `code: MISSING_REQUIRED` e a lista em `fields`.
+
+
+        **Permissão do Service Account:** `contacts.create`'
       requestBody:
         required: true
         content:
@@ -2516,12 +2598,16 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '404':
           $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `contacts.read`'
     put:
       tags:
       - Contatos
       operationId: updateContact
       summary: Atualizar contato
-      description: Envie só os campos que mudam.
+      description: 'Envie só os campos que mudam.
+
+
+        **Permissão do Service Account:** `contacts.update`'
       parameters:
       - $ref: '#/components/parameters/Id'
       requestBody:
@@ -2579,7 +2665,10 @@ paths:
       - Contatos
       operationId: deleteContact
       summary: Excluir contato
-      description: Exige a permissão de excluir.
+      description: 'Exige a permissão de excluir.
+
+
+        **Permissão do Service Account:** `contacts.delete`'
       parameters:
       - $ref: '#/components/parameters/Id'
       responses:
@@ -2611,9 +2700,9 @@ paths:
       - $ref: '#/components/parameters/Limit'
       - $ref: '#/components/parameters/SortBy'
       - $ref: '#/components/parameters/SortType'
-      - name: staffs
+      - name: staffs[]
         in: query
-        description: Usuários responsáveis. Repita o parâmetro para enviar vários (`?staffs=id1&staffs=id2`).
+        description: 'Usuários responsáveis. Lista de IDs: envie com colchetes, mesmo para um só valor (`?staffs[]=id1&staffs[]=id2`).'
         schema:
           type: array
           items:
@@ -2903,9 +2992,9 @@ paths:
       - $ref: '#/components/parameters/Limit'
       - $ref: '#/components/parameters/SortBy'
       - $ref: '#/components/parameters/SortType'
-      - name: staffs
+      - name: staffs[]
         in: query
-        description: Usuários responsáveis. Repita o parâmetro para enviar vários (`?staffs=id1&staffs=id2`).
+        description: 'Usuários responsáveis. Lista de IDs: envie com colchetes, mesmo para um só valor (`?staffs[]=id1&staffs[]=id2`).'
         schema:
           type: array
           items:
@@ -3195,9 +3284,9 @@ paths:
       - $ref: '#/components/parameters/Limit'
       - $ref: '#/components/parameters/SortBy'
       - $ref: '#/components/parameters/SortType'
-      - name: staffs
+      - name: staffs[]
         in: query
-        description: Usuários responsáveis. Repita o parâmetro para enviar vários (`?staffs=id1&staffs=id2`).
+        description: 'Usuários responsáveis. Lista de IDs: envie com colchetes, mesmo para um só valor (`?staffs[]=id1&staffs[]=id2`).'
         schema:
           type: array
           items:
@@ -3482,9 +3571,9 @@ paths:
       - $ref: '#/components/parameters/Limit'
       - $ref: '#/components/parameters/SortBy'
       - $ref: '#/components/parameters/SortType'
-      - name: staffs
+      - name: staffs[]
         in: query
-        description: Usuários responsáveis. Repita o parâmetro para enviar vários (`?staffs=id1&staffs=id2`).
+        description: 'Usuários responsáveis. Lista de IDs: envie com colchetes, mesmo para um só valor (`?staffs[]=id1&staffs[]=id2`).'
         schema:
           type: array
           items:
@@ -3533,12 +3622,16 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+      description: '**Permissão do Service Account:** `organizations.list`'
     post:
       tags:
       - Empresas
       operationId: createOrganization
       summary: Criar empresa
-      description: 'Os campos obrigatórios são definidos pelo administrador da conta: consulte `GET /api/customfields?feature=organization&required=true`.'
+      description: 'Os campos obrigatórios são definidos pelo administrador da conta: consulte `GET /api/customfields?feature=organization&required=true`.
+
+
+        **Permissão do Service Account:** `organizations.create`'
       requestBody:
         required: true
         content:
@@ -3609,12 +3702,16 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '404':
           $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `organizations.read`'
     put:
       tags:
       - Empresas
       operationId: updateOrganization
       summary: Atualizar empresa
-      description: Envie só os campos que mudam.
+      description: 'Envie só os campos que mudam.
+
+
+        **Permissão do Service Account:** `organizations.update`'
       parameters:
       - $ref: '#/components/parameters/Id'
       requestBody:
@@ -3672,6 +3769,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '404':
           $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `organizations.delete`'
   /api/pipelines:
     get:
       tags:
@@ -3971,14 +4069,233 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
-  /api/customfields/{id}:
+  /api/tickets:
     get:
       tags:
-      - Campos personalizados
-      operationId: getCustomField
-      summary: Obter campo personalizado
-      description: 'Exige um Service Account com acesso de administrador; sem ele a resposta é `403` com `type: ADMIN_REQUIRED`. Para integrações,
-        prefira a listagem.'
+      - Tickets
+      operationId: listTickets
+      summary: Listar tickets
+      description: 'A credencial vê os tickets das áreas de trabalho e funções a que o usuário dela pertence.
+
+
+        **Permissão do Service Account:** `tickets.list`'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: status
+        in: query
+        description: ID da situação.
+        schema:
+          type: string
+      - name: statuses[]
+        in: query
+        description: 'Várias situações. Lista de IDs: envie com colchetes, mesmo para um só valor (`?statuses[]=id1&statuses[]=id2`).'
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: category
+        in: query
+        description: Categoria da situação, como `waiting` ou `done`.
+        schema:
+          type: string
+      - name: priority
+        in: query
+        description: Prioridade.
+        schema:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - urgent
+          description: Prioridade.
+      - name: receiver
+        in: query
+        description: ID do responsável.
+        schema:
+          type: string
+      - name: receivers[]
+        in: query
+        description: 'Vários responsáveis. Lista de IDs: envie com colchetes, mesmo para um só valor (`?receivers[]=id1&receivers[]=id2`).'
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: sender
+        in: query
+        description: ID de quem abriu.
+        schema:
+          type: string
+      - name: senders[]
+        in: query
+        description: 'Vários solicitantes. Lista de IDs: envie com colchetes, mesmo para um só valor (`?senders[]=id1&senders[]=id2`).'
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: participant
+        in: query
+        description: ID de um participante.
+        schema:
+          type: string
+      - name: observer
+        in: query
+        description: ID de um observador.
+        schema:
+          type: string
+      - name: contact
+        in: query
+        description: ID do contato.
+        schema:
+          type: string
+      - name: contacts[]
+        in: query
+        description: 'Vários contatos. Lista de IDs: envie com colchetes, mesmo para um só valor (`?contacts[]=id1&contacts[]=id2`).'
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: organization
+        in: query
+        description: ID da empresa.
+        schema:
+          type: string
+      - name: deal
+        in: query
+        description: ID da oportunidade.
+        schema:
+          type: string
+      - name: workspace
+        in: query
+        description: ID da área de trabalho.
+        schema:
+          type: string
+      - name: createdAt_minDate
+        in: query
+        description: Abertos a partir de. Timestamp em milissegundos.
+        schema:
+          type: integer
+          example: 1798761600000
+      - name: createdAt_maxDate
+        in: query
+        description: Abertos até. Timestamp em milissegundos.
+        schema:
+          type: integer
+      - name: search
+        in: query
+        description: Busca textual.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Ticket'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439080
+                  code: 1042
+                  subject: Erro ao emitir boleto
+                  description: Cliente relata erro 500 ao gerar a segunda via.
+                  priority: high
+                  status:
+                    _id: 507f1f77bcf86cd799439081
+                    name: Aguardando responsável
+                    category: waiting
+                  tags: []
+                  customFields: []
+                  active: true
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 38
+                pages: 3
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Tickets
+      operationId: createTicket
+      summary: Criar ticket
+      description: 'O único campo obrigatório é `subject`. O ticket é aberto em nome do usuário da credencial. Referências aceitam só o ID em
+        texto.
+
+
+        **Permissão do Service Account:** `tickets.create`'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketCreate'
+            example:
+              subject: Erro ao emitir boleto
+              description: Cliente relata erro 500 ao gerar a segunda via.
+              priority: high
+              contact: 507f1f77bcf86cd799439012
+      responses:
+        '201':
+          description: Ticket criado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+              example:
+                _id: 507f1f77bcf86cd799439080
+                code: 1042
+                subject: Erro ao emitir boleto
+                description: Cliente relata erro 500 ao gerar a segunda via.
+                priority: high
+                status:
+                  _id: 507f1f77bcf86cd799439081
+                  name: Aguardando responsável
+                  category: waiting
+                tags: []
+                customFields: []
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/tickets/{id}:
+    get:
+      tags:
+      - Tickets
+      operationId: getTicket
+      summary: Obter ticket
       parameters:
       - $ref: '#/components/parameters/Id'
       responses:
@@ -3987,18 +4304,22 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CustomField'
+                $ref: '#/components/schemas/Ticket'
               example:
-                _id: 507f1f77bcf86cd799439014
-                name: Segmento
-                slug: segmento
-                feature: deal
-                system: false
+                _id: 507f1f77bcf86cd799439080
+                code: 1042
+                subject: Erro ao emitir boleto
+                description: Cliente relata erro 500 ao gerar a segunda via.
+                priority: high
+                status:
+                  _id: 507f1f77bcf86cd799439081
+                  name: Aguardando responsável
+                  category: waiting
+                tags: []
+                customFields: []
                 active: true
-                values: []
-                settings:
-                  required: false
-                  unique: false
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -4009,6 +4330,1034 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '404':
           $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `tickets.read`'
+    put:
+      tags:
+      - Tickets
+      operationId: updateTicket
+      summary: Atualizar ticket
+      description: 'Envie só os campos que mudam. Para trocar a situação, envie `status` com o ID da nova situação.
+
+
+        **Permissão do Service Account:** `tickets.update`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketInput'
+            example:
+              priority: urgent
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+              example:
+                _id: 507f1f77bcf86cd799439080
+                code: 1042
+                subject: Erro ao emitir boleto
+                description: Cliente relata erro 500 ao gerar a segunda via.
+                priority: urgent
+                status:
+                  _id: 507f1f77bcf86cd799439081
+                  name: Aguardando responsável
+                  category: waiting
+                tags: []
+                customFields: []
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Tickets
+      operationId: deleteTicket
+      summary: Excluir ticket
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Ticket excluído.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `tickets.delete`'
+  /api/tickets/{id}/start:
+    put:
+      tags:
+      - Tickets
+      operationId: startTicket
+      summary: Iniciar atendimento do ticket
+      description: O usuário da credencial assume o ticket como responsável. Sem corpo.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/tickets/{id}/finish:
+    post:
+      tags:
+      - Tickets
+      operationId: finishTicket
+      summary: Finalizar ticket
+      description: Move o ticket para a situação de conclusão e registra `finishedAt`. Sem corpo.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/tickets/{id}/messages:
+    get:
+      tags:
+      - Tickets
+      operationId: listTicketMessages
+      summary: Listar mensagens do ticket
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Página de mensagens do ticket.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+      - Tickets
+      operationId: createTicketMessage
+      summary: Enviar mensagem no ticket
+      description: Registra uma resposta ou uma nota interna. Um ticket finalizado não aceita mensagens.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - content
+              properties:
+                content:
+                  type: string
+                  description: Texto da mensagem.
+                type:
+                  type: string
+                  enum:
+                  - text
+                  default: text
+                  description: Use `text`.
+                internal:
+                  type: boolean
+                  description: 'Com `true`, grava como nota interna. Padrão: `false`.'
+            example:
+              content: Segunda via reenviada por e-mail.
+              internal: false
+      responses:
+        '201':
+          description: Mensagem registrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketMessage'
+              example:
+                _id: 507f1f77bcf86cd799439090
+                type: text
+                content: Segunda via reenviada por e-mail.
+                internal: false
+                createdAt: '2026-04-28T11:00:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/tickets/status:
+    get:
+      tags:
+      - Tickets
+      operationId: listTicketStatuses
+      summary: Listar situações de ticket
+      description: 'Use para descobrir o `status` de um ticket. As situações são configuradas por área de trabalho.
+
+
+        **Permissão do Service Account:** `tickets.read`'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/TicketStatus'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439081
+                  name: Aguardando responsável
+                  slug: aguardando-responsavel
+                  category: waiting
+                  default: true
+                  active: true
+                  nextStatusAllowed:
+                  - 507f1f77bcf86cd799439082
+                  workspace:
+                    _id: 507f1f77bcf86cd799439100
+                    name: Geral
+                total: 4
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/treatments:
+    get:
+      tags:
+      - Atendimentos
+      operationId: listTreatments
+      summary: Listar atendimentos
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: type
+        in: query
+        description: ID do tipo de atendimento.
+        schema:
+          type: string
+      - name: types[]
+        in: query
+        description: 'Vários tipos. Lista de IDs: envie com colchetes, mesmo para um só valor (`?types[]=id1&types[]=id2`).'
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: staff
+        in: query
+        description: ID do usuário que registrou.
+        schema:
+          type: string
+      - name: staffs[]
+        in: query
+        description: 'Vários usuários. Lista de IDs: envie com colchetes, mesmo para um só valor (`?staffs[]=id1&staffs[]=id2`).'
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: contact
+        in: query
+        description: ID do contato.
+        schema:
+          type: string
+      - name: contacts[]
+        in: query
+        description: 'Vários contatos. Lista de IDs: envie com colchetes, mesmo para um só valor (`?contacts[]=id1&contacts[]=id2`).'
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: deal
+        in: query
+        description: ID da oportunidade.
+        schema:
+          type: string
+      - name: deals[]
+        in: query
+        description: 'Várias oportunidades. Lista de IDs: envie com colchetes, mesmo para um só valor (`?deals[]=id1&deals[]=id2`).'
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: createdAt_minDate
+        in: query
+        description: Registrados a partir de. Timestamp em milissegundos.
+        schema:
+          type: integer
+          example: 1798761600000
+      - name: createdAt_maxDate
+        in: query
+        description: Registrados até. Timestamp em milissegundos.
+        schema:
+          type: integer
+      - name: search
+        in: query
+        description: Busca textual.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Treatment'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439111
+                  subject: Ligação de acompanhamento
+                  description: Cliente confirmou o recebimento da proposta.
+                  type:
+                    _id: 507f1f77bcf86cd799439110
+                    name: Ligação
+                  contact: 507f1f77bcf86cd799439012
+                  active: true
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 12
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+      description: '**Permissão do Service Account:** `treatments.list`'
+    post:
+      tags:
+      - Atendimentos
+      operationId: createTreatment
+      summary: Registrar atendimento
+      description: 'O corpo não tem campo obrigatório fixo: `GET /api/customfields?page=1&feature=treatment&required=true` devolve os obrigatórios
+        da conta. O atendimento é registrado em nome do usuário da credencial. Referências aceitam só o ID em texto.
+
+
+        **Permissão do Service Account:** `treatments.create`'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TreatmentInput'
+            example:
+              subject: Ligação de acompanhamento
+              description: Cliente confirmou o recebimento da proposta.
+              type: 507f1f77bcf86cd799439110
+              contact: 507f1f77bcf86cd799439012
+      responses:
+        '201':
+          description: Atendimento registrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Treatment'
+              example:
+                _id: 507f1f77bcf86cd799439111
+                subject: Ligação de acompanhamento
+                description: Cliente confirmou o recebimento da proposta.
+                type:
+                  _id: 507f1f77bcf86cd799439110
+                  name: Ligação
+                contact: 507f1f77bcf86cd799439012
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/treatments/{id}:
+    get:
+      tags:
+      - Atendimentos
+      operationId: getTreatment
+      summary: Obter atendimento
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Treatment'
+              example:
+                _id: 507f1f77bcf86cd799439111
+                subject: Ligação de acompanhamento
+                description: Cliente confirmou o recebimento da proposta.
+                type:
+                  _id: 507f1f77bcf86cd799439110
+                  name: Ligação
+                contact: 507f1f77bcf86cd799439012
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `treatments.read`'
+    put:
+      tags:
+      - Atendimentos
+      operationId: updateTreatment
+      summary: Atualizar atendimento
+      description: 'Envie só os campos que mudam.
+
+
+        **Permissão do Service Account:** `treatments.update`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TreatmentInput'
+            example:
+              description: Cliente pediu novo contato na sexta.
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Treatment'
+              example:
+                _id: 507f1f77bcf86cd799439111
+                subject: Ligação de acompanhamento
+                description: Cliente confirmou o recebimento da proposta.
+                type:
+                  _id: 507f1f77bcf86cd799439110
+                  name: Ligação
+                contact: 507f1f77bcf86cd799439012
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Atendimentos
+      operationId: deleteTreatment
+      summary: Excluir atendimento
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Atendimento excluído.
+        '204':
+          description: O atendimento não existe ou já estava excluído.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `treatments.delete`'
+  /api/treatments/types:
+    get:
+      tags:
+      - Atendimentos
+      operationId: listTreatmentTypes
+      summary: Listar tipos de atendimento
+      description: 'Use para descobrir o `type` de um atendimento.
+
+
+        **Permissão do Service Account:** `treatments.read`'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/TreatmentType'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439110
+                  name: Ligação
+                  slug: ligacao
+                  color: '#8955ef'
+                  icon: fa-tag
+                  active: true
+                  default: false
+                total: 11
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/journeys:
+    get:
+      tags:
+      - Jornadas
+      operationId: listJourneys
+      summary: Listar jornadas
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - name: status
+        in: query
+        description: Situação.
+        schema:
+          type: string
+          enum:
+          - active
+          - success
+          - churn
+          description: Situação da jornada.
+      - name: journeyFlow
+        in: query
+        description: ID do fluxo de jornada.
+        schema:
+          type: string
+      - name: phase
+        in: query
+        description: ID da fase.
+        schema:
+          type: string
+      - name: staffs[]
+        in: query
+        description: 'Responsáveis. Lista de IDs: envie com colchetes, mesmo para um só valor (`?staffs[]=id1&staffs[]=id2`).'
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+      - name: contact
+        in: query
+        description: ID do contato.
+        schema:
+          type: string
+      - name: organization
+        in: query
+        description: ID da empresa.
+        schema:
+          type: string
+      - name: sourceDeal
+        in: query
+        description: ID da oportunidade de origem.
+        schema:
+          type: string
+      - name: healthScoreMin
+        in: query
+        description: Health score mínimo.
+        schema:
+          type: number
+      - name: healthScoreMax
+        in: query
+        description: Health score máximo.
+        schema:
+          type: number
+      - name: search
+        in: query
+        description: Busca no título.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Journey'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439120
+                  title: Acme — Implantação
+                  status: active
+                  healthScore: 72
+                  healthScoreMode: auto
+                  mrr: 4500
+                  renewalStatus: active
+                  renewalDate: '2027-04-28T00:00:00Z'
+                  active: true
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-05-10T09:00:00Z'
+                total: 54
+                pages: 4
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+      description: '**Permissão do Service Account:** `journeys.list`'
+  /api/journeys/{id}:
+    get:
+      tags:
+      - Jornadas
+      operationId: getJourney
+      summary: Obter jornada
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Journey'
+              example:
+                _id: 507f1f77bcf86cd799439120
+                title: Acme — Implantação
+                status: active
+                healthScore: 72
+                healthScoreMode: auto
+                mrr: 4500
+                renewalStatus: active
+                renewalDate: '2027-04-28T00:00:00Z'
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-05-10T09:00:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `journeys.read`'
+  /api/journeys/{id}/health-score:
+    get:
+      tags:
+      - Jornadas
+      operationId: getJourneyHealthScore
+      summary: Obter health score da jornada
+      description: Devolve o valor em vigor, o valor calculado e os componentes do cálculo.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  healthScore:
+                    type: number
+                    description: Valor em vigor.
+                  healthScoreAuto:
+                    type: number
+                    description: Valor calculado pelo CRM.
+                  mode:
+                    type: string
+                    enum:
+                    - manual
+                    - auto
+                    description: '`manual`: vale o valor informado por um usuário. `auto`: vale o calculado.'
+                  components:
+                    type: object
+                    description: Componentes do cálculo e o peso de cada um.
+              example:
+                healthScore: 72
+                healthScoreAuto: 72
+                mode: auto
+                components: {}
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/pipelines/settings/lostreasons:
+    get:
+      tags:
+      - Pipelines e etapas
+      operationId: listLostReasons
+      summary: Listar motivos de perda
+      description: Cada motivo pertence a um pipeline. Use o `_id` em `lostReason` ao fechar uma oportunidade como perdida.
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/LostReason'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439016
+                  reason: Preço
+                  pipeline:
+                    _id: 507f1f77bcf86cd799439011
+                    title: Comercial
+                  active: true
+                total: 12
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/meetingtypes:
+    get:
+      tags:
+      - Reuniões
+      operationId: listMeetingTypes
+      summary: Listar tipos de reunião
+      description: Use para descobrir o `type` de uma reunião.
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/MeetingType'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439130
+                  name: Apresentação
+                  slug: apresentacao
+                  default: false
+                  active: true
+                total: 3
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/meetingrooms:
+    get:
+      tags:
+      - Reuniões
+      operationId: listMeetingRooms
+      summary: Listar salas de reunião
+      description: Use para descobrir o `room` de uma reunião.
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/MeetingRoom'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439131
+                  name: Presencial
+                  slug: presencial
+                  provider: personal
+                  default: false
+                  active: true
+                total: 2
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/teams:
+    get:
+      tags:
+      - Equipes e áreas de trabalho
+      operationId: listTeams
+      summary: Listar equipes
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Team'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439140
+                  name: Comercial SP
+                  slug: comercial-sp
+                  members:
+                  - 507f191e810c19729de860eb
+                  active: true
+                total: 2
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/workspaces:
+    get:
+      tags:
+      - Equipes e áreas de trabalho
+      operationId: listWorkspaces
+      summary: Listar áreas de trabalho
+      description: Use para descobrir o `workspaceReceiver` de um ticket.
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Workspace'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439100
+                  name: Geral
+                  slug: geral
+                  active: true
+                total: 1
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/webhooks/triggers:
+    get:
+      tags:
+      - Webhooks
+      operationId: listWebhookTriggers
+      summary: Listar eventos de webhook
+      description: 'Devolve os eventos que a conta pode assinar, agrupados por recurso. Devolve uma lista simples, sem envelope de paginação.
+
+
+        Os webhooks são criados e editados por um administrador no CRM, em **Integrações › Webhooks**: a criação por API exige um usuário administrador
+        e não está disponível para Service Accounts.'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WebhookTriggerGroup'
+              example:
+              - _id: Oportunidades
+                triggers:
+                - key: deal.won
+                  label: Oportunidade ganha
+                  group: deal
+                  groupName: Oportunidades
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 components:
   securitySchemes:
     ServiceAccount:
@@ -5542,3 +6891,577 @@ components:
             unique:
               type: boolean
               description: Não aceita valor repetido.
+    TicketInput:
+      type: object
+      properties:
+        subject:
+          type: string
+          description: Assunto do ticket.
+          example: Erro ao emitir boleto
+        description:
+          type: string
+          description: Descrição do pedido. Aceita HTML.
+        priority:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - urgent
+          description: Prioridade.
+        status:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID da situação (de `GET /api/tickets/status`). Se omitido, a API usa a situação padrão da área.
+        receiver:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do usuário responsável pelo atendimento do ticket.
+        workspaceReceiver:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID da área de trabalho que recebe o ticket (de `GET /api/workspaces`). Se omitido, a API escolhe a área padrão de tickets.
+        contact:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Contato vinculado.
+        organization:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Empresa vinculada.
+        deal:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Oportunidade vinculada.
+        treatment:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Atendimento vinculado.
+        product:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Produto vinculado.
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tags livres.
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+          description: Campos personalizados.
+        active:
+          type: boolean
+          description: 'Padrão: `true`.'
+    TicketCreate:
+      allOf:
+      - $ref: '#/components/schemas/TicketInput'
+      - type: object
+        required:
+        - subject
+    Ticket:
+      type: object
+      description: Ticket. Além dos campos abaixo, a resposta traz os demais dados do registro.
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        code:
+          type: integer
+          description: Número sequencial do ticket na conta.
+        subject:
+          type: string
+          description: Assunto.
+        description:
+          type: string
+          description: Descrição.
+        priority:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - urgent
+          description: Prioridade.
+        status:
+          description: Situação atual. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        sender:
+          description: Quem abriu o ticket. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        receiver:
+          description: Responsável pelo atendimento. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        workspaceReceiver:
+          description: Área de trabalho que recebeu o ticket. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        contact:
+          description: Contato vinculado. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        organization:
+          description: Empresa vinculada. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        deal:
+          description: Oportunidade vinculada. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        tags:
+          type: array
+          items:
+            type: string
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+        finishedAt:
+          type: string
+          format: date-time
+          description: Quando foi finalizado. Ausente enquanto aberto.
+          example: '2026-05-15T14:00:00Z'
+        active:
+          type: boolean
+          description: '`false` quando excluído.'
+        createdAt:
+          type: string
+          format: date-time
+          description: Abertura.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    TicketMessage:
+      type: object
+      description: Mensagem de um ticket. Além dos campos abaixo, a resposta traz os demais dados da mensagem.
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        type:
+          type: string
+          description: Tipo da mensagem.
+          example: text
+        content:
+          type: string
+          description: Texto.
+        internal:
+          type: boolean
+          description: '`true` em nota interna, que o contato não vê.'
+        createdAt:
+          type: string
+          format: date-time
+          description: Envio.
+          example: '2026-05-15T14:00:00Z'
+    TicketStatus:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          description: Nome da situação.
+          example: Aguardando responsável
+        slug:
+          type: string
+          description: Chave.
+        category:
+          type: string
+          description: 'Categoria da situação: agrupa as situações de espera, andamento e conclusão.'
+          example: waiting
+        default:
+          type: boolean
+          description: Situação inicial dos tickets da área.
+        active:
+          type: boolean
+        nextStatusAllowed:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: Situações para as quais o ticket pode ir a partir desta.
+        workspace:
+          type: object
+          description: Área de trabalho dona da situação.
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            name:
+              type: string
+    TreatmentInput:
+      type: object
+      properties:
+        subject:
+          type: string
+          description: Assunto do atendimento.
+          example: Ligação de acompanhamento
+        description:
+          type: string
+          description: O que foi tratado.
+        type:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do tipo de atendimento (de `GET /api/treatments/types`).
+        contact:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Contato atendido.
+        organization:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Empresa vinculada.
+        deal:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Oportunidade vinculada.
+        product:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Produto vinculado.
+        workspace:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID da área de trabalho. Se omitido, a API usa a da credencial.
+        returnTreatment:
+          type: boolean
+          description: Marca que o atendimento pede retorno.
+        nextDateOfAttempt:
+          type: string
+          format: date-time
+          description: Quando tentar de novo, se `returnTreatment` for `true`.
+          example: '2026-05-15T14:00:00Z'
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+          description: Campos personalizados.
+    Treatment:
+      type: object
+      description: 'Atendimento: o registro de um contato feito com o cliente. Além dos campos abaixo, a resposta traz os demais dados do registro.'
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        subject:
+          type: string
+          description: Assunto.
+        description:
+          type: string
+          description: O que foi tratado.
+        type:
+          description: Tipo de atendimento. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        staff:
+          description: Usuário que registrou. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        contact:
+          description: Contato atendido. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        organization:
+          description: Empresa vinculada. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        deal:
+          description: Oportunidade vinculada. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        returnTreatment:
+          type: boolean
+        nextDateOfAttempt:
+          type: string
+          format: date-time
+          description: Próxima tentativa.
+          example: '2026-05-15T14:00:00Z'
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+        active:
+          type: boolean
+          description: '`false` quando excluído.'
+        createdAt:
+          type: string
+          format: date-time
+          description: Registro.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    TreatmentType:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          description: Nome.
+          example: Ligação
+        slug:
+          type: string
+          description: Chave.
+        color:
+          type: string
+          description: Cor.
+          example: '#8955ef'
+        icon:
+          type: string
+          description: Ícone.
+        active:
+          type: boolean
+        default:
+          type: boolean
+          description: Tipo padrão da conta.
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    Journey:
+      type: object
+      description: 'Jornada do cliente: o acompanhamento depois da venda. Além dos campos abaixo, a resposta traz os demais dados do registro.'
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        title:
+          type: string
+          description: Título.
+        status:
+          type: string
+          enum:
+          - active
+          - success
+          - churn
+          description: Situação da jornada.
+        journeyFlow:
+          description: Fluxo de jornada. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        phase:
+          description: Fase atual. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        staff:
+          description: Responsável. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        contact:
+          description: Contato. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        organization:
+          description: Empresa. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        sourceDeal:
+          description: Oportunidade que originou a jornada. Vem como objeto resumido nas respostas; ao gravar, envie o ID em texto.
+        healthScore:
+          type: number
+          description: Health score, de 0 a 100.
+        healthScoreMode:
+          type: string
+          enum:
+          - manual
+          - auto
+          description: Como o health score é definido.
+        mrr:
+          type: number
+          description: Receita recorrente mensal.
+        contractValue:
+          type: number
+          description: Valor do contrato.
+        contractStartDate:
+          type: string
+          format: date-time
+          description: Início do contrato.
+          example: '2026-05-15T14:00:00Z'
+        contractEndDate:
+          type: string
+          format: date-time
+          description: Fim do contrato.
+          example: '2026-05-15T14:00:00Z'
+        renewalDate:
+          type: string
+          format: date-time
+          description: Data de renovação.
+          example: '2026-05-15T14:00:00Z'
+        renewalStatus:
+          type: string
+          enum:
+          - active
+          - approaching
+          - at_risk
+          - renewed
+          - churned
+          description: Situação da renovação.
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    LostReason:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID a enviar em `lostReason` ao fechar uma oportunidade como perdida.
+        reason:
+          type: string
+          description: Motivo.
+          example: Preço
+        pipeline:
+          type: object
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            title:
+              type: string
+              description: Nome do pipeline.
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    MeetingType:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          description: Nome.
+          example: Apresentação
+        slug:
+          type: string
+          description: Chave.
+        default:
+          type: boolean
+          description: Tipo padrão.
+        active:
+          type: boolean
+    MeetingRoom:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          description: Nome.
+          example: Presencial
+        slug:
+          type: string
+          description: Chave.
+        provider:
+          type: string
+          enum:
+          - google
+          - office365
+          - caldav
+          - personal
+          description: De onde a sala vem.
+        default:
+          type: boolean
+          description: Sala padrão.
+        active:
+          type: boolean
+    Team:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          description: Nome da equipe.
+          example: Comercial SP
+        slug:
+          type: string
+          description: Chave.
+        members:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: IDs dos usuários da equipe.
+        active:
+          type: boolean
+    Workspace:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          description: Nome da área de trabalho.
+          example: Geral
+        slug:
+          type: string
+          description: Chave.
+        active:
+          type: boolean
+    WebhookTriggerGroup:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Nome do grupo de eventos.
+          example: Oportunidades
+        triggers:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                description: Nome do evento, como chega no webhook.
+                example: deal.won
+              label:
+                type: string
+                description: Descrição.
+                example: Oportunidade ganha
+              group:
+                type: string
+                description: Recurso do evento.
+                example: deal
+              groupName:
+                type: string
+                description: Nome do grupo.
+          description: Eventos do grupo.
