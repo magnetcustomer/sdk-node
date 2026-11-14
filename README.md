@@ -64,6 +64,9 @@ Cada método devolve a resposta do [axios](https://axios-http.com): o corpo est�
 | `crm.products`, `crm.pricebooks` | Produtos e tabelas de preço |
 | `crm.productItems` | Produtos vinculados a oportunidades, contatos e empresas |
 | `crm.journeys` | Jornadas (leitura) |
+| `crm.dashboards` | Dashboards, widgets, filtros e resultados |
+| `crm.resourceKeywords` | Campos que podem entrar em regras de filtro |
+| `crm.automations` | Automações de processo |
 | `crm.meetings` | Reuniões, tipos e salas |
 | `crm.tasks`, `crm.taskTypes` | Tarefas e tipos de tarefa |
 | `crm.observations` | Observações |

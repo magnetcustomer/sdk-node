@@ -2,8 +2,8 @@ import axios, { AxiosInstance } from 'axios';
 import { ServiceAccountCredentials, TokenManager } from './auth';
 import { Configuration } from './generated/configuration';
 import {
-    ContactsApi, CustomFieldsApi, CustomersApi, DealsApi, JourneysApi, LeadsApi, MeetingsApi, ObservationsApi,
-    OrganizationsApi, PipelinesApi, PricebooksApi, ProductItemsApi, ProductsApi, ProspectsApi, StaffsApi, TaskTypesApi, TasksApi, TeamsApi, TicketsApi,
+    AutomationsApi, ContactsApi, CustomFieldsApi, CustomersApi, DashboardsApi, DealsApi, JourneysApi, LeadsApi, MeetingsApi, ObservationsApi,
+    OrganizationsApi, PipelinesApi, PricebooksApi, ProductItemsApi, ProductsApi, ProspectsApi, ResourceKeywordsApi, StaffsApi, TaskTypesApi, TasksApi, TeamsApi, TicketsApi,
     TreatmentsApi, WebhooksApi,
 } from './generated/api';
 
@@ -49,6 +49,9 @@ export class MagnetCustomer {
     readonly products: ProductsApi;
     readonly pricebooks: PricebooksApi;
     readonly productItems: ProductItemsApi;
+    readonly dashboards: DashboardsApi;
+    readonly resourceKeywords: ResourceKeywordsApi;
+    readonly automations: AutomationsApi;
 
     readonly tokens: TokenManager;
     readonly baseUrl: string;
@@ -98,5 +101,8 @@ export class MagnetCustomer {
         this.products = build(ProductsApi);
         this.pricebooks = build(PricebooksApi);
         this.productItems = build(ProductItemsApi);
+        this.dashboards = build(DashboardsApi);
+        this.resourceKeywords = build(ResourceKeywordsApi);
+        this.automations = build(AutomationsApi);
     }
 }

@@ -7,6 +7,7 @@ TAGS = {
     "Tipos de tarefa": "TaskTypes", "Observações": "Observations", "Usuários": "Staffs", "Campos personalizados": "CustomFields",
     "Tickets": "Tickets", "Atendimentos": "Treatments", "Jornadas": "Journeys", "Equipes e áreas de trabalho": "Teams", "Webhooks": "Webhooks",
     "Produtos": "Products", "Tabelas de preço": "Pricebooks", "Itens de produto": "ProductItems",
+    "Dashboards": "Dashboards", "Campos para filtros": "ResourceKeywords", "Automações": "Automations",
 }
 spec = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
 for methods in spec["paths"].values():
