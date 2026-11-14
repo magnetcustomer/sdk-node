@@ -19,32 +19,46 @@ info:
     \ sem o envelope, e ignoram `limit`. Para percorrer tudo, peça `page=1` e avance até `page` ser igual a `pages`. Uma página além do fim devolve\
     \ `docs` vazio.\n\nO tamanho de página padrão é 15, com duas exceções: 25 em Leads, Prospects e Clientes, e 100 em Usuários. Um `limit` inválido\
     \ cai no padrão.\n\n## Identificadores e datas\n\nTodo ID é um texto de 24 caracteres hexadecimais, como `507f1f77bcf86cd799439011`. Ao gravar,\
-    \ envie a referência como **ID em texto** — nunca o objeto.\n\nUm ID fora desse formato hoje é respondido com `500`, não `400`: valide o formato\
-    \ antes de enviar.\n\nNo corpo e nas respostas, datas são ISO 8601 em UTC, como `2026-05-15T10:00:00Z`. Nos filtros de data da URL (`minDate`,\
-    \ `createdAt_minDate`, `dateOfExpires_minDate`...), envie um **timestamp em milissegundos**, como `1798761600000`.\n\n## Listas na URL\n\n\
-    Filtros que aceitam vários valores levam colchetes no nome, mesmo quando o valor é um só:\n\n```\n/api/contacts?page=1&staffs[]=507f191e810c19729de860eb&staffs[]=507f191e810c19729de860ec\n\
-    ```\n\nSem colchetes, um valor único é recusado com erro em parte das listagens.\n\n## Campos ausentes\n\nCampo sem valor costuma vir **ausente**\
-    \ da resposta, não como `null`. Trate a falta da chave como vazio.\n\n## Campos personalizados\n\nOs campos criados pelo administrador da\
-    \ conta vão na lista `customFields`:\n\n```json\n{ \"customFields\": [ { \"customField\": \"507f1f77bcf86cd799439014\", \"k\": \"segmento\"\
-    , \"v\": \"Tecnologia\" } ] }\n```\n\nO valor vai em **`v`**. Um item com `value` é aceito sem erro, mas o campo fica vazio. Descubra os campos\
-    \ e os IDs com `GET /api/customfields?page=1&feature=deal` (troque `deal` por `meeting`, `task`, `contact`...). Com `&required=true` vêm só\
-    \ os obrigatórios da conta.\n\n## Erros\n\n```json\n{\n  \"reason\": \"Missing required parameters\",\n  \"message\": \"Missing required parameters\"\
-    ,\n  \"code\": \"VALIDATION_ERROR\",\n  \"errors\": [ { \"field\": \"title\", \"message\": \"must NOT have fewer than 1 characters\", \"keyword\"\
-    : \"minLength\" } ]\n}\n```\n\n| Status | Quando |\n|---|---|\n| `400` | Corpo inválido: campo obrigatório ausente, tipo errado, valor fora\
-    \ da lista |\n| `401` | Token ausente, inválido ou vencido. Corpo: `{\"reason\": \"Access Denied\"}` |\n| `403` | O Service Account não tem\
-    \ a permissão da rota (`type: SA_PERMISSION_DENIED`, com `requiredPermission`) |\n| `404` | Registro não encontrado |\n| `409` | O registro\
-    \ não está no estado que a operação exige |\n| `429` | Limite de requisições excedido. Espere o tempo de `Retry-After` |\n\n## Permissões\n\
-    \nUm Service Account só chama as rotas que as permissões dele liberam. Cada operação desta referência informa a permissão exigida, quando\
-    \ há uma: marque-a ao criar o Service Account. Uma chamada sem a permissão devolve `403` com o nome dela em `requiredPermission`.\n\nRotas\
-    \ de administração da conta (usuários, perfis, criação de webhooks, configurações) exigem um usuário administrador e não estão disponíveis\
-    \ para Service Accounts; por isso não aparecem aqui.\n\n## Limite de requisições\n\nOs limites são aplicados por conta. Ao receber `429`,\
-    \ espere os segundos indicados em `Retry-After` e tente de novo com intervalo crescente.\n\n## Área de trabalho\n\nEm contas com áreas de\
-    \ trabalho, a API define a área do registro pela credencial ou pelo registro pai. Não envie `workspace`.\n\n# Webhooks\n\nPara ser avisado\
-    \ quando algo muda no CRM, em vez de consultar a API de tempos em tempos, use webhooks. Um administrador cria o webhook no CRM, em **Integrações\
-    \ › Webhooks**, informando a URL do seu sistema e os eventos. A lista de eventos está em `GET /api/webhooks/triggers`; o formato da entrega,\
-    \ a assinatura e os reenvios estão na seção Webhooks do portal.\n\n# Cobertura\n\nEsta referência cobre Contatos (leads, prospects e clientes),\
-    \ Empresas, Oportunidades, Pipelines, etapas e motivos de perda, Produtos, tabelas de preço e itens de produto, Jornadas, Reuniões, Tarefas,\
-    \ Observações, Tickets, Atendimentos, Usuários, Equipes, Áreas de trabalho, Campos personalizados e os eventos de webhook.\n"
+    \ envie a referência como **ID em texto** — nunca o objeto.\n\nNo corpo e nas respostas, datas são ISO 8601 em UTC, como `2026-05-15T10:00:00Z`.\
+    \ Nos filtros de data da URL (`minDate`, `createdAt_minDate`, `dateOfExpires_minDate`...), envie um **timestamp em milissegundos**, como `1798761600000`.\n\
+    \n## Listas na URL\n\nFiltros que aceitam vários valores levam colchetes no nome:\n\n```\n/api/contacts?page=1&staffs[]=507f191e810c19729de860eb&staffs[]=507f191e810c19729de860ec\n\
+    ```\n\nUm valor único sem colchetes (`staffs=id`) ou separado por vírgula (`staffs=id1,id2`) também é aceito.\n\n## Campos ausentes\n\nCampo\
+    \ sem valor costuma vir **ausente** da resposta, não como `null`. Trate a falta da chave como vazio.\n\n## Campos personalizados\n\nOs campos\
+    \ criados pelo administrador da conta vão na lista `customFields`:\n\n```json\n{ \"customFields\": [ { \"customField\": \"507f1f77bcf86cd799439014\"\
+    , \"k\": \"segmento\", \"v\": \"Tecnologia\" } ] }\n```\n\nO valor vai em **`v`**. Um item com `value` é aceito sem erro, mas o campo fica\
+    \ vazio. Descubra os campos e os IDs com `GET /api/customfields?page=1&feature=deal` (troque `deal` por `meeting`, `task`, `contact`...).\
+    \ Com `&required=true` vêm só os obrigatórios da conta.\n\n## Erros\n\n```json\n{\n  \"reason\": \"Missing required parameters\",\n  \"message\"\
+    : \"Missing required parameters\",\n  \"code\": \"VALIDATION_ERROR\",\n  \"errors\": [ { \"field\": \"title\", \"message\": \"must NOT have\
+    \ fewer than 1 characters\", \"keyword\": \"minLength\" } ]\n}\n```\n\n| Status | Quando |\n|---|---|\n| `400` | Corpo ou parâmetro inválido:\
+    \ campo obrigatório ausente, tipo errado, valor fora da lista, ID fora do formato |\n| `401` | Token ausente, inválido ou vencido. Corpo:\
+    \ `{\"reason\": \"Access Denied\"}` |\n| `403` | O Service Account não tem a permissão da rota (`type: SA_PERMISSION_DENIED`, com `requiredPermission`)\
+    \ |\n| `404` | Registro não encontrado |\n| `409` | O registro não está no estado que a operação exige |\n| `429` | Limite de requisições\
+    \ excedido. Espere o tempo de `Retry-After` |\n\n## Permissões\n\nUm Service Account só chama as rotas que as permissões dele liberam. Cada\
+    \ operação desta referência informa a permissão exigida, quando há uma: marque-a ao criar o Service Account. Uma chamada sem a permissão devolve\
+    \ `403` com o nome dela em `requiredPermission`.\n\nRotas de administração da conta (usuários, perfis, criação de webhooks, configurações)\
+    \ exigem um usuário administrador e não estão disponíveis para Service Accounts; por isso não aparecem aqui.\n\n## Limite de requisições\n\
+    \nOs limites são aplicados por conta. Ao receber `429`, espere os segundos indicados em `Retry-After` e tente de novo com intervalo crescente.\n\
+    \n## Área de trabalho\n\nEm contas com áreas de trabalho, a API define a área do registro pela credencial ou pelo registro pai. Não envie\
+    \ `workspace`.\n\n# Regras de filtro\n\nDashboards, widgets, predefinições de filtro e automações usam o mesmo formato para dizer quais registros\
+    \ entram: o **conjunto de regras** (`ruleset`).\n\n```json\n{\n  \"condition\": \"AND\",\n  \"rules\": [\n    { \"fieldId\": \"deal.amount\"\
+    , \"operator\": \"greater\", \"value\": 1000 },\n    {\n      \"condition\": \"OR\",\n      \"rules\": [\n        { \"fieldId\": \"deal.won\"\
+    , \"operator\": \"false_value\" },\n        { \"fieldId\": \"deal.stage_name\", \"operator\": \"contains\", \"value\": \"Proposta\" }\n  \
+    \    ]\n    }\n  ]\n}\n```\n\n- **`condition`**: `AND` exige todas as regras; `OR`, pelo menos uma.\n- **`rules`**: cada item é uma condição\
+    \ (`fieldId`, `operator`, `value`) ou um grupo aninhado (`condition`, `rules`).\n- **`fieldId`**: o `slug` de um campo. A lista de campos\
+    \ da conta, com os personalizados, vem de `GET /api/resource-keywords`; filtre por recurso com `?modelRef=deal`.\n- **`operator`**: escolha\
+    \ pelo tipo do campo (`type`, na lista de campos).\n\n| Tipo do campo | Operadores |\n|---|---|\n| Texto (`string`) | `equals`, `not_equal`,\
+    \ `contains`, `not_contains`, `starts_with`, `ends_with`, `exists`, `not_exists` |\n| Número e valor (`number`, `monetary`, `days`) | `equals`,\
+    \ `not_equal`, `greater`, `greater_or_equals`, `less`, `less_or_equals`, `between` (com `valueMin` e `valueMax`) |\n| Sim ou não (`boolean`)\
+    \ | `true_value`, `false_value` |\n| Lista (`select`) | `in`, `not_in`, com `value` em lista |\n| Data (`date`) | `current_day`, `current_week`,\
+    \ `current_month`, `current_year`, `before_day`, `before_week`, `before_month`, `before_year`, `last_n_days`, `next_n_days`, `before_date`,\
+    \ `after_date`, `date_between` |\n\nAs regras de um widget não são validadas na gravação: um campo ou operador que não existe é aceito, e\
+    \ o resultado vem vazio. Confira os nomes antes de enviar.\n\n# Webhooks\n\nPara ser avisado quando algo muda no CRM, em vez de consultar\
+    \ a API de tempos em tempos, use webhooks. Um administrador cria o webhook no CRM, em **Integrações › Webhooks**, informando a URL do seu\
+    \ sistema e os eventos. A lista de eventos está em `GET /api/webhooks/triggers`; o formato da entrega, a assinatura e os reenvios estão na\
+    \ seção Webhooks do portal.\n\n# Cobertura\n\nEsta referência cobre Contatos (leads, prospects e clientes), Empresas, Oportunidades, Pipelines,\
+    \ etapas e motivos de perda, Produtos, tabelas de preço e itens de produto, Jornadas, Reuniões, Tarefas, Observações, Tickets, Atendimentos,\
+    \ Usuários, Equipes, Áreas de trabalho, Campos personalizados, Dashboards (com widgets, filtros e resultados), Automações de processo e os\
+    \ eventos de webhook.\n"
   contact:
     name: Suporte Magnet Customer
     email: suporte@magnetcustomer.com
@@ -98,6 +112,12 @@ tags:
   description: 'Consulta dos campos da conta: IDs, chaves e quais são obrigatórios.'
 - name: Equipes e áreas de trabalho
   description: Consulta das equipes e das áreas de trabalho da conta.
+- name: Automações
+  description: 'Automações de processo: o que dispara, quais registros entram e quais ações são executadas.'
+- name: Dashboards
+  description: 'Painéis de indicadores: dashboards, widgets, filtros e resultados.'
+- name: Campos para filtros
+  description: Catálogo dos campos que podem entrar em regras de filtro, eixos e colunas.
 - name: Webhooks
   description: Eventos que o CRM envia para o seu sistema. A assinatura é configurada no CRM; aqui você consulta os eventos disponíveis.
 x-tagGroups:
@@ -133,6 +153,13 @@ x-tagGroups:
   - Usuários
   - Campos personalizados
   - Equipes e áreas de trabalho
+- name: Automação
+  tags:
+  - Automações
+- name: Indicadores
+  tags:
+  - Dashboards
+  - Campos para filtros
 - name: Eventos
   tags:
   - Webhooks
@@ -174,8 +201,7 @@ paths:
           type: string
       - name: staffs[]
         in: query
-        description: 'Usuários: busca em responsável, participantes e observadores. Lista de IDs: envie com colchetes, mesmo para um só valor
-          (`?staffs[]=id1&staffs[]=id2`).'
+        description: 'Usuários: busca em responsável, participantes e observadores. Lista de IDs (`?staffs[]=id1&staffs[]=id2`).'
         schema:
           type: array
           items:
@@ -184,7 +210,7 @@ paths:
         explode: true
       - name: contacts[]
         in: query
-        description: 'Vários contatos. Lista de IDs: envie com colchetes, mesmo para um só valor (`?contacts[]=id1&contacts[]=id2`).'
+        description: Vários contatos. Lista de IDs (`?contacts[]=id1&contacts[]=id2`).
         schema:
           type: array
           items:
@@ -932,8 +958,7 @@ paths:
           type: string
       - name: staffs[]
         in: query
-        description: 'Usuários: busca em organizador, participantes e observadores. Lista de IDs: envie com colchetes, mesmo para um só valor
-          (`?staffs[]=id1&staffs[]=id2`).'
+        description: 'Usuários: busca em organizador, participantes e observadores. Lista de IDs (`?staffs[]=id1&staffs[]=id2`).'
         schema:
           type: array
           items:
@@ -989,7 +1014,7 @@ paths:
           description: 'Padrão: `pending`. Com `finished`, `cancelled` ou `no-show`, a API preenche `dateFinished`.'
       - name: labels[]
         in: query
-        description: 'Etiquetas. Lista de IDs: envie com colchetes, mesmo para um só valor (`?labels[]=id1&labels[]=id2`).'
+        description: Etiquetas. Lista de IDs (`?labels[]=id1&labels[]=id2`).
         schema:
           type: array
           items:
@@ -1490,8 +1515,7 @@ paths:
           type: string
       - name: staffs[]
         in: query
-        description: 'Usuários: busca em responsável, participantes e observadores. Lista de IDs: envie com colchetes, mesmo para um só valor
-          (`?staffs[]=id1&staffs[]=id2`).'
+        description: 'Usuários: busca em responsável, participantes e observadores. Lista de IDs (`?staffs[]=id1&staffs[]=id2`).'
         schema:
           type: array
           items:
@@ -2166,7 +2190,7 @@ paths:
           type: string
       - name: contacts[]
         in: query
-        description: 'Vários contatos. Lista de IDs: envie com colchetes, mesmo para um só valor (`?contacts[]=id1&contacts[]=id2`).'
+        description: Vários contatos. Lista de IDs (`?contacts[]=id1&contacts[]=id2`).
         schema:
           type: array
           items:
@@ -2416,7 +2440,7 @@ paths:
       - $ref: '#/components/parameters/SortType'
       - name: staffs[]
         in: query
-        description: 'Usuários responsáveis. Lista de IDs: envie com colchetes, mesmo para um só valor (`?staffs[]=id1&staffs[]=id2`).'
+        description: Usuários responsáveis. Lista de IDs (`?staffs[]=id1&staffs[]=id2`).
         schema:
           type: array
           items:
@@ -2714,11 +2738,7 @@ paths:
       - Leads
       operationId: listLeads
       summary: Listar leads
-      description: 'Ordenação padrão: `createdAt` decrescente. Tamanho de página padrão: 25.
-
-
-        **Atenção:** esta listagem traz também os registros excluídos (`active: false`). Para receber só os ativos, descarte os que vêm com `active:
-        false` ou use `GET /api/contacts?lifeCycle=lead`.'
+      description: 'Ordenação padrão: `createdAt` decrescente. Tamanho de página padrão: 25. Devolve só os registros ativos, como `GET /api/contacts?lifeCycle=lead`.'
       parameters:
       - $ref: '#/components/parameters/Page'
       - $ref: '#/components/parameters/Limit'
@@ -2726,7 +2746,7 @@ paths:
       - $ref: '#/components/parameters/SortType'
       - name: staffs[]
         in: query
-        description: 'Usuários responsáveis. Lista de IDs: envie com colchetes, mesmo para um só valor (`?staffs[]=id1&staffs[]=id2`).'
+        description: Usuários responsáveis. Lista de IDs (`?staffs[]=id1&staffs[]=id2`).
         schema:
           type: array
           items:
@@ -3006,11 +3026,7 @@ paths:
       - Prospects
       operationId: listProspects
       summary: Listar prospects
-      description: 'Ordenação padrão: `fullname` crescente. Tamanho de página padrão: 25.
-
-
-        **Atenção:** esta listagem traz também os registros excluídos (`active: false`). Para receber só os ativos, descarte os que vêm com `active:
-        false` ou use `GET /api/contacts?lifeCycle=prospect`.'
+      description: 'Ordenação padrão: `fullname` crescente. Tamanho de página padrão: 25. Devolve só os registros ativos, como `GET /api/contacts?lifeCycle=prospect`.'
       parameters:
       - $ref: '#/components/parameters/Page'
       - $ref: '#/components/parameters/Limit'
@@ -3018,7 +3034,7 @@ paths:
       - $ref: '#/components/parameters/SortType'
       - name: staffs[]
         in: query
-        description: 'Usuários responsáveis. Lista de IDs: envie com colchetes, mesmo para um só valor (`?staffs[]=id1&staffs[]=id2`).'
+        description: Usuários responsáveis. Lista de IDs (`?staffs[]=id1&staffs[]=id2`).
         schema:
           type: array
           items:
@@ -3298,11 +3314,7 @@ paths:
       - Clientes
       operationId: listCustomers
       summary: Listar clientes
-      description: 'Ordenação padrão: `createdAt` decrescente. Tamanho de página padrão: 25.
-
-
-        **Atenção:** esta listagem traz também os registros excluídos (`active: false`). Para receber só os ativos, descarte os que vêm com `active:
-        false` ou use `GET /api/contacts?lifeCycle=customer`.'
+      description: 'Ordenação padrão: `createdAt` decrescente. Tamanho de página padrão: 25. Devolve só os registros ativos, como `GET /api/contacts?lifeCycle=customer`.'
       parameters:
       - $ref: '#/components/parameters/Page'
       - $ref: '#/components/parameters/Limit'
@@ -3310,7 +3322,7 @@ paths:
       - $ref: '#/components/parameters/SortType'
       - name: staffs[]
         in: query
-        description: 'Usuários responsáveis. Lista de IDs: envie com colchetes, mesmo para um só valor (`?staffs[]=id1&staffs[]=id2`).'
+        description: Usuários responsáveis. Lista de IDs (`?staffs[]=id1&staffs[]=id2`).
         schema:
           type: array
           items:
@@ -3597,7 +3609,7 @@ paths:
       - $ref: '#/components/parameters/SortType'
       - name: staffs[]
         in: query
-        description: 'Usuários responsáveis. Lista de IDs: envie com colchetes, mesmo para um só valor (`?staffs[]=id1&staffs[]=id2`).'
+        description: Usuários responsáveis. Lista de IDs (`?staffs[]=id1&staffs[]=id2`).
         schema:
           type: array
           items:
@@ -4116,7 +4128,7 @@ paths:
           type: string
       - name: statuses[]
         in: query
-        description: 'Várias situações. Lista de IDs: envie com colchetes, mesmo para um só valor (`?statuses[]=id1&statuses[]=id2`).'
+        description: Várias situações. Lista de IDs (`?statuses[]=id1&statuses[]=id2`).
         schema:
           type: array
           items:
@@ -4146,7 +4158,7 @@ paths:
           type: string
       - name: receivers[]
         in: query
-        description: 'Vários responsáveis. Lista de IDs: envie com colchetes, mesmo para um só valor (`?receivers[]=id1&receivers[]=id2`).'
+        description: Vários responsáveis. Lista de IDs (`?receivers[]=id1&receivers[]=id2`).
         schema:
           type: array
           items:
@@ -4160,7 +4172,7 @@ paths:
           type: string
       - name: senders[]
         in: query
-        description: 'Vários solicitantes. Lista de IDs: envie com colchetes, mesmo para um só valor (`?senders[]=id1&senders[]=id2`).'
+        description: Vários solicitantes. Lista de IDs (`?senders[]=id1&senders[]=id2`).
         schema:
           type: array
           items:
@@ -4184,7 +4196,7 @@ paths:
           type: string
       - name: contacts[]
         in: query
-        description: 'Vários contatos. Lista de IDs: envie com colchetes, mesmo para um só valor (`?contacts[]=id1&contacts[]=id2`).'
+        description: Vários contatos. Lista de IDs (`?contacts[]=id1&contacts[]=id2`).
         schema:
           type: array
           items:
@@ -4739,7 +4751,7 @@ paths:
           type: string
       - name: types[]
         in: query
-        description: 'Vários tipos. Lista de IDs: envie com colchetes, mesmo para um só valor (`?types[]=id1&types[]=id2`).'
+        description: Vários tipos. Lista de IDs (`?types[]=id1&types[]=id2`).
         schema:
           type: array
           items:
@@ -4753,7 +4765,7 @@ paths:
           type: string
       - name: staffs[]
         in: query
-        description: 'Vários usuários. Lista de IDs: envie com colchetes, mesmo para um só valor (`?staffs[]=id1&staffs[]=id2`).'
+        description: Vários usuários. Lista de IDs (`?staffs[]=id1&staffs[]=id2`).
         schema:
           type: array
           items:
@@ -4767,7 +4779,7 @@ paths:
           type: string
       - name: contacts[]
         in: query
-        description: 'Vários contatos. Lista de IDs: envie com colchetes, mesmo para um só valor (`?contacts[]=id1&contacts[]=id2`).'
+        description: Vários contatos. Lista de IDs (`?contacts[]=id1&contacts[]=id2`).
         schema:
           type: array
           items:
@@ -4781,7 +4793,7 @@ paths:
           type: string
       - name: deals[]
         in: query
-        description: 'Várias oportunidades. Lista de IDs: envie com colchetes, mesmo para um só valor (`?deals[]=id1&deals[]=id2`).'
+        description: Várias oportunidades. Lista de IDs (`?deals[]=id1&deals[]=id2`).
         schema:
           type: array
           items:
@@ -5121,7 +5133,7 @@ paths:
           type: string
       - name: staffs[]
         in: query
-        description: 'Responsáveis. Lista de IDs: envie com colchetes, mesmo para um só valor (`?staffs[]=id1&staffs[]=id2`).'
+        description: Responsáveis. Lista de IDs (`?staffs[]=id1&staffs[]=id2`).
         schema:
           type: array
           items:
@@ -6571,6 +6583,2420 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
       description: '**Permissão do Service Account:** `products.delete`'
+  /api/resource-keywords:
+    get:
+      tags:
+      - Campos para filtros
+      operationId: listResourceKeywords
+      summary: Listar campos para filtros
+      description: Devolve todos os campos da conta que podem entrar numa regra de filtro, inclusive os campos personalizados. Lista simples,
+        sem paginação.
+      parameters:
+      - name: modelRef
+        in: query
+        description: Só os campos de um recurso, como `deal`, `contact` ou `task`.
+        schema:
+          type: string
+      - name: module
+        in: query
+        description: Só os campos disponíveis num uso, como `dashboard`.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ResourceKeyword'
+              example:
+              - _id: 6570e1b3a306ee5fbcb651a9
+                slug: deal.amount
+                modelRef: deal
+                type: monetary
+                fieldRef: dealObj.amount
+                settings:
+                  label: Valor
+                module:
+                - rule
+                - dashboard
+                - report
+                active: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/resource-keywords/models:
+    get:
+      tags:
+      - Campos para filtros
+      operationId: listResourceKeywordModels
+      summary: Listar recursos que têm campos para filtros
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  models:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Valor de `modelRef`.
+                          example: deal
+                        label:
+                          type: string
+                          description: Nome exibido.
+                          example: Oportunidade
+              example:
+                models:
+                - id: deal
+                  label: Oportunidade
+                - id: contact
+                  label: Contato
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/resource-keywords/{slug}:
+    get:
+      tags:
+      - Campos para filtros
+      operationId: getResourceKeyword
+      summary: Obter campo para filtros
+      parameters:
+      - name: slug
+        in: path
+        required: true
+        description: '`slug` do campo.'
+        schema:
+          type: string
+          example: deal.amount
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceKeyword'
+              example:
+                _id: 6570e1b3a306ee5fbcb651a9
+                slug: deal.amount
+                modelRef: deal
+                type: monetary
+                fieldRef: dealObj.amount
+                settings:
+                  label: Valor
+                module:
+                - rule
+                - dashboard
+                - report
+                active: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/dashboards:
+    get:
+      tags:
+      - Dashboards
+      operationId: listDashboards
+      summary: Listar dashboards
+      description: Devolve os dashboards que o usuário da credencial vê. Lista simples, sem paginação.
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dashboard'
+              example:
+              - _id: 507f1f77bcf86cd799439180
+                title: Comercial
+                forModel: Staff
+                staffs:
+                - 507f191e810c19729de860eb
+                globalRuleset:
+                  condition: AND
+                  rules: []
+                roles: []
+                workspace: null
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Dashboards
+      operationId: createDashboard
+      summary: Criar dashboard
+      description: 'O único campo obrigatório é `title`. Para a credencial ver o dashboard que criou, use `forModel: Staff` com o ID do usuário
+        dela em `staffs`.
+
+
+        **Permissão do Service Account:** `dashboards.create`'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: '#/components/schemas/DashboardInput'
+              - type: object
+                required:
+                - title
+            example:
+              title: Comercial
+              forModel: Staff
+              staffs:
+              - 507f191e810c19729de860eb
+              globalRuleset:
+                condition: AND
+                rules: []
+      responses:
+        '200':
+          description: Dashboard criado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+              example:
+                _id: 507f1f77bcf86cd799439180
+                title: Comercial
+                forModel: Staff
+                staffs:
+                - 507f191e810c19729de860eb
+                globalRuleset:
+                  condition: AND
+                  rules: []
+                roles: []
+                workspace: null
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/dashboards/{dashboard}:
+    get:
+      tags:
+      - Dashboards
+      operationId: getDashboard
+      summary: Obter dashboard
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+              example:
+                _id: 507f1f77bcf86cd799439180
+                title: Comercial
+                forModel: Staff
+                staffs:
+                - 507f191e810c19729de860eb
+                globalRuleset:
+                  condition: AND
+                  rules: []
+                roles: []
+                workspace: null
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Dashboards
+      operationId: updateDashboard
+      summary: Atualizar dashboard
+      description: Envie `title` e os campos que mudam.
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: '#/components/schemas/DashboardInput'
+              - type: object
+                required:
+                - title
+            example:
+              title: Comercial 2027
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+              example:
+                _id: 507f1f77bcf86cd799439180
+                title: Comercial
+                forModel: Staff
+                staffs:
+                - 507f191e810c19729de860eb
+                globalRuleset:
+                  condition: AND
+                  rules: []
+                roles: []
+                workspace: null
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Dashboards
+      operationId: deleteDashboard
+      summary: Excluir dashboard
+      description: 'Exclui o dashboard e os widgets dele. Não há como desfazer.
+
+
+        **Permissão do Service Account:** `dashboards.delete`'
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+              example:
+                ok: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/dashboards/{dashboard}/duplicate:
+    post:
+      tags:
+      - Dashboards
+      operationId: duplicateDashboard
+      summary: Duplicar dashboard
+      description: Cria uma cópia com os mesmos widgets. A cópia recebe o título "Cópia de …"; o `title` do corpo é obrigatório, mas não é usado.
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - title
+              properties:
+                title:
+                  type: string
+                  description: Obrigatório.
+            example:
+              title: Comercial
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+              example:
+                _id: 507f1f77bcf86cd799439180
+                title: Cópia de Comercial
+                forModel: Staff
+                staffs:
+                - 507f191e810c19729de860eb
+                globalRuleset:
+                  condition: AND
+                  rules: []
+                roles: []
+                workspace: null
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/dashboards/{dashboard}/widgets:
+    get:
+      tags:
+      - Dashboards
+      operationId: listWidgets
+      summary: Listar widgets do dashboard
+      description: Lista simples, sem paginação.
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Widget'
+              example:
+              - _id: 507f1f77bcf86cd799439190
+                dashboard: 507f1f77bcf86cd799439180
+                title: Valor por etapa
+                displayAs: CHART/BAR
+                sizeX: 4
+                sizeY: 2
+                row: 0
+                col: 0
+                content:
+                  datasource: deal
+                  filter:
+                    ruleset:
+                      condition: AND
+                      rules:
+                      - fieldId: deal.amount
+                        operator: greater
+                        value: 1000
+                      - condition: OR
+                        rules:
+                        - fieldId: deal.won
+                          operator: false_value
+                        - fieldId: deal.stage_name
+                          operator: contains
+                          value: Proposta
+                  axisX:
+                    resourceKeywordSlug: deal.stage_name
+                    aggregation: GROUP
+                  axisY:
+                    resourceKeywordSlug: deal.amount
+                    aggregation: SUM
+                showTitle: true
+                reportfields: []
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+      - Dashboards
+      operationId: createWidget
+      summary: Criar widget
+      description: 'Obrigatórios: `title`, `displayAs`, `content.datasource`, `sizeX`, `sizeY`, `row` e `col`.
+
+
+        As regras de `content.filter.ruleset` não são validadas na gravação: um operador ou campo inexistente é aceito e o widget passa a devolver
+        resultado vazio. Confira os nomes em `GET /api/resource-keywords`.
+
+
+        **Permissão do Service Account:** `dashboards.create-widget`'
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: '#/components/schemas/WidgetInput'
+              - type: object
+                required:
+                - title
+                - displayAs
+                - content
+                - sizeX
+                - sizeY
+                - row
+                - col
+            example:
+              title: Valor por etapa
+              displayAs: CHART/BAR
+              sizeX: 4
+              sizeY: 2
+              row: 0
+              col: 0
+              content:
+                datasource: deal
+                filter:
+                  ruleset:
+                    condition: AND
+                    rules:
+                    - fieldId: deal.amount
+                      operator: greater
+                      value: 1000
+                    - condition: OR
+                      rules:
+                      - fieldId: deal.won
+                        operator: false_value
+                      - fieldId: deal.stage_name
+                        operator: contains
+                        value: Proposta
+                axisX:
+                  resourceKeywordSlug: deal.stage_name
+                  aggregation: GROUP
+                axisY:
+                  resourceKeywordSlug: deal.amount
+                  aggregation: SUM
+      responses:
+        '200':
+          description: Widget criado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+              example:
+                _id: 507f1f77bcf86cd799439190
+                dashboard: 507f1f77bcf86cd799439180
+                title: Valor por etapa
+                displayAs: CHART/BAR
+                sizeX: 4
+                sizeY: 2
+                row: 0
+                col: 0
+                content:
+                  datasource: deal
+                  filter:
+                    ruleset:
+                      condition: AND
+                      rules:
+                      - fieldId: deal.amount
+                        operator: greater
+                        value: 1000
+                      - condition: OR
+                        rules:
+                        - fieldId: deal.won
+                          operator: false_value
+                        - fieldId: deal.stage_name
+                          operator: contains
+                          value: Proposta
+                  axisX:
+                    resourceKeywordSlug: deal.stage_name
+                    aggregation: GROUP
+                  axisY:
+                    resourceKeywordSlug: deal.amount
+                    aggregation: SUM
+                showTitle: true
+                reportfields: []
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/dashboards/{dashboard}/widgets/{widget}:
+    get:
+      tags:
+      - Dashboards
+      operationId: getWidget
+      summary: Obter widget
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - name: widget
+        in: path
+        required: true
+        description: ID do widget.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+              example:
+                _id: 507f1f77bcf86cd799439190
+                dashboard: 507f1f77bcf86cd799439180
+                title: Valor por etapa
+                displayAs: CHART/BAR
+                sizeX: 4
+                sizeY: 2
+                row: 0
+                col: 0
+                content:
+                  datasource: deal
+                  filter:
+                    ruleset:
+                      condition: AND
+                      rules:
+                      - fieldId: deal.amount
+                        operator: greater
+                        value: 1000
+                      - condition: OR
+                        rules:
+                        - fieldId: deal.won
+                          operator: false_value
+                        - fieldId: deal.stage_name
+                          operator: contains
+                          value: Proposta
+                  axisX:
+                    resourceKeywordSlug: deal.stage_name
+                    aggregation: GROUP
+                  axisY:
+                    resourceKeywordSlug: deal.amount
+                    aggregation: SUM
+                showTitle: true
+                reportfields: []
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Dashboards
+      operationId: updateWidget
+      summary: Atualizar widget
+      description: 'Envie só os campos que mudam.
+
+
+        **Permissão do Service Account:** `dashboards.change-widget-position`'
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - name: widget
+        in: path
+        required: true
+        description: ID do widget.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WidgetInput'
+            example:
+              title: Valor por etapa (mês)
+              reportfields:
+              - slug: deal.title
+                label: Título
+              - slug: deal.amount
+                label: Valor
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Widget'
+              example:
+                _id: 507f1f77bcf86cd799439190
+                dashboard: 507f1f77bcf86cd799439180
+                title: Valor por etapa
+                displayAs: CHART/BAR
+                sizeX: 4
+                sizeY: 2
+                row: 0
+                col: 0
+                content:
+                  datasource: deal
+                  filter:
+                    ruleset:
+                      condition: AND
+                      rules:
+                      - fieldId: deal.amount
+                        operator: greater
+                        value: 1000
+                      - condition: OR
+                        rules:
+                        - fieldId: deal.won
+                          operator: false_value
+                        - fieldId: deal.stage_name
+                          operator: contains
+                          value: Proposta
+                  axisX:
+                    resourceKeywordSlug: deal.stage_name
+                    aggregation: GROUP
+                  axisY:
+                    resourceKeywordSlug: deal.amount
+                    aggregation: SUM
+                showTitle: true
+                reportfields: []
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Dashboards
+      operationId: deleteWidget
+      summary: Excluir widget
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - name: widget
+        in: path
+        required: true
+        description: ID do widget.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Widget excluído.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `dashboards.delete-widget`'
+  /api/dashboards/{dashboard}/widgets/{widget}/content:
+    get:
+      tags:
+      - Dashboards
+      operationId: getWidgetContent
+      summary: Obter o resultado do widget
+      description: 'O formato depende de `displayAs`:
+
+
+        - `NUMBER`: `{ "value": 12 }`.
+
+        - `PERCENTAGE`: `{ "value": 3, "total": 1, "percentage": 300 }`, em que `percentage` é `value ÷ total × 100`.
+
+        - Gráficos: `{ "labels": [...], "data": [...] }`, um valor por rótulo.
+
+        - Gráficos com `seriesBy`: `{ "series": [...], "labels": [...], "data": [[{ "x": rótulo, "y": valor }]] }`, uma lista por série.'
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - name: widget
+        in: path
+        required: true
+        description: ID do widget.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  value:
+                    type: number
+                    description: Em `NUMBER` e `PERCENTAGE`.
+                  total:
+                    type: number
+                    description: Em `PERCENTAGE`.
+                  percentage:
+                    type: number
+                    description: Em `PERCENTAGE`.
+                  labels:
+                    type: array
+                    items:
+                      type: string
+                    description: Rótulos do eixo X, em gráficos.
+                  data:
+                    type: array
+                    items: {}
+                    description: Valores, em gráficos.
+                  series:
+                    type: array
+                    items:
+                      type: string
+                    description: Nomes das séries, com `seriesBy`.
+              example:
+                labels:
+                - Prospecção
+                - Proposta
+                - Fechamento
+                data:
+                - 150000
+                - 90000
+                - 42000
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/dashboards/{dashboard}/widgets/{widget}/ruleset:
+    get:
+      tags:
+      - Dashboards
+      operationId: getWidgetRuleset
+      summary: Obter o filtro do widget
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - name: widget
+        in: path
+        required: true
+        description: ID do widget.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  widget:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                        pattern: ^[a-fA-F0-9]{24}$
+                        example: 507f1f77bcf86cd799439011
+                      title:
+                        type: string
+                      displayAs:
+                        type: string
+                      datasource:
+                        type: string
+                  ruleset:
+                    description: '`null` quando o widget não tem filtro.'
+                    allOf:
+                    - $ref: '#/components/schemas/Ruleset'
+                  period:
+                    type: string
+                  axisX:
+                    type: object
+                  seriesBy:
+                    type: object
+              example:
+                widget:
+                  _id: 507f1f77bcf86cd799439190
+                  title: Valor por etapa
+                  displayAs: CHART/BAR
+                  datasource: deal
+                ruleset:
+                  condition: AND
+                  rules:
+                  - fieldId: deal.amount
+                    operator: greater
+                    value: 1000
+                  - condition: OR
+                    rules:
+                    - fieldId: deal.won
+                      operator: false_value
+                    - fieldId: deal.stage_name
+                      operator: contains
+                      value: Proposta
+                axisX:
+                  resourceKeywordSlug: deal.stage_name
+                seriesBy: {}
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+      - Dashboards
+      operationId: updateWidgetRuleset
+      summary: Trocar o filtro do widget
+      description: Substitui `content.filter.ruleset` e descarta o resultado guardado, para o próximo cálculo já usar o filtro novo.
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - name: widget
+        in: path
+        required: true
+        description: ID do widget.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - ruleset
+              properties:
+                ruleset:
+                  $ref: '#/components/schemas/Ruleset'
+            example:
+              ruleset:
+                condition: AND
+                rules:
+                - fieldId: deal.amount
+                  operator: between
+                  valueMin: 100
+                  valueMax: 500000
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  widget:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                  dashboard:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                  rulesetUpdated:
+                    type: boolean
+                  cacheCleared:
+                    type: boolean
+              example:
+                widget: 507f1f77bcf86cd799439190
+                dashboard: 507f1f77bcf86cd799439180
+                rulesetUpdated: true
+                cacheCleared: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/dashboards/{dashboard}/widgets/{widget}/results/list:
+    get:
+      tags:
+      - Dashboards
+      operationId: listWidgetResults
+      summary: Listar os registros por trás do widget
+      description: Devolve os registros que o widget contou, com as colunas de `reportfields`. Cada coluna vem com o `slug` do campo, trocando
+        o ponto por sublinhado (`deal.amount` vira `deal_amount`).
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - name: widget
+        in: path
+        required: true
+        description: ID do widget.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  docs:
+                    type: array
+                    items:
+                      type: object
+                    description: Registros.
+                  total:
+                    type: integer
+                  pages:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  hasNextPage:
+                    type: boolean
+              example:
+                docs:
+                - deal_id: 507f1f77bcf86cd799439015
+                  deal_title: Implantação CRM Enterprise
+                  deal_amount: 75000
+                total: 1
+                pages: 1
+                page: 1
+                limit: 15
+                hasNextPage: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/dashboards/{dashboard}/filter-presets:
+    get:
+      tags:
+      - Dashboards
+      operationId: listFilterPresets
+      summary: Listar predefinições de filtro
+      description: Filtros prontos que quem abre o dashboard pode aplicar. Lista simples, sem paginação.
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FilterPreset'
+              example:
+              - _id: 507f1f77bcf86cd799439195
+                dashboard: 507f1f77bcf86cd799439180
+                name: Só ganhas
+                ruleset:
+                  condition: AND
+                  rules:
+                  - fieldId: deal.won
+                    operator: true_value
+                position: 0
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+      - Dashboards
+      operationId: createFilterPreset
+      summary: Criar predefinição de filtro
+      description: O nome não pode repetir no mesmo dashboard (`409`).
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - name
+              - ruleset
+              properties:
+                name:
+                  type: string
+                  description: Nome.
+                ruleset:
+                  $ref: '#/components/schemas/Ruleset'
+                position:
+                  type: number
+                  description: Ordem.
+            example:
+              name: Só ganhas
+              ruleset:
+                condition: AND
+                rules:
+                - fieldId: deal.won
+                  operator: true_value
+      responses:
+        '200':
+          description: Predefinição criada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilterPreset'
+              example:
+                _id: 507f1f77bcf86cd799439195
+                dashboard: 507f1f77bcf86cd799439180
+                name: Só ganhas
+                ruleset:
+                  condition: AND
+                  rules:
+                  - fieldId: deal.won
+                    operator: true_value
+                position: 0
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/dashboards/{dashboard}/filter-presets/{preset}:
+    put:
+      tags:
+      - Dashboards
+      operationId: updateFilterPreset
+      summary: Atualizar predefinição de filtro
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - name: preset
+        in: path
+        required: true
+        description: ID da predefinição.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Nome.
+                ruleset:
+                  $ref: '#/components/schemas/Ruleset'
+                position:
+                  type: number
+                  description: Ordem.
+            example:
+              name: Ganhas no mês
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilterPreset'
+              example:
+                _id: 507f1f77bcf86cd799439195
+                dashboard: 507f1f77bcf86cd799439180
+                name: Só ganhas
+                ruleset:
+                  condition: AND
+                  rules:
+                  - fieldId: deal.won
+                    operator: true_value
+                position: 0
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Dashboards
+      operationId: deleteFilterPreset
+      summary: Excluir predefinição de filtro
+      parameters:
+      - name: dashboard
+        in: path
+        required: true
+        description: ID do dashboard.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - name: preset
+        in: path
+        required: true
+        description: ID da predefinição.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+              example:
+                ok: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/processautomations:
+    get:
+      tags:
+      - Automações
+      operationId: listAutomations
+      summary: Listar automações
+      description: 'Tamanho de página padrão: 15.
+
+
+        **Permissão do Service Account:** `automations.list`'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: search
+        in: query
+        description: Busca no nome.
+        schema:
+          type: string
+      - name: folderId
+        in: query
+        description: ID da pasta.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Automation'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439200
+                  title: Alerta de contato sem interação
+                  sourceEntity: Contact
+                  triggerType: filter
+                  status: FREEZE
+                  triggerConfig:
+                    type: scheduled
+                    recurrence: daily
+                    schedule:
+                      time: 09:00
+                      timezone: America/Sao_Paulo
+                  filter:
+                    ruleset:
+                      condition: AND
+                      rules:
+                      - fieldId: contact.lasttreatmentcreatedat
+                        operator: older_than_days
+                        value: 60
+                  automationActions:
+                  - actionType: notify
+                    order: 1
+                    config:
+                      notifyConfig:
+                        channel: push
+                        recipients:
+                        - owner
+                        subject: Contato sem interação
+                        content: '{contact.fullname} está há 60 dias sem interação.'
+                  limit: 50
+                  eventTriggers: []
+                  lifeCycles: []
+                  workspaces: []
+                  staffs: []
+                  active: true
+                  executionCount: 0
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 7
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Automações
+      operationId: createAutomation
+      summary: Criar automação
+      description: 'O único campo obrigatório é `title`.
+
+
+        **Atenção:** sem `status`, a automação nasce `WAITING`, ou seja, ativa: uma automação por filtro executa no próximo horário agendado,
+        e uma por evento, no próximo evento. Para criar pausada, envie `status: FREEZE`, confira o alcance com `POST /api/processautomations/{id}/simulate`
+        e só então ative.
+
+
+        A exclusão de automações é feita por um administrador, na tela do CRM.
+
+
+        **Permissão do Service Account:** `automations.create`'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: '#/components/schemas/AutomationInput'
+              - type: object
+                required:
+                - title
+            examples:
+              filtro:
+                summary: Por filtro, agendada
+                value:
+                  title: Alerta de contato sem interação
+                  sourceEntity: Contact
+                  triggerType: filter
+                  status: FREEZE
+                  triggerConfig:
+                    type: scheduled
+                    recurrence: daily
+                    schedule:
+                      time: 09:00
+                      timezone: America/Sao_Paulo
+                  filter:
+                    ruleset:
+                      condition: AND
+                      rules:
+                      - fieldId: contact.lasttreatmentcreatedat
+                        operator: older_than_days
+                        value: 60
+                  automationActions:
+                  - actionType: notify
+                    order: 1
+                    config:
+                      notifyConfig:
+                        channel: push
+                        recipients:
+                        - owner
+                        subject: Contato sem interação
+                        content: '{contact.fullname} está há 60 dias sem interação.'
+                  limit: 50
+              evento:
+                summary: Por evento, com webhook
+                value:
+                  title: Avisar o ERP quando uma venda fecha
+                  sourceEntity: Deal
+                  triggerType: event
+                  status: FREEZE
+                  eventTriggers:
+                  - event: won
+                    fieldConditions:
+                    - field: amount
+                      operator: greater_than
+                      value: 10000
+                  automationActions:
+                  - actionType: webhook
+                    order: 1
+                    config:
+                      webhookConfig:
+                        url: https://erp.exemplo.com/vendas
+                        method: POST
+                        payload:
+                          titulo: '{deal.title}'
+      responses:
+        '200':
+          description: Automação criada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Automation'
+              example:
+                _id: 507f1f77bcf86cd799439200
+                title: Alerta de contato sem interação
+                sourceEntity: Contact
+                triggerType: filter
+                status: FREEZE
+                triggerConfig:
+                  type: scheduled
+                  recurrence: daily
+                  schedule:
+                    time: 09:00
+                    timezone: America/Sao_Paulo
+                filter:
+                  ruleset:
+                    condition: AND
+                    rules:
+                    - fieldId: contact.lasttreatmentcreatedat
+                      operator: older_than_days
+                      value: 60
+                automationActions:
+                - actionType: notify
+                  order: 1
+                  config:
+                    notifyConfig:
+                      channel: push
+                      recipients:
+                      - owner
+                      subject: Contato sem interação
+                      content: '{contact.fullname} está há 60 dias sem interação.'
+                limit: 50
+                eventTriggers: []
+                lifeCycles: []
+                workspaces: []
+                staffs: []
+                active: true
+                executionCount: 0
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/processautomations/{id}:
+    get:
+      tags:
+      - Automações
+      operationId: getAutomation
+      summary: Obter automação
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Automation'
+              example:
+                _id: 507f1f77bcf86cd799439200
+                title: Alerta de contato sem interação
+                sourceEntity: Contact
+                triggerType: filter
+                status: FREEZE
+                triggerConfig:
+                  type: scheduled
+                  recurrence: daily
+                  schedule:
+                    time: 09:00
+                    timezone: America/Sao_Paulo
+                filter:
+                  ruleset:
+                    condition: AND
+                    rules:
+                    - fieldId: contact.lasttreatmentcreatedat
+                      operator: older_than_days
+                      value: 60
+                automationActions:
+                - actionType: notify
+                  order: 1
+                  config:
+                    notifyConfig:
+                      channel: push
+                      recipients:
+                      - owner
+                      subject: Contato sem interação
+                      content: '{contact.fullname} está há 60 dias sem interação.'
+                limit: 50
+                eventTriggers: []
+                lifeCycles: []
+                workspaces: []
+                staffs: []
+                active: true
+                executionCount: 0
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `automations.read`'
+    put:
+      tags:
+      - Automações
+      operationId: updateAutomation
+      summary: Atualizar automação
+      description: 'Envie a automação com os campos que mudam. `status` não muda por aqui: use a operação de situação.
+
+
+        **Permissão do Service Account:** `automations.update`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutomationInput'
+            example:
+              title: Alerta de contato sem interação
+              sourceEntity: Contact
+              triggerType: filter
+              status: FREEZE
+              triggerConfig:
+                type: scheduled
+                recurrence: daily
+                schedule:
+                  time: 09:00
+                  timezone: America/Sao_Paulo
+              filter:
+                ruleset:
+                  condition: AND
+                  rules:
+                  - fieldId: contact.lasttreatmentcreatedat
+                    operator: older_than_days
+                    value: 60
+              automationActions:
+              - actionType: notify
+                order: 1
+                config:
+                  notifyConfig:
+                    channel: push
+                    recipients:
+                    - owner
+                    subject: Contato sem interação
+                    content: '{contact.fullname} está há 60 dias sem interação.'
+              limit: 100
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Automation'
+              example:
+                _id: 507f1f77bcf86cd799439200
+                title: Alerta de contato sem interação
+                sourceEntity: Contact
+                triggerType: filter
+                status: FREEZE
+                triggerConfig:
+                  type: scheduled
+                  recurrence: daily
+                  schedule:
+                    time: 09:00
+                    timezone: America/Sao_Paulo
+                filter:
+                  ruleset:
+                    condition: AND
+                    rules:
+                    - fieldId: contact.lasttreatmentcreatedat
+                      operator: older_than_days
+                      value: 60
+                automationActions:
+                - actionType: notify
+                  order: 1
+                  config:
+                    notifyConfig:
+                      channel: push
+                      recipients:
+                      - owner
+                      subject: Contato sem interação
+                      content: '{contact.fullname} está há 60 dias sem interação.'
+                limit: 100
+                eventTriggers: []
+                lifeCycles: []
+                workspaces: []
+                staffs: []
+                active: true
+                executionCount: 0
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/processautomations/{id}/status:
+    put:
+      tags:
+      - Automações
+      operationId: updateAutomationStatus
+      summary: Ativar, pausar ou concluir automação
+      description: 'Transições aceitas: de `WAITING` para `FREEZE`, `FINISHED` ou `RECURRENCE`; de `FREEZE` para `WAITING` ou `RECURRENCE`; de
+        `RECURRENCE` para `FREEZE`, `WAITING` ou `FINISHED`; de `FINISHED` para `WAITING` ou `RECURRENCE`. Fora disso a resposta é `400` com `allowedTransitions`.'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - status
+              properties:
+                status:
+                  type: string
+                  enum:
+                  - WAITING
+                  - FREEZE
+                  - RECURRENCE
+                  - FINISHED
+                  description: '`WAITING`: ativa, aguardando a próxima execução. `FREEZE`: pausada. `RECURRENCE`: ativa e recorrente. `FINISHED`:
+                    concluída.'
+            example:
+              status: FREEZE
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  processAutomation:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                        pattern: ^[a-fA-F0-9]{24}$
+                        example: 507f1f77bcf86cd799439011
+                      title:
+                        type: string
+                      status:
+                        type: string
+                        enum:
+                        - WAITING
+                        - FREEZE
+                        - RECURRENCE
+                        - FINISHED
+                        description: '`WAITING`: ativa, aguardando a próxima execução. `FREEZE`: pausada. `RECURRENCE`: ativa e recorrente. `FINISHED`:
+                          concluída.'
+                      previousStatus:
+                        type: string
+                        enum:
+                        - WAITING
+                        - FREEZE
+                        - RECURRENCE
+                        - FINISHED
+                        description: '`WAITING`: ativa, aguardando a próxima execução. `FREEZE`: pausada. `RECURRENCE`: ativa e recorrente. `FINISHED`:
+                          concluída.'
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        description: Alteração.
+                        example: '2026-05-15T14:00:00Z'
+              example:
+                success: true
+                message: Status da automação alterado para FREEZE
+                processAutomation:
+                  _id: 507f1f77bcf86cd799439200
+                  title: Alerta de contato sem interação
+                  status: FREEZE
+                  previousStatus: WAITING
+                  updatedAt: '2026-04-28T10:35:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/processautomations/simulate-draft:
+    post:
+      tags:
+      - Automações
+      operationId: simulateAutomationDraft
+      summary: Simular uma automação antes de gravar
+      description: 'Calcula quantos registros a automação alcançaria, sem gravar nada e sem executar ações.
+
+
+        **Permissão do Service Account:** `automations.create`'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - automation
+              properties:
+                automation:
+                  $ref: '#/components/schemas/AutomationInput'
+                automationId:
+                  type: string
+                  pattern: ^[a-fA-F0-9]{24}$
+                  example: 507f1f77bcf86cd799439011
+                  description: 'Opcional: ID da automação que está sendo editada.'
+            example:
+              automation:
+                title: Alerta de contato sem interação
+                sourceEntity: Contact
+                triggerType: filter
+                status: FREEZE
+                triggerConfig:
+                  type: scheduled
+                  recurrence: daily
+                  schedule:
+                    time: 09:00
+                    timezone: America/Sao_Paulo
+                filter:
+                  ruleset:
+                    condition: AND
+                    rules:
+                    - fieldId: contact.lasttreatmentcreatedat
+                      operator: older_than_days
+                      value: 60
+                automationActions:
+                - actionType: notify
+                  order: 1
+                  config:
+                    notifyConfig:
+                      channel: push
+                      recipients:
+                      - owner
+                      subject: Contato sem interação
+                      content: '{contact.fullname} está há 60 dias sem interação.'
+                limit: 50
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  simulation:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        description: Situação da simulação.
+                        example: complete
+                      totalMatched:
+                        type: integer
+                        description: Quantos registros a automação alcançaria agora.
+                      truncated:
+                        type: boolean
+                        description: A contagem foi interrompida no limite de segurança.
+                      noFilter:
+                        type: boolean
+                        description: A automação não tem filtro.
+                      filter:
+                        type: object
+                        properties:
+                          conditionsCount:
+                            type: integer
+                          lifeCycles:
+                            type: array
+                            items:
+                              type: string
+                          description:
+                            type: string
+                      actions:
+                        type: array
+                        items:
+                          type: object
+                        description: O que cada ação faria.
+                      warnings:
+                        type: array
+                        items:
+                          type: string
+                        description: Avisos, como filtro que não casa com nada.
+                      simulatedAt:
+                        type: string
+                        format: date-time
+                        description: Quando foi simulada.
+                        example: '2026-05-15T14:00:00Z'
+              example:
+                simulation:
+                  status: complete
+                  totalMatched: 12
+                  truncated: false
+                  noFilter: false
+                  filter:
+                    conditionsCount: 1
+                    lifeCycles: []
+                    description: ''
+                  actions: []
+                  warnings: []
+                  simulatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/processautomations/{id}/simulate:
+    post:
+      tags:
+      - Automações
+      operationId: simulateAutomation
+      summary: Simular uma automação gravada
+      description: Calcula o alcance atual da automação, sem executar ações.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  simulation:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        description: Situação da simulação.
+                        example: complete
+                      totalMatched:
+                        type: integer
+                        description: Quantos registros a automação alcançaria agora.
+                      truncated:
+                        type: boolean
+                        description: A contagem foi interrompida no limite de segurança.
+                      noFilter:
+                        type: boolean
+                        description: A automação não tem filtro.
+                      filter:
+                        type: object
+                        properties:
+                          conditionsCount:
+                            type: integer
+                          lifeCycles:
+                            type: array
+                            items:
+                              type: string
+                          description:
+                            type: string
+                      actions:
+                        type: array
+                        items:
+                          type: object
+                        description: O que cada ação faria.
+                      warnings:
+                        type: array
+                        items:
+                          type: string
+                        description: Avisos, como filtro que não casa com nada.
+                      simulatedAt:
+                        type: string
+                        format: date-time
+                        description: Quando foi simulada.
+                        example: '2026-05-15T14:00:00Z'
+              example:
+                simulation:
+                  status: complete
+                  totalMatched: 12
+                  truncated: false
+                  noFilter: false
+                  filter:
+                    conditionsCount: 1
+                    lifeCycles: []
+                    description: ''
+                  actions: []
+                  warnings: []
+                  simulatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/processautomations/{id}/statistics:
+    get:
+      tags:
+      - Automações
+      operationId: getAutomationStatistics
+      summary: Obter estatísticas da automação
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  processAutomation:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                        pattern: ^[a-fA-F0-9]{24}$
+                        example: 507f1f77bcf86cd799439011
+                      title:
+                        type: string
+                      status:
+                        type: string
+                        enum:
+                        - WAITING
+                        - FREEZE
+                        - RECURRENCE
+                        - FINISHED
+                        description: '`WAITING`: ativa, aguardando a próxima execução. `FREEZE`: pausada. `RECURRENCE`: ativa e recorrente. `FINISHED`:
+                          concluída.'
+                  statistics:
+                    type: object
+                    properties:
+                      contacts:
+                        type: object
+                        description: Registros processados.
+                        properties:
+                          total:
+                            type: integer
+                          sent:
+                            type: integer
+                          pending:
+                            type: integer
+                          withError:
+                            type: integer
+                          successful:
+                            type: integer
+                      performance:
+                        type: object
+                        properties:
+                          successRate:
+                            type: number
+                          errorRate:
+                            type: number
+                          completionRate:
+                            type: number
+                      errorDistribution:
+                        type: array
+                        items:
+                          type: object
+                      temporalEvolution:
+                        type: array
+                        items:
+                          type: object
+                      actionPerformance:
+                        type: array
+                        items:
+                          type: object
+              example:
+                processAutomation:
+                  _id: 507f1f77bcf86cd799439200
+                  title: Alerta de contato sem interação
+                  status: WAITING
+                statistics:
+                  contacts:
+                    total: 40
+                    sent: 38
+                    pending: 0
+                    withError: 2
+                    successful: 38
+                  performance:
+                    successRate: 95
+                    errorRate: 5
+                    completionRate: 100
+                  errorDistribution: []
+                  temporalEvolution: []
+                  actionPerformance: []
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/processautomations/{id}/schedule:
+    get:
+      tags:
+      - Automações
+      operationId: getAutomationSchedule
+      summary: Obter a agenda da automação
+      description: Próxima execução e as execuções recentes.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  schedule:
+                    type: object
+                    properties:
+                      nextExecution:
+                        type: string
+                        format: date-time
+                        nullable: true
+                        description: '`null` quando pausada ou sem agenda.'
+                      isRecurrent:
+                        type: boolean
+                  executionStats:
+                    type: object
+                    properties:
+                      totalContacts:
+                        type: integer
+                      processedContacts:
+                        type: integer
+                      pendingContacts:
+                        type: integer
+                      errorContacts:
+                        type: integer
+                  recentExecutions:
+                    type: array
+                    items:
+                      type: object
+              example:
+                schedule:
+                  nextExecution: '2026-04-29T12:00:00Z'
+                  isRecurrent: false
+                executionStats:
+                  totalContacts: 40
+                  processedContacts: 40
+                  pendingContacts: 0
+                  errorContacts: 2
+                recentExecutions: []
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/processautomations/{id}/logs:
+    get:
+      tags:
+      - Automações
+      operationId: listAutomationLogs
+      summary: Listar o histórico de execução
+      description: 'Tamanho de página padrão: 25.
+
+
+        **Permissão do Service Account:** `automations.read-logs`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        type: object
+              example:
+                docs: []
+                total: 0
+                pages: 0
+                page: 1
+                limit: 25
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/processautomations/entities:
+    get:
+      tags:
+      - Automações
+      operationId: listAutomationEntities
+      summary: Listar recursos, eventos e campos aceitos
+      description: 'Para cada recurso: os eventos que podem disparar uma automação (`supportedEvents`) e os campos que podem entrar em `fieldConditions`
+        (`availableFields`).
+
+
+        **Permissão do Service Account:** `automations.read`'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      description: Valor de `sourceEntity`.
+                      example: Deal
+                    name:
+                      type: string
+                      description: Nome exibido.
+                    description:
+                      type: string
+                    supportedEvents:
+                      type: array
+                      items:
+                        type: string
+                      description: Eventos aceitos.
+                    availableFields:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          field:
+                            type: string
+                          label:
+                            type: string
+                          type:
+                            type: string
+                      description: Campos para `fieldConditions`.
+              example:
+              - id: Deal
+                name: Negócio
+                description: Oportunidades de venda
+                supportedEvents:
+                - created
+                - updated
+                - deleted
+                - stage_changed
+                - won
+                - lost
+                - assigned
+                availableFields:
+                - field: title
+                  label: Título
+                  type: string
+                - field: amount
+                  label: Valor
+                  type: number
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/processautomations/templates/actions:
+    get:
+      tags:
+      - Automações
+      operationId: listAutomationActionTemplates
+      summary: Listar modelos de ação
+      description: Ações prontas, com a configuração padrão (`defaultConfig`), as variáveis disponíveis (`availableVariables`) e os recursos com
+        que cada uma é compatível.
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                      pattern: ^[a-fA-F0-9]{24}$
+                      example: 507f1f77bcf86cd799439011
+                    name:
+                      type: string
+                      description: Nome.
+                      example: Criar Tarefa
+                    description:
+                      type: string
+                    category:
+                      type: string
+                      description: Tipo de ação.
+                      example: create
+                    compatibleSourceEntities:
+                      type: array
+                      items:
+                        type: string
+                    defaultConfig:
+                      type: object
+                    availableVariables:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          description:
+                            type: string
+                          path:
+                            type: string
+              example:
+              - _id: 507f1f77bcf86cd799439210
+                name: Criar Tarefa
+                description: Cria uma nova tarefa para o responsável
+                category: create
+                compatibleSourceEntities:
+                - Contact
+                - Deal
+                - Organization
+                - Ticket
+                defaultConfig:
+                  createFields:
+                    type: follow_up
+                    priority: normal
+                availableVariables:
+                - name: contact.fullname
+                  description: Nome completo do contato
+                  path: contact.fullname
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 components:
   securitySchemes:
     ServiceAccount:
@@ -9039,6 +11465,1105 @@ components:
           description: Oportunidade, quando o item é de uma.
         active:
           type: boolean
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    Rule:
+      type: object
+      description: Uma condição sobre um campo. Um grupo aninhado usa `condition` e `rules` no lugar de `fieldId` e `operator`.
+      properties:
+        fieldId:
+          type: string
+          description: 'Campo testado: o `slug` de um campo de `GET /api/resource-keywords`.'
+          example: deal.amount
+        resourceKeywordId:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do mesmo campo (`_id` em `GET /api/resource-keywords`). Opcional; envie quando a conta tiver campos personalizados de
+            nome parecido, para não haver ambiguidade.
+        operator:
+          type: string
+          enum:
+          - equals
+          - not_equal
+          - less
+          - less_or_equals
+          - greater
+          - greater_or_equals
+          - between
+          - contains
+          - not_contains
+          - starts_with
+          - ends_with
+          - regex
+          - exists
+          - not_exists
+          - true_value
+          - false_value
+          - in
+          - not_in
+          - contains_all
+          - current_day
+          - current_week
+          - current_month
+          - current_year
+          - before_day
+          - before_week
+          - before_month
+          - before_year
+          - last_n_days
+          - next_n_days
+          - next_n_business_days
+          - next_month
+          - older_than_days
+          - older_than_hours
+          - newer_than_days
+          - before_date
+          - after_date
+          - date_between
+          - month_equals
+          description: Operador. Os de data relativa (`current_month`, `last_n_days`...) e os de existência (`exists`, `true_value`...) não usam
+            `value`, ou usam `value` como o número de dias.
+        value:
+          description: 'Valor comparado: texto, número, booleano ou lista (em `in`, `not_in`, `contains_all`).'
+        valueMin:
+          description: Limite inferior, em `between` e `date_between`.
+        valueMax:
+          description: Limite superior, em `between` e `date_between`.
+        condition:
+          type: string
+          enum:
+          - AND
+          - OR
+          description: 'Só em grupo aninhado: como combinar as `rules` do grupo.'
+        rules:
+          type: array
+          items:
+            type: object
+          description: 'Só em grupo aninhado: as condições do grupo, no mesmo formato.'
+    Ruleset:
+      type: object
+      description: Conjunto de regras de filtro. É o mesmo formato em dashboards, widgets e predefinições de filtro.
+      required:
+      - condition
+      - rules
+      properties:
+        condition:
+          type: string
+          enum:
+          - AND
+          - OR
+          description: '`AND`: todas as regras precisam valer. `OR`: basta uma.'
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/Rule'
+          description: Condições e grupos aninhados. Lista vazia não filtra nada.
+    ResourceKeyword:
+      type: object
+      description: Campo que pode ser usado em regras de filtro, eixos de gráfico e colunas de resultado.
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do campo.
+        slug:
+          type: string
+          description: Identificador a usar em `fieldId` e em `resourceKeywordSlug`.
+          example: deal.amount
+        modelRef:
+          type: string
+          description: Recurso a que o campo pertence.
+          example: deal
+        type:
+          type: string
+          enum:
+          - string
+          - number
+          - monetary
+          - boolean
+          - date
+          - days
+          - select
+          - month_select
+          - date_select
+          description: 'Tipo do campo: define quais operadores fazem sentido.'
+        fieldRef:
+          type: string
+          description: Caminho interno do campo.
+          example: dealObj.amount
+        settings:
+          type: object
+          properties:
+            label:
+              type: string
+              description: Nome exibido.
+              example: Valor
+        module:
+          type: array
+          items:
+            type: string
+          description: Onde o campo pode ser usado, como `dashboard` e `rule`.
+        active:
+          type: boolean
+    DashboardInput:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Título do dashboard.
+          example: Comercial
+        forModel:
+          type: string
+          enum:
+          - Role
+          - Staff
+          description: 'A quem o dashboard é oferecido: `Role` usa a lista `roles`; `Staff` usa a lista `staffs`. Padrão: `Role`.'
+        roles:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: IDs dos perfis de acesso que veem o dashboard.
+        staffs:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: IDs dos usuários que veem o dashboard.
+        position:
+          type: number
+          description: Ordem na lista.
+        globalRuleset:
+          description: Filtro aplicado a todos os widgets do dashboard.
+          allOf:
+          - $ref: '#/components/schemas/Ruleset'
+    Dashboard:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        title:
+          type: string
+          description: Título do dashboard.
+          example: Comercial
+        forModel:
+          type: string
+          enum:
+          - Role
+          - Staff
+          description: 'A quem o dashboard é oferecido: `Role` usa a lista `roles`; `Staff` usa a lista `staffs`. Padrão: `Role`.'
+        roles:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: IDs dos perfis de acesso que veem o dashboard.
+        staffs:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: IDs dos usuários que veem o dashboard.
+        position:
+          type: number
+          description: Ordem na lista.
+        globalRuleset:
+          description: Filtro aplicado a todos os widgets do dashboard.
+          allOf:
+          - $ref: '#/components/schemas/Ruleset'
+        workspace:
+          type: string
+          nullable: true
+          description: Área de trabalho do dashboard.
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    WidgetContent:
+      type: object
+      description: O que o widget calcula.
+      required:
+      - datasource
+      properties:
+        datasource:
+          type: string
+          enum:
+          - contact
+          - organization
+          - deal
+          - task
+          - ticket
+          - meeting
+          - treatment
+          - journey
+          description: Recurso de onde vêm os registros.
+        filter:
+          type: object
+          description: Quais registros entram.
+          properties:
+            ruleset:
+              $ref: '#/components/schemas/Ruleset'
+        percentage:
+          type: object
+          description: 'Em `PERCENTAGE`: a regra que define a parte comparada com o total filtrado.'
+          properties:
+            ruleset:
+              $ref: '#/components/schemas/Ruleset'
+        period:
+          type: string
+          enum:
+          - DAY
+          - WEEK
+          - MONTH
+          - TWO_MONTHS
+          - QUARTER
+          - SEMESTER
+          - YEAR
+          description: Agrupamento de datas no eixo X.
+        axisX:
+          description: 'Eixo X: o campo que separa os pontos do gráfico.'
+          allOf:
+          - type: object
+            properties:
+              resourceKeywordSlug:
+                type: string
+                description: '`slug` do campo (de `GET /api/resource-keywords`).'
+                example: deal.stage_name
+              aggregation:
+                type: string
+                enum:
+                - GROUP
+                - INTERVAL
+                - SUM
+                - AVG
+                - MIN
+                - MAX
+                description: '`GROUP`: um ponto por valor do campo. `INTERVAL`: agrupa datas pelo `period`. `SUM`, `AVG`, `MIN`, `MAX`: calcula
+                  sobre um campo numérico.'
+              interval:
+                type: number
+                description: 'Tamanho do intervalo, em campos numéricos. Padrão: 0.'
+              mask:
+                type: string
+                description: Máscara de exibição.
+        axisY:
+          description: 'Eixo Y: sem ele, o gráfico conta registros; com `aggregation: SUM` e um campo numérico, soma o campo em cada ponto.'
+          allOf:
+          - type: object
+            properties:
+              resourceKeywordSlug:
+                type: string
+                description: '`slug` do campo (de `GET /api/resource-keywords`).'
+                example: deal.stage_name
+              aggregation:
+                type: string
+                enum:
+                - GROUP
+                - INTERVAL
+                - SUM
+                - AVG
+                - MIN
+                - MAX
+                description: '`GROUP`: um ponto por valor do campo. `INTERVAL`: agrupa datas pelo `period`. `SUM`, `AVG`, `MIN`, `MAX`: calcula
+                  sobre um campo numérico.'
+              interval:
+                type: number
+                description: 'Tamanho do intervalo, em campos numéricos. Padrão: 0.'
+              mask:
+                type: string
+                description: Máscara de exibição.
+        seriesBy:
+          description: Separa o gráfico em séries, uma por valor do campo.
+          allOf:
+          - type: object
+            properties:
+              resourceKeywordSlug:
+                type: string
+                description: '`slug` do campo (de `GET /api/resource-keywords`).'
+                example: deal.stage_name
+              aggregation:
+                type: string
+                enum:
+                - GROUP
+                - INTERVAL
+                - SUM
+                - AVG
+                - MIN
+                - MAX
+                description: '`GROUP`: um ponto por valor do campo. `INTERVAL`: agrupa datas pelo `period`. `SUM`, `AVG`, `MIN`, `MAX`: calcula
+                  sobre um campo numérico.'
+              interval:
+                type: number
+                description: 'Tamanho do intervalo, em campos numéricos. Padrão: 0.'
+              mask:
+                type: string
+                description: Máscara de exibição.
+        countBy:
+          description: 'Em `NUMBER`: com `aggregation: SUM` e um campo numérico, o número é a soma do campo; sem ele, é a contagem de registros.'
+          allOf:
+          - type: object
+            properties:
+              resourceKeywordSlug:
+                type: string
+                description: '`slug` do campo (de `GET /api/resource-keywords`).'
+                example: deal.stage_name
+              aggregation:
+                type: string
+                enum:
+                - GROUP
+                - INTERVAL
+                - SUM
+                - AVG
+                - MIN
+                - MAX
+                description: '`GROUP`: um ponto por valor do campo. `INTERVAL`: agrupa datas pelo `period`. `SUM`, `AVG`, `MIN`, `MAX`: calcula
+                  sobre um campo numérico.'
+              interval:
+                type: number
+                description: 'Tamanho do intervalo, em campos numéricos. Padrão: 0.'
+              mask:
+                type: string
+                description: Máscara de exibição.
+        refreshIntervalMinutes:
+          type: integer
+          nullable: true
+          description: De quantos em quantos minutos o resultado é recalculado.
+    WidgetInput:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Título do widget.
+          example: Valor por etapa
+        displayAs:
+          type: string
+          enum:
+          - NUMBER
+          - PERCENTAGE
+          - CHART/BAR
+          - CHART/LINE
+          - CHART/AREA
+          - CHART/PIE
+          - CHART/DOUGHNUT
+          - CHART/RADAR
+          - CHART/POLAR_AREA
+          - CHART/SCATTER
+          - CHART/BUBBLE
+          - CHART/MIXED
+          description: Forma de exibição.
+        content:
+          $ref: '#/components/schemas/WidgetContent'
+        sizeX:
+          type: integer
+          description: Largura, em colunas da grade.
+        sizeY:
+          type: integer
+          description: Altura, em linhas da grade.
+        row:
+          type: integer
+          description: Linha na grade, a partir de 0.
+        col:
+          type: integer
+          description: Coluna na grade, a partir de 0.
+        showTitle:
+          type: boolean
+          description: 'Mostra o título. Padrão: `true`.'
+        bgColor:
+          type: string
+          description: Cor de fundo.
+        reportfields:
+          type: array
+          items:
+            type: object
+            properties:
+              slug:
+                type: string
+                description: '`slug` do campo.'
+                example: deal.title
+              label:
+                type: string
+                description: Título da coluna.
+                example: Título
+          description: Colunas da listagem de resultados do widget.
+    Widget:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        dashboard:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do dashboard.
+        title:
+          type: string
+          description: Título do widget.
+          example: Valor por etapa
+        displayAs:
+          type: string
+          enum:
+          - NUMBER
+          - PERCENTAGE
+          - CHART/BAR
+          - CHART/LINE
+          - CHART/AREA
+          - CHART/PIE
+          - CHART/DOUGHNUT
+          - CHART/RADAR
+          - CHART/POLAR_AREA
+          - CHART/SCATTER
+          - CHART/BUBBLE
+          - CHART/MIXED
+          description: Forma de exibição.
+        content:
+          $ref: '#/components/schemas/WidgetContent'
+        sizeX:
+          type: integer
+          description: Largura, em colunas da grade.
+        sizeY:
+          type: integer
+          description: Altura, em linhas da grade.
+        row:
+          type: integer
+          description: Linha na grade, a partir de 0.
+        col:
+          type: integer
+          description: Coluna na grade, a partir de 0.
+        showTitle:
+          type: boolean
+          description: 'Mostra o título. Padrão: `true`.'
+        bgColor:
+          type: string
+          description: Cor de fundo.
+        reportfields:
+          type: array
+          items:
+            type: object
+            properties:
+              slug:
+                type: string
+                description: '`slug` do campo.'
+                example: deal.title
+              label:
+                type: string
+                description: Título da coluna.
+                example: Título
+          description: Colunas da listagem de resultados do widget.
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    FilterPreset:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        dashboard:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do dashboard.
+        name:
+          type: string
+          description: Nome da predefinição.
+          example: Só ganhas
+        ruleset:
+          $ref: '#/components/schemas/Ruleset'
+        position:
+          type: number
+          description: Ordem.
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    AutomationEventTrigger:
+      type: object
+      required:
+      - event
+      properties:
+        event:
+          type: string
+          enum:
+          - created
+          - updated
+          - deleted
+          - status_changed
+          - stage_changed
+          - assigned
+          - completed
+          - reopened
+          - won
+          - lost
+          - lifecycle_changed
+          - submitted
+          description: Evento que dispara a automação. Os eventos de cada recurso estão em `GET /api/processautomations/entities` (`supportedEvents`).
+        fieldConditions:
+          type: array
+          items:
+            type: object
+            required:
+            - field
+            - operator
+            properties:
+              field:
+                type: string
+                description: Campo do registro, como vem em `availableFields` de `GET /api/processautomations/entities`.
+                example: amount
+              operator:
+                type: string
+                enum:
+                - equals
+                - not_equals
+                - contains
+                - not_contains
+                - starts_with
+                - ends_with
+                - greater_than
+                - less_than
+                - greater_or_equal
+                - less_or_equal
+                - is_empty
+                - is_not_empty
+                - in
+                - not_in
+                - changed
+                - not_changed
+                - changed_to
+                - changed_from
+                description: Operador. Os de mudança (`changed`, `changed_to`...) comparam o valor antes e depois do evento.
+              value:
+                description: Valor comparado.
+          description: Condições sobre os campos do registro. Todas precisam valer.
+    AutomationAction:
+      type: object
+      required:
+      - actionType
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        actionType:
+          type: string
+          enum:
+          - create
+          - update
+          - notify
+          - assign
+          - webhook
+          description: O que a ação faz.
+        targetEntity:
+          type: string
+          enum:
+          - Contact
+          - Deal
+          - Organization
+          - Task
+          - Meeting
+          - Ticket
+          - Email
+          - SMS
+          - WhatsApp
+          - Push
+          - Observation
+          description: 'Em `create` e `update`: o recurso criado ou alterado.'
+        order:
+          type: integer
+          description: Ordem de execução, a partir de 1.
+        active:
+          type: boolean
+          description: 'Padrão: `true`.'
+        condition:
+          type: object
+          description: Condição para a ação rodar.
+          properties:
+            enabled:
+              type: boolean
+            fieldConditions:
+              type: array
+              items:
+                type: object
+                required:
+                - field
+                - operator
+                properties:
+                  field:
+                    type: string
+                    description: Campo do registro, como vem em `availableFields` de `GET /api/processautomations/entities`.
+                    example: amount
+                  operator:
+                    type: string
+                    enum:
+                    - equals
+                    - not_equals
+                    - contains
+                    - not_contains
+                    - starts_with
+                    - ends_with
+                    - greater_than
+                    - less_than
+                    - greater_or_equal
+                    - less_or_equal
+                    - is_empty
+                    - is_not_empty
+                    - in
+                    - not_in
+                    - changed
+                    - not_changed
+                    - changed_to
+                    - changed_from
+                    description: Operador. Os de mudança (`changed`, `changed_to`...) comparam o valor antes e depois do evento.
+                  value:
+                    description: Valor comparado.
+        config:
+          type: object
+          description: Configuração da ação. Use a parte que corresponde ao `actionType`.
+          properties:
+            createFields:
+              type: object
+              description: 'Em `create`: campos do registro criado. Aceita variáveis entre chaves, como `{deal.title}`.'
+              example:
+                title: 'Follow-up: {deal.title}'
+                taskTypeSlug: follow-up
+                dueDateOffset: 1
+                ownerSource: contact_owner
+            updateFields:
+              type: object
+              description: 'Em `update`: campos alterados.'
+            notifyConfig:
+              type: object
+              description: Em `notify`.
+              properties:
+                channel:
+                  type: string
+                  enum:
+                  - email
+                  - sms
+                  - whatsapp
+                  - push
+                  - system
+                  - slack
+                  description: Canal.
+                recipients:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                    - owner
+                    - creator
+                    - assigned
+                    - contact
+                    - workspace
+                    - workspace_fixed
+                    - all_agents
+                    - staff
+                    - requester_and_ccs
+                    - participants
+                    - custom
+                  description: Quem recebe.
+                staffIds:
+                  type: array
+                  items:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                  description: 'Com `staff` em `recipients`: os usuários.'
+                customRecipients:
+                  type: array
+                  items: {}
+                  description: 'Com `custom` em `recipients`: os destinatários.'
+                subject:
+                  type: string
+                  description: Assunto. Aceita variáveis.
+                content:
+                  type: string
+                  description: Texto. Aceita variáveis, como `{contact.fullname}`.
+            assignConfig:
+              type: object
+              description: Em `assign`.
+              properties:
+                assignType:
+                  type: string
+                  enum:
+                  - specific
+                  - round_robin
+                  - least_busy
+                  description: Como escolher o responsável.
+                staffIds:
+                  type: array
+                  items:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                  description: Usuários candidatos.
+                workspaceIds:
+                  type: array
+                  items:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                  description: Áreas de trabalho candidatas.
+            webhookConfig:
+              type: object
+              description: 'Em `webhook`: chamada HTTP para o seu sistema.'
+              properties:
+                url:
+                  type: string
+                  description: Endereço chamado.
+                method:
+                  type: string
+                  enum:
+                  - GET
+                  - POST
+                  - PUT
+                  - PATCH
+                  - DELETE
+                  default: POST
+                headers:
+                  type: object
+                  description: Cabeçalhos.
+                payload:
+                  type: object
+                  description: Corpo enviado. Aceita variáveis.
+                retryOnFail:
+                  type: boolean
+                  default: true
+                maxRetries:
+                  type: integer
+                  default: 3
+    AutomationInput:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Nome da automação.
+          example: Alerta de contato sem interação
+        description:
+          type: string
+          description: Descrição.
+        sourceEntity:
+          type: string
+          enum:
+          - Contact
+          - Deal
+          - Organization
+          - Task
+          - Meeting
+          - Ticket
+          - Form
+          description: Recurso sobre o qual a automação age.
+        triggerType:
+          type: string
+          enum:
+          - filter
+          - event
+          - hybrid
+          description: '`filter`: roda no horário agendado sobre os registros que casam com `filter.ruleset`. `event`: roda quando um evento de
+            `eventTriggers` acontece. `hybrid`: evento e filtro. Padrão: `filter`.'
+        eventTriggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AutomationEventTrigger'
+          description: Eventos que disparam a automação, em `event` e `hybrid`.
+        triggerConfig:
+          type: object
+          description: Agenda, em `filter`.
+          properties:
+            type:
+              type: string
+              enum:
+              - scheduled
+              - onCreate
+              - onUpdate
+              - onFieldChange
+              - onStageChange
+              - manual
+              default: scheduled
+            recurrence:
+              type: string
+              enum:
+              - once
+              - hourly
+              - daily
+              - weekly
+              - monthly
+              - custom
+              default: daily
+            schedule:
+              type: object
+              properties:
+                time:
+                  type: string
+                  description: Horário, `HH:mm`.
+                  example: 09:00
+                timezone:
+                  type: string
+                  description: Fuso horário.
+                  example: America/Sao_Paulo
+                weekDays:
+                  type: array
+                  items:
+                    type: integer
+                    minimum: 0
+                    maximum: 6
+                  description: Dias da semana, de 0 (domingo) a 6.
+                dayOfMonth:
+                  type: integer
+                  minimum: 1
+                  maximum: 31
+                interval:
+                  type: integer
+                  minimum: 1
+                  maximum: 24
+        filter:
+          type: object
+          description: Quais registros entram.
+          properties:
+            ruleset:
+              $ref: '#/components/schemas/Ruleset'
+        automationActions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AutomationAction'
+          description: Ações, executadas na ordem de `order`.
+        lifeCycles:
+          type: array
+          items:
+            type: string
+            enum:
+            - lead
+            - prospect
+            - customer
+          description: 'Em automações de contato: restringe às fases.'
+        limit:
+          type: integer
+          description: 'Máximo de registros processados por execução. Padrão: 50.'
+        reentryWindowDays:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 365
+          description: Depois de quantos dias o mesmo registro pode entrar de novo.
+        maxContactsPerCycle:
+          type: integer
+          nullable: true
+          minimum: 1
+          description: Máximo de registros por ciclo.
+        workspaces:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: Áreas de trabalho a que a automação se aplica.
+        staffs:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: Usuários a que a automação se aplica.
+        status:
+          type: string
+          enum:
+          - WAITING
+          - FREEZE
+          - RECURRENCE
+          - FINISHED
+          description: '`WAITING`: ativa, aguardando a próxima execução. `FREEZE`: pausada. `RECURRENCE`: ativa e recorrente. `FINISHED`: concluída.'
+    Automation:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        title:
+          type: string
+          description: Nome da automação.
+          example: Alerta de contato sem interação
+        description:
+          type: string
+          description: Descrição.
+        sourceEntity:
+          type: string
+          enum:
+          - Contact
+          - Deal
+          - Organization
+          - Task
+          - Meeting
+          - Ticket
+          - Form
+          description: Recurso sobre o qual a automação age.
+        triggerType:
+          type: string
+          enum:
+          - filter
+          - event
+          - hybrid
+          description: '`filter`: roda no horário agendado sobre os registros que casam com `filter.ruleset`. `event`: roda quando um evento de
+            `eventTriggers` acontece. `hybrid`: evento e filtro. Padrão: `filter`.'
+        eventTriggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AutomationEventTrigger'
+          description: Eventos que disparam a automação, em `event` e `hybrid`.
+        triggerConfig:
+          type: object
+          description: Agenda, em `filter`.
+          properties:
+            type:
+              type: string
+              enum:
+              - scheduled
+              - onCreate
+              - onUpdate
+              - onFieldChange
+              - onStageChange
+              - manual
+              default: scheduled
+            recurrence:
+              type: string
+              enum:
+              - once
+              - hourly
+              - daily
+              - weekly
+              - monthly
+              - custom
+              default: daily
+            schedule:
+              type: object
+              properties:
+                time:
+                  type: string
+                  description: Horário, `HH:mm`.
+                  example: 09:00
+                timezone:
+                  type: string
+                  description: Fuso horário.
+                  example: America/Sao_Paulo
+                weekDays:
+                  type: array
+                  items:
+                    type: integer
+                    minimum: 0
+                    maximum: 6
+                  description: Dias da semana, de 0 (domingo) a 6.
+                dayOfMonth:
+                  type: integer
+                  minimum: 1
+                  maximum: 31
+                interval:
+                  type: integer
+                  minimum: 1
+                  maximum: 24
+        filter:
+          type: object
+          description: Quais registros entram.
+          properties:
+            ruleset:
+              $ref: '#/components/schemas/Ruleset'
+        automationActions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AutomationAction'
+          description: Ações, executadas na ordem de `order`.
+        lifeCycles:
+          type: array
+          items:
+            type: string
+            enum:
+            - lead
+            - prospect
+            - customer
+          description: 'Em automações de contato: restringe às fases.'
+        limit:
+          type: integer
+          description: 'Máximo de registros processados por execução. Padrão: 50.'
+        reentryWindowDays:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 365
+          description: Depois de quantos dias o mesmo registro pode entrar de novo.
+        maxContactsPerCycle:
+          type: integer
+          nullable: true
+          minimum: 1
+          description: Máximo de registros por ciclo.
+        workspaces:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: Áreas de trabalho a que a automação se aplica.
+        staffs:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: Usuários a que a automação se aplica.
+        status:
+          type: string
+          enum:
+          - WAITING
+          - FREEZE
+          - RECURRENCE
+          - FINISHED
+          description: '`WAITING`: ativa, aguardando a próxima execução. `FREEZE`: pausada. `RECURRENCE`: ativa e recorrente. `FINISHED`: concluída.'
+        active:
+          type: boolean
+          description: '`false` quando excluída.'
+        executionCount:
+          type: integer
+          description: Quantas vezes já executou.
+        lastExecutionAt:
+          type: string
+          format: date-time
+          description: Última execução.
+          example: '2026-05-15T14:00:00Z'
         createdAt:
           type: string
           format: date-time

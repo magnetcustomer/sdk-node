@@ -1,6 +1,6 @@
 {
   "name": "@magnetcustomer/sdk",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "SDK oficial da API da Magnet Customer para Node.js",
   "author": "Magnet Customer <suporte@magnetcustomer.com>",
   "homepage": "https://magnetcustomer.com/developers/sdks",
