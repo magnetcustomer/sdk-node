@@ -39,27 +39,27 @@ info:
     \ exigem um usuário administrador e não estão disponíveis para Service Accounts; por isso não aparecem aqui.\n\n## Limite de requisições\n\
     \nOs limites são aplicados por conta. Ao receber `429`, espere os segundos indicados em `Retry-After` e tente de novo com intervalo crescente.\n\
     \n## Área de trabalho\n\nEm contas com áreas de trabalho, a API define a área do registro pela credencial ou pelo registro pai. Não envie\
-    \ `workspace`.\n\n# Regras de filtro\n\nDashboards, widgets, predefinições de filtro, automações e workflows usam o mesmo formato para dizer\
-    \ quais registros entram: o **conjunto de regras** (`ruleset`).\n\n```json\n{\n  \"condition\": \"AND\",\n  \"rules\": [\n    { \"fieldId\"\
-    : \"deal.amount\", \"operator\": \"greater\", \"value\": 1000 },\n    {\n      \"condition\": \"OR\",\n      \"rules\": [\n        { \"fieldId\"\
-    : \"deal.won\", \"operator\": \"false_value\" },\n        { \"fieldId\": \"deal.stage_name\", \"operator\": \"contains\", \"value\": \"Proposta\"\
-    \ }\n      ]\n    }\n  ]\n}\n```\n\n- **`condition`**: `AND` exige todas as regras; `OR`, pelo menos uma.\n- **`rules`**: cada item é uma\
-    \ condição (`fieldId`, `operator`, `value`) ou um grupo aninhado (`condition`, `rules`).\n- **`fieldId`**: o `slug` de um campo. A lista de\
-    \ campos da conta, com os personalizados, vem de `GET /api/resource-keywords`; filtre por recurso com `?modelRef=deal`.\n- **`operator`**:\
-    \ escolha pelo tipo do campo (`type`, na lista de campos).\n\n| Tipo do campo | Operadores |\n|---|---|\n| Texto (`string`) | `equals`, `not_equal`,\
-    \ `contains`, `not_contains`, `starts_with`, `ends_with`, `exists`, `not_exists` |\n| Número e valor (`number`, `monetary`, `days`) | `equals`,\
-    \ `not_equal`, `greater`, `greater_or_equals`, `less`, `less_or_equals`, `between` (com `valueMin` e `valueMax`) |\n| Sim ou não (`boolean`)\
-    \ | `true_value`, `false_value` |\n| Lista (`select`) | `in`, `not_in`, com `value` em lista |\n| Data (`date`) | `current_day`, `current_week`,\
-    \ `current_month`, `current_year`, `before_day`, `before_week`, `before_month`, `before_year`, `last_n_days`, `next_n_days`, `before_date`,\
-    \ `after_date`, `date_between` |\n\nAs regras de um widget não são validadas na gravação: um campo ou operador que não existe é aceito, e\
-    \ o resultado vem vazio. Confira os nomes antes de enviar.\n\n# Workflows\n\nUm workflow é um desenho de **passos** (`nodes`) ligados por\
-    \ **saídas** (`edges`). O contato entra por um gatilho e segue as ligações até um passo `end`. Todo caminho precisa terminar num `end`.\n\n\
-    ```json\n{\n  \"nodes\": [\n    { \"id\": \"n1\", \"type\": \"manual_trigger\", \"config\": {} },\n    { \"id\": \"n2\", \"type\": \"wait\"\
-    , \"config\": { \"amount\": 2, \"unit\": \"days\" } },\n    { \"id\": \"n3\", \"type\": \"end\", \"config\": {} }\n  ],\n  \"edges\": [\n\
-    \    { \"id\": \"e1\", \"from\": \"n1\", \"port\": \"default\", \"to\": \"n2\" },\n    { \"id\": \"e2\", \"from\": \"n2\", \"port\": \"default\"\
-    , \"to\": \"n3\" }\n  ]\n}\n```\n\nO ciclo é: criar (`POST /api/workflows`), desenhar (`PATCH`, com `draftGraph`), conferir (`POST .../validate`\
-    \ com `forPublish: true`) e publicar (`POST .../publish`). Só depois de publicado o workflow age sobre contatos.\n\n## Gatilhos\n\n| `type`\
-    \ | Quando o contato entra | `config` |\n|---|---|---|\n| `manual_trigger` | Quando alguém, ou a API, inscreve o contato (`POST /api/workflows/{id}/enrollments`)\
+    \ `workspace`.\n\n# Regras de filtro\n\nDashboards, widgets, predefinições de filtro, automações, workflows e campanhas usam o mesmo formato\
+    \ para dizer quais registros entram: o **conjunto de regras** (`ruleset`).\n\n```json\n{\n  \"condition\": \"AND\",\n  \"rules\": [\n    {\
+    \ \"fieldId\": \"deal.amount\", \"operator\": \"greater\", \"value\": 1000 },\n    {\n      \"condition\": \"OR\",\n      \"rules\": [\n \
+    \       { \"fieldId\": \"deal.won\", \"operator\": \"false_value\" },\n        { \"fieldId\": \"deal.stage_name\", \"operator\": \"contains\"\
+    , \"value\": \"Proposta\" }\n      ]\n    }\n  ]\n}\n```\n\n- **`condition`**: `AND` exige todas as regras; `OR`, pelo menos uma.\n- **`rules`**:\
+    \ cada item é uma condição (`fieldId`, `operator`, `value`) ou um grupo aninhado (`condition`, `rules`).\n- **`fieldId`**: o `slug` de um\
+    \ campo. A lista de campos da conta, com os personalizados, vem de `GET /api/resource-keywords`; filtre por recurso com `?modelRef=deal`.\n\
+    - **`operator`**: escolha pelo tipo do campo (`type`, na lista de campos).\n\n| Tipo do campo | Operadores |\n|---|---|\n| Texto (`string`)\
+    \ | `equals`, `not_equal`, `contains`, `not_contains`, `starts_with`, `ends_with`, `exists`, `not_exists` |\n| Número e valor (`number`, `monetary`,\
+    \ `days`) | `equals`, `not_equal`, `greater`, `greater_or_equals`, `less`, `less_or_equals`, `between` (com `valueMin` e `valueMax`) |\n|\
+    \ Sim ou não (`boolean`) | `true_value`, `false_value` |\n| Lista (`select`) | `in`, `not_in`, com `value` em lista |\n| Data (`date`) | `current_day`,\
+    \ `current_week`, `current_month`, `current_year`, `before_day`, `before_week`, `before_month`, `before_year`, `last_n_days`, `next_n_days`,\
+    \ `before_date`, `after_date`, `date_between` |\n\nAs regras de um widget não são validadas na gravação: um campo ou operador que não existe\
+    \ é aceito, e o resultado vem vazio. Confira os nomes antes de enviar.\n\n# Workflows\n\nUm workflow é um desenho de **passos** (`nodes`)\
+    \ ligados por **saídas** (`edges`). O contato entra por um gatilho e segue as ligações até um passo `end`. Todo caminho precisa terminar num\
+    \ `end`.\n\n```json\n{\n  \"nodes\": [\n    { \"id\": \"n1\", \"type\": \"manual_trigger\", \"config\": {} },\n    { \"id\": \"n2\", \"type\"\
+    : \"wait\", \"config\": { \"amount\": 2, \"unit\": \"days\" } },\n    { \"id\": \"n3\", \"type\": \"end\", \"config\": {} }\n  ],\n  \"edges\"\
+    : [\n    { \"id\": \"e1\", \"from\": \"n1\", \"port\": \"default\", \"to\": \"n2\" },\n    { \"id\": \"e2\", \"from\": \"n2\", \"port\": \"\
+    default\", \"to\": \"n3\" }\n  ]\n}\n```\n\nO ciclo é: criar (`POST /api/workflows`), desenhar (`PATCH`, com `draftGraph`), conferir (`POST\
+    \ .../validate` com `forPublish: true`) e publicar (`POST .../publish`). Só depois de publicado o workflow age sobre contatos.\n\n## Gatilhos\n\
+    \n| `type` | Quando o contato entra | `config` |\n|---|---|---|\n| `manual_trigger` | Quando alguém, ou a API, inscreve o contato (`POST /api/workflows/{id}/enrollments`)\
     \ | vazio |\n| `segment_trigger` | Na agenda, para os contatos que casam com o filtro | `schedule` (obrigatório): `mode` (`daily`, `weekly`,\
     \ `monthly`), `hour` (0–23), `minute`, `weekday` (0–6, em `weekly`), `day` (1–28, em `monthly`). `ruleset`: quem entra. `exclude`: quem não\
     \ entra, no mesmo formato |\n| `form_trigger` | Quando o contato responde um formulário | `formId` (obrigatório) |\n| `crm_event_trigger`\
@@ -83,8 +83,8 @@ info:
     \ de eventos está em `GET /api/webhooks/triggers`; o formato da entrega, a assinatura e os reenvios estão na seção Webhooks do portal.\n\n\
     # Cobertura\n\nEsta referência cobre Contatos (leads, prospects e clientes), Empresas, Oportunidades, Pipelines, etapas e motivos de perda,\
     \ Produtos, tabelas de preço e itens de produto, Jornadas, Reuniões, Tarefas, Observações, Tickets, Atendimentos, Usuários, Equipes, Áreas\
-    \ de trabalho, Campos personalizados, Dashboards (com widgets, filtros e resultados), Automações de processo, Workflows, Formulários (com\
-    \ respostas) e os eventos de webhook.\n"
+    \ de trabalho, Campos personalizados, Dashboards (com widgets, filtros e resultados), Automações de processo, Workflows, Campanhas, Produtos\
+    \ financeiros, Formulários (com respostas), a assistente de IA e os eventos de webhook.\n"
   contact:
     name: Suporte Magnet Customer
     email: suporte@magnetcustomer.com
@@ -141,6 +141,14 @@ tags:
 - name: Formulários
   description: 'Formulários de captação: campos, validações, regras condicionais e respostas. A publicação, que gera o endereço público, é feita
     na tela do CRM.'
+- name: Produtos financeiros
+  description: 'Posições dos contatos em produtos financeiros: ações, renda fixa, fundos, previdência e outros. Disponível nas contas com o módulo
+    de produtos financeiros ligado.'
+- name: Assistente de IA
+  description: 'Conversas com a Mag, a assistente de IA do CRM: envie pedidos em linguagem natural e receba a resposta em fluxo. Disponível nas
+    contas com a assistente ligada; cada resposta consome créditos de IA.'
+- name: Campanhas
+  description: 'Envios em massa por e-mail: público, conteúdo, agendamento, verificação antes do envio e resultados.'
 - name: Workflows
   description: 'Sequências de passos por contato: gatilho, esperas, condições, e-mails e ações no CRM. Disponível nas contas com o módulo de workflows
     ligado.'
@@ -170,6 +178,12 @@ x-tagGroups:
   - Produtos
   - Tabelas de preço
   - Itens de produto
+- name: Financeiro
+  tags:
+  - Produtos financeiros
+- name: Inteligência artificial
+  tags:
+  - Assistente de IA
 - name: Atividades
   tags:
   - Reuniões
@@ -190,6 +204,7 @@ x-tagGroups:
   - Formulários
 - name: Automação
   tags:
+  - Campanhas
   - Workflows
   - Automações
 - name: Indicadores
@@ -11447,6 +11462,3654 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /api/campaigns:
+    get:
+      tags:
+      - Campanhas
+      operationId: listCampaigns
+      summary: Listar campanhas
+      description: 'Ordenação padrão: `createdAt` decrescente. Tamanho de página padrão: 15.
+
+
+        **Permissão do Service Account:** `campaigns.list`'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: status
+        in: query
+        description: Filtra pelo estado.
+        schema:
+          type: string
+          enum:
+          - draft
+          - scheduled
+          - running
+          - paused
+          - completed
+          - cancelled
+          - active
+      - name: targetEntity
+        in: query
+        description: Filtra pelo tipo de registro do público.
+        schema:
+          type: string
+          enum:
+          - contact
+          - deal
+          - organization
+          - customer
+          - lead
+          - prospect
+      - name: search
+        in: query
+        description: Busca no nome.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Campaign'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439260
+                  name: Convite para o evento de maio
+                  description: Clientes ativos.
+                  status: draft
+                  targetEntity: contact
+                  channelType: email
+                  channels:
+                  - _id: 507f1f77bcf86cd799439261
+                    type: email
+                    enabled: true
+                    senders: []
+                  filter:
+                    ruleset:
+                      condition: AND
+                      rules:
+                      - fieldId: contact.lifecycle
+                        operator: equals
+                        value: customer
+                  schedule:
+                    type: scheduled
+                    scheduledAt: '2026-05-20T12:00:00Z'
+                  sendSettings:
+                    throughputLimit: 50
+                    sendWindow:
+                      enabled: true
+                      start: 09:00
+                      end: '18:00'
+                    timezone: America/Sao_Paulo
+                  tracking:
+                    utmEnabled: true
+                    utm:
+                      source: magnet
+                      medium: email
+                      campaign: convite-para-o-evento-de-maio
+                  actions: []
+                  stats:
+                    totalRecipients: 0
+                    queued: 0
+                    sent: 0
+                    delivered: 0
+                    opened: 0
+                    clicked: 0
+                    bounced: 0
+                    complained: 0
+                    unsubscribed: 0
+                    uniqueOpens: 0
+                    uniqueClicks: 0
+                    replied: 0
+                    failed: 0
+                  folder: null
+                  owner:
+                    _id: 507f1f77bcf86cd799439013
+                    fullname: Integração ERP
+                    email: sa-integracao-erp@acme.serviceaccounts.magnetcustomer.com
+                  active: true
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 1
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Campanhas
+      operationId: createCampaign
+      summary: Criar campanha
+      description: 'Cria a campanha em rascunho (`draft`), com o canal de e-mail. Nada é enviado até a campanha ser iniciada. Em seguida, crie
+        o conteúdo (`POST /api/campaigns/{campaignId}/templates`), publique-o e confira com a simulação.
+
+
+        **Permissão do Service Account:** `campaigns.create`'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignInput'
+            example:
+              name: Convite para o evento de maio
+              description: Clientes ativos.
+              targetEntity: contact
+              filter:
+                ruleset:
+                  condition: AND
+                  rules:
+                  - fieldId: contact.lifecycle
+                    operator: equals
+                    value: customer
+              schedule:
+                type: scheduled
+                scheduledAt: '2026-05-20T12:00:00Z'
+              sendSettings:
+                throughputLimit: 50
+                sendWindow:
+                  enabled: true
+                  start: 09:00
+                  end: '18:00'
+                timezone: America/Sao_Paulo
+      responses:
+        '201':
+          description: Campanha criada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+              example:
+                _id: 507f1f77bcf86cd799439260
+                name: Convite para o evento de maio
+                description: Clientes ativos.
+                status: draft
+                targetEntity: contact
+                channelType: email
+                channels:
+                - _id: 507f1f77bcf86cd799439261
+                  type: email
+                  enabled: true
+                  senders: []
+                filter:
+                  ruleset:
+                    condition: AND
+                    rules:
+                    - fieldId: contact.lifecycle
+                      operator: equals
+                      value: customer
+                schedule:
+                  type: scheduled
+                  scheduledAt: '2026-05-20T12:00:00Z'
+                sendSettings:
+                  throughputLimit: 50
+                  sendWindow:
+                    enabled: true
+                    start: 09:00
+                    end: '18:00'
+                  timezone: America/Sao_Paulo
+                tracking:
+                  utmEnabled: true
+                  utm:
+                    source: magnet
+                    medium: email
+                    campaign: convite-para-o-evento-de-maio
+                actions: []
+                stats:
+                  totalRecipients: 0
+                  queued: 0
+                  sent: 0
+                  delivered: 0
+                  opened: 0
+                  clicked: 0
+                  bounced: 0
+                  complained: 0
+                  unsubscribed: 0
+                  uniqueOpens: 0
+                  uniqueClicks: 0
+                  replied: 0
+                  failed: 0
+                folder: null
+                owner:
+                  _id: 507f1f77bcf86cd799439013
+                  fullname: Integração ERP
+                  email: sa-integracao-erp@acme.serviceaccounts.magnetcustomer.com
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/campaigns/{id}:
+    get:
+      tags:
+      - Campanhas
+      operationId: getCampaign
+      summary: Obter campanha
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+              example:
+                _id: 507f1f77bcf86cd799439260
+                name: Convite para o evento de maio
+                description: Clientes ativos.
+                status: draft
+                targetEntity: contact
+                channelType: email
+                channels:
+                - _id: 507f1f77bcf86cd799439261
+                  type: email
+                  enabled: true
+                  senders: []
+                filter:
+                  ruleset:
+                    condition: AND
+                    rules:
+                    - fieldId: contact.lifecycle
+                      operator: equals
+                      value: customer
+                schedule:
+                  type: scheduled
+                  scheduledAt: '2026-05-20T12:00:00Z'
+                sendSettings:
+                  throughputLimit: 50
+                  sendWindow:
+                    enabled: true
+                    start: 09:00
+                    end: '18:00'
+                  timezone: America/Sao_Paulo
+                tracking:
+                  utmEnabled: true
+                  utm:
+                    source: magnet
+                    medium: email
+                    campaign: convite-para-o-evento-de-maio
+                actions: []
+                stats:
+                  totalRecipients: 0
+                  queued: 0
+                  sent: 0
+                  delivered: 0
+                  opened: 0
+                  clicked: 0
+                  bounced: 0
+                  complained: 0
+                  unsubscribed: 0
+                  uniqueOpens: 0
+                  uniqueClicks: 0
+                  replied: 0
+                  failed: 0
+                folder: null
+                owner:
+                  _id: 507f1f77bcf86cd799439013
+                  fullname: Integração ERP
+                  email: sa-integracao-erp@acme.serviceaccounts.magnetcustomer.com
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `campaigns.read`'
+    put:
+      tags:
+      - Campanhas
+      operationId: updateCampaign
+      summary: Atualizar campanha
+      description: 'Envie só os campos que mudam. Uma campanha agendada precisa ser cancelada antes de trocar o agendamento. A exclusão é feita
+        na plataforma, por um administrador; pela API, use o cancelamento.
+
+
+        **Permissão do Service Account:** `campaigns.update`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: []
+              properties:
+                name:
+                  type: string
+                  description: Nome.
+                description:
+                  type: string
+                  description: Descrição.
+                targetEntity:
+                  type: string
+                  enum:
+                  - contact
+                  - deal
+                  - organization
+                  - customer
+                  - lead
+                  - prospect
+                  description: 'Tipo de registro do público. Padrão: `contact`.'
+                filter:
+                  type: object
+                  description: Público. O `ruleset` segue "Regras de filtro".
+                  properties:
+                    ruleset:
+                      $ref: '#/components/schemas/Ruleset'
+                schedule:
+                  $ref: '#/components/schemas/CampaignSchedule'
+                sendSettings:
+                  $ref: '#/components/schemas/CampaignSendSettings'
+                actions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/CampaignAction'
+                  description: Ações no CRM.
+                folder:
+                  type: string
+                  pattern: ^[a-fA-F0-9]{24}$
+                  example: 507f1f77bcf86cd799439011
+                  description: Pasta.
+            example:
+              description: Clientes ativos da carteira.
+              schedule:
+                type: scheduled
+                scheduledAt: '2026-05-21T12:00:00Z'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+              example:
+                _id: 507f1f77bcf86cd799439260
+                name: Convite para o evento de maio
+                description: Clientes ativos da carteira.
+                status: draft
+                targetEntity: contact
+                channelType: email
+                channels:
+                - _id: 507f1f77bcf86cd799439261
+                  type: email
+                  enabled: true
+                  senders: []
+                filter:
+                  ruleset:
+                    condition: AND
+                    rules:
+                    - fieldId: contact.lifecycle
+                      operator: equals
+                      value: customer
+                schedule:
+                  type: scheduled
+                  scheduledAt: '2026-05-20T12:00:00Z'
+                sendSettings:
+                  throughputLimit: 50
+                  sendWindow:
+                    enabled: true
+                    start: 09:00
+                    end: '18:00'
+                  timezone: America/Sao_Paulo
+                tracking:
+                  utmEnabled: true
+                  utm:
+                    source: magnet
+                    medium: email
+                    campaign: convite-para-o-evento-de-maio
+                actions: []
+                stats:
+                  totalRecipients: 0
+                  queued: 0
+                  sent: 0
+                  delivered: 0
+                  opened: 0
+                  clicked: 0
+                  bounced: 0
+                  complained: 0
+                  unsubscribed: 0
+                  uniqueOpens: 0
+                  uniqueClicks: 0
+                  replied: 0
+                  failed: 0
+                folder: null
+                owner:
+                  _id: 507f1f77bcf86cd799439013
+                  fullname: Integração ERP
+                  email: sa-integracao-erp@acme.serviceaccounts.magnetcustomer.com
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/campaigns/{id}/duplicate:
+    post:
+      tags:
+      - Campanhas
+      operationId: duplicateCampaign
+      summary: Duplicar campanha
+      description: 'Cria uma cópia em rascunho, com "(Cópia)" no nome.
+
+
+        **Permissão do Service Account:** `campaigns.create`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '201':
+          description: Cópia criada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+              example:
+                _id: 507f1f77bcf86cd799439265
+                name: Convite para o evento de maio (Cópia)
+                description: Clientes ativos.
+                status: draft
+                targetEntity: contact
+                channelType: email
+                channels:
+                - _id: 507f1f77bcf86cd799439261
+                  type: email
+                  enabled: true
+                  senders: []
+                filter:
+                  ruleset:
+                    condition: AND
+                    rules:
+                    - fieldId: contact.lifecycle
+                      operator: equals
+                      value: customer
+                schedule:
+                  type: scheduled
+                  scheduledAt: '2026-05-20T12:00:00Z'
+                sendSettings:
+                  throughputLimit: 50
+                  sendWindow:
+                    enabled: true
+                    start: 09:00
+                    end: '18:00'
+                  timezone: America/Sao_Paulo
+                tracking:
+                  utmEnabled: true
+                  utm:
+                    source: magnet
+                    medium: email
+                    campaign: convite-para-o-evento-de-maio
+                actions: []
+                stats:
+                  totalRecipients: 0
+                  queued: 0
+                  sent: 0
+                  delivered: 0
+                  opened: 0
+                  clicked: 0
+                  bounced: 0
+                  complained: 0
+                  unsubscribed: 0
+                  uniqueOpens: 0
+                  uniqueClicks: 0
+                  replied: 0
+                  failed: 0
+                folder: null
+                owner:
+                  _id: 507f1f77bcf86cd799439013
+                  fullname: Integração ERP
+                  email: sa-integracao-erp@acme.serviceaccounts.magnetcustomer.com
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/campaigns/segment/preview:
+    post:
+      tags:
+      - Campanhas
+      operationId: previewCampaignSegment
+      summary: Estimar um público
+      description: 'Conta quantos registros casam com um filtro, sem criar campanha. Útil para montar o público antes de gravá-lo.
+
+
+        **Permissão do Service Account:** `campaigns.create`'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - ruleset
+              properties:
+                targetEntity:
+                  type: string
+                  enum:
+                  - contact
+                  - deal
+                  - organization
+                  - customer
+                  - lead
+                  - prospect
+                  description: 'Padrão: `contact`.'
+                ruleset:
+                  $ref: '#/components/schemas/Ruleset'
+            example:
+              targetEntity: contact
+              ruleset:
+                condition: AND
+                rules:
+                - fieldId: contact.lifecycle
+                  operator: equals
+                  value: customer
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  estimatedRecipients:
+                    type: integer
+                    description: Quantos registros casam.
+                  targetEntity:
+                    type: string
+                  sample:
+                    type: array
+                    items:
+                      type: object
+                    description: Amostra de registros.
+              example:
+                estimatedRecipients: 128
+                targetEntity: contact
+                sample:
+                - _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                  email: maria@cliente.com
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/campaigns/{id}/simulate:
+    post:
+      tags:
+      - Campanhas
+      operationId: simulateCampaign
+      summary: Simular o envio
+      description: 'Calcula quem receberia a campanha agora, sem enviar nada: tamanho do público, quantos ficam de fora e por quê, e a duração
+        estimada. `warnings` traz o que falta, como `NO_PUBLISHED_TEMPLATE` (nenhum conteúdo publicado).
+
+
+        **Permissão do Service Account:** `campaigns.read`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  campaignId:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                  channelType:
+                    type: string
+                  counts:
+                    type: object
+                    properties:
+                      audience:
+                        type: integer
+                        description: Registros que casam com o filtro.
+                      withoutEmail:
+                        type: integer
+                        description: Sem endereço.
+                      suppressed:
+                        type: integer
+                        description: Bloqueados ou descadastrados.
+                      eligible:
+                        type: integer
+                        description: Vão receber.
+                  excluded:
+                    type: object
+                    properties:
+                      noAddress:
+                        type: integer
+                      optedOut:
+                        type: integer
+                      blocked:
+                        type: integer
+                      anonymized:
+                        type: integer
+                  previews:
+                    type: array
+                    items:
+                      type: object
+                    description: Amostra de mensagens já com os dados do destinatário.
+                  schedule:
+                    type: object
+                    properties:
+                      recipients:
+                        type: integer
+                      perMinute:
+                        type: integer
+                      estimatedMinutes:
+                        type: integer
+                      sendWindow:
+                        type: boolean
+                  warnings:
+                    type: array
+                    items:
+                      type: string
+                    description: Avisos.
+              example:
+                campaignId: 507f1f77bcf86cd799439260
+                channelType: email
+                counts:
+                  audience: 128
+                  withoutEmail: 3
+                  suppressed: 2
+                  eligible: 123
+                excluded:
+                  noAddress: 3
+                  optedOut: 2
+                  blocked: 0
+                  anonymized: 0
+                previews: []
+                schedule:
+                  recipients: 123
+                  perMinute: 50
+                  estimatedMinutes: 3
+                  sendWindow: true
+                warnings: []
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/campaigns/{id}/preflight:
+    post:
+      tags:
+      - Campanhas
+      operationId: preflightCampaign
+      summary: Verificar a campanha antes do envio
+      description: 'Aponta o que impede ou prejudica o envio. Cada item de `issues` traz onde está o problema e como corrigir. Itens com `severity`
+        `block` impedem o início.
+
+
+        **Permissão do Service Account:** `campaigns.read`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  mode:
+                    type: string
+                    description: Modo da verificação na conta.
+                  issues:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                          description: Tipo do problema.
+                          example: EMAIL_SUBJECT_EMPTY
+                        severity:
+                          type: string
+                          enum:
+                          - block
+                          - warn
+                          - info
+                        location:
+                          type: string
+                          description: Onde está.
+                          example: subject
+                        message:
+                          type: string
+                          description: Explicação, em português.
+                        fix:
+                          type: string
+                          description: Como corrigir.
+                    description: Problemas.
+                  review:
+                    type: object
+                    description: 'Resumo: público, links, remetente e conteúdo publicado.'
+              example:
+                ok: true
+                mode: shadow
+                issues:
+                - code: AUDIENCE_EMPTY
+                  severity: block
+                  location: audience
+                  message: O público desta campanha está vazio.
+                  fix: Revise o filtro do público.
+                review:
+                  audienceCount: 0
+                  links:
+                    total: 0
+                    unreachable: 0
+                  version:
+                    name: E-mail principal
+                    published: true
+                    publishedCount: 1
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/campaigns/{id}/start:
+    post:
+      tags:
+      - Campanhas
+      operationId: startCampaign
+      summary: Iniciar campanha
+      description: 'Inicia o envio (ou agenda, quando `schedule.type` é `scheduled`). Só campanhas em rascunho ou agendadas podem ser iniciadas;
+        nos outros estados, devolve `400`. Se a verificação de envio encontrar um bloqueio, devolve `422` com `code: CAMPAIGN_PREFLIGHT_FAILED`
+        e a lista em `issues`.
+
+
+        **Atenção:** esta operação age sobre destinatários reais. Confira antes com a simulação e a verificação de envio.
+
+
+        **Permissão do Service Account:** `campaigns.start`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Campanha iniciada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+              example:
+                _id: 507f1f77bcf86cd799439260
+                name: Convite para o evento de maio
+                description: Clientes ativos.
+                status: running
+                targetEntity: contact
+                channelType: email
+                channels:
+                - _id: 507f1f77bcf86cd799439261
+                  type: email
+                  enabled: true
+                  senders: []
+                filter:
+                  ruleset:
+                    condition: AND
+                    rules:
+                    - fieldId: contact.lifecycle
+                      operator: equals
+                      value: customer
+                schedule:
+                  type: scheduled
+                  scheduledAt: '2026-05-20T12:00:00Z'
+                sendSettings:
+                  throughputLimit: 50
+                  sendWindow:
+                    enabled: true
+                    start: 09:00
+                    end: '18:00'
+                  timezone: America/Sao_Paulo
+                tracking:
+                  utmEnabled: true
+                  utm:
+                    source: magnet
+                    medium: email
+                    campaign: convite-para-o-evento-de-maio
+                actions: []
+                stats:
+                  totalRecipients: 0
+                  queued: 0
+                  sent: 0
+                  delivered: 0
+                  opened: 0
+                  clicked: 0
+                  bounced: 0
+                  complained: 0
+                  unsubscribed: 0
+                  uniqueOpens: 0
+                  uniqueClicks: 0
+                  replied: 0
+                  failed: 0
+                folder: null
+                owner:
+                  _id: 507f1f77bcf86cd799439013
+                  fullname: Integração ERP
+                  email: sa-integracao-erp@acme.serviceaccounts.magnetcustomer.com
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: A campanha não passou na verificação de envio.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  reason:
+                    type: string
+                  issues:
+                    type: array
+                    items:
+                      type: object
+              example:
+                code: CAMPAIGN_PREFLIGHT_FAILED
+                reason: A campanha não passou na verificação de envio
+                issues:
+                - code: EMAIL_SUBJECT_EMPTY
+                  severity: block
+                  location: subject
+                  message: O e-mail está sem assunto.
+                  fix: Escreva o assunto.
+  /api/campaigns/{id}/pause:
+    post:
+      tags:
+      - Campanhas
+      operationId: pauseCampaign
+      summary: Pausar campanha
+      description: 'Só campanhas em execução podem ser pausadas; nos outros estados, devolve `400`.
+
+
+        **Permissão do Service Account:** `campaigns.pause`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Campanha pausada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+              example:
+                _id: 507f1f77bcf86cd799439260
+                name: Convite para o evento de maio
+                description: Clientes ativos.
+                status: paused
+                targetEntity: contact
+                channelType: email
+                channels:
+                - _id: 507f1f77bcf86cd799439261
+                  type: email
+                  enabled: true
+                  senders: []
+                filter:
+                  ruleset:
+                    condition: AND
+                    rules:
+                    - fieldId: contact.lifecycle
+                      operator: equals
+                      value: customer
+                schedule:
+                  type: scheduled
+                  scheduledAt: '2026-05-20T12:00:00Z'
+                sendSettings:
+                  throughputLimit: 50
+                  sendWindow:
+                    enabled: true
+                    start: 09:00
+                    end: '18:00'
+                  timezone: America/Sao_Paulo
+                tracking:
+                  utmEnabled: true
+                  utm:
+                    source: magnet
+                    medium: email
+                    campaign: convite-para-o-evento-de-maio
+                actions: []
+                stats:
+                  totalRecipients: 0
+                  queued: 0
+                  sent: 0
+                  delivered: 0
+                  opened: 0
+                  clicked: 0
+                  bounced: 0
+                  complained: 0
+                  unsubscribed: 0
+                  uniqueOpens: 0
+                  uniqueClicks: 0
+                  replied: 0
+                  failed: 0
+                folder: null
+                owner:
+                  _id: 507f1f77bcf86cd799439013
+                  fullname: Integração ERP
+                  email: sa-integracao-erp@acme.serviceaccounts.magnetcustomer.com
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/campaigns/{id}/resume:
+    post:
+      tags:
+      - Campanhas
+      operationId: resumeCampaign
+      summary: Retomar campanha
+      description: 'Retoma uma campanha pausada.
+
+
+        **Atenção:** esta operação age sobre destinatários reais. Confira antes com a simulação e a verificação de envio.
+
+
+        **Permissão do Service Account:** `campaigns.resume`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Campanha retomada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+              example:
+                _id: 507f1f77bcf86cd799439260
+                name: Convite para o evento de maio
+                description: Clientes ativos.
+                status: running
+                targetEntity: contact
+                channelType: email
+                channels:
+                - _id: 507f1f77bcf86cd799439261
+                  type: email
+                  enabled: true
+                  senders: []
+                filter:
+                  ruleset:
+                    condition: AND
+                    rules:
+                    - fieldId: contact.lifecycle
+                      operator: equals
+                      value: customer
+                schedule:
+                  type: scheduled
+                  scheduledAt: '2026-05-20T12:00:00Z'
+                sendSettings:
+                  throughputLimit: 50
+                  sendWindow:
+                    enabled: true
+                    start: 09:00
+                    end: '18:00'
+                  timezone: America/Sao_Paulo
+                tracking:
+                  utmEnabled: true
+                  utm:
+                    source: magnet
+                    medium: email
+                    campaign: convite-para-o-evento-de-maio
+                actions: []
+                stats:
+                  totalRecipients: 0
+                  queued: 0
+                  sent: 0
+                  delivered: 0
+                  opened: 0
+                  clicked: 0
+                  bounced: 0
+                  complained: 0
+                  unsubscribed: 0
+                  uniqueOpens: 0
+                  uniqueClicks: 0
+                  replied: 0
+                  failed: 0
+                folder: null
+                owner:
+                  _id: 507f1f77bcf86cd799439013
+                  fullname: Integração ERP
+                  email: sa-integracao-erp@acme.serviceaccounts.magnetcustomer.com
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/campaigns/{id}/cancel:
+    post:
+      tags:
+      - Campanhas
+      operationId: cancelCampaign
+      summary: Cancelar campanha
+      description: 'Encerra a campanha sem enviar o que faltava. Não tem volta: para enviar de novo, duplique a campanha.
+
+
+        **Permissão do Service Account:** `campaigns.cancel`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Campanha cancelada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+              example:
+                _id: 507f1f77bcf86cd799439260
+                name: Convite para o evento de maio
+                description: Clientes ativos.
+                status: cancelled
+                targetEntity: contact
+                channelType: email
+                channels:
+                - _id: 507f1f77bcf86cd799439261
+                  type: email
+                  enabled: true
+                  senders: []
+                filter:
+                  ruleset:
+                    condition: AND
+                    rules:
+                    - fieldId: contact.lifecycle
+                      operator: equals
+                      value: customer
+                schedule:
+                  type: scheduled
+                  scheduledAt: '2026-05-20T12:00:00Z'
+                sendSettings:
+                  throughputLimit: 50
+                  sendWindow:
+                    enabled: true
+                    start: 09:00
+                    end: '18:00'
+                  timezone: America/Sao_Paulo
+                tracking:
+                  utmEnabled: true
+                  utm:
+                    source: magnet
+                    medium: email
+                    campaign: convite-para-o-evento-de-maio
+                actions: []
+                stats:
+                  totalRecipients: 0
+                  queued: 0
+                  sent: 0
+                  delivered: 0
+                  opened: 0
+                  clicked: 0
+                  bounced: 0
+                  complained: 0
+                  unsubscribed: 0
+                  uniqueOpens: 0
+                  uniqueClicks: 0
+                  replied: 0
+                  failed: 0
+                folder: null
+                owner:
+                  _id: 507f1f77bcf86cd799439013
+                  fullname: Integração ERP
+                  email: sa-integracao-erp@acme.serviceaccounts.magnetcustomer.com
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+                cancelledAt: '2026-04-28T11:00:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/campaigns/{id}/stats:
+    get:
+      tags:
+      - Campanhas
+      operationId: getCampaignStats
+      summary: Obter resultados da campanha
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  campaignId:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                  name:
+                    type: string
+                  status:
+                    type: string
+                  stats:
+                    type: object
+                    properties:
+                      totalRecipients:
+                        type: integer
+                      sent:
+                        type: integer
+                      openRate:
+                        type: number
+                        description: Taxa de abertura, em %.
+                      clickRate:
+                        type: number
+                        description: Taxa de clique, em %.
+                      bounceRate:
+                        type: number
+                        description: Taxa de devolução, em %.
+                      replied:
+                        type: integer
+              example:
+                campaignId: 507f1f77bcf86cd799439260
+                name: Convite para o evento de maio
+                status: completed
+                stats:
+                  totalRecipients: 123
+                  sent: 123
+                  openRate: 41.5
+                  clickRate: 8.1
+                  bounceRate: 0.8
+                  replied: 2
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `campaigns.read-stats`'
+  /api/campaigns/{id}/recipients:
+    get:
+      tags:
+      - Campanhas
+      operationId: listCampaignRecipients
+      summary: Listar destinatários da campanha
+      description: 'Um registro por destinatário, com o estado do envio. Ordenação padrão: `sentAt` decrescente. Tamanho de página padrão: 25.
+
+
+        **Permissão do Service Account:** `campaigns.read`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: status
+        in: query
+        description: Filtra pelo estado do envio.
+        schema:
+          type: string
+          enum:
+          - queued
+          - sent
+          - delivered
+          - opened
+          - clicked
+          - bounced
+          - complained
+          - unsubscribed
+          - failed
+          - cancelled
+      - name: search
+        in: query
+        description: Busca no e-mail ou no telefone.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            pattern: ^[a-fA-F0-9]{24}$
+                            example: 507f1f77bcf86cd799439011
+                          contact:
+                            type: string
+                            pattern: ^[a-fA-F0-9]{24}$
+                            example: 507f1f77bcf86cd799439011
+                            description: Contato.
+                          email:
+                            type: string
+                          status:
+                            type: string
+                          sentAt:
+                            type: string
+                            format: date-time
+                            description: Envio.
+                            example: '2026-05-15T14:00:00Z'
+                          openedAt:
+                            type: string
+                            format: date-time
+                            description: Primeira abertura.
+                            example: '2026-05-15T14:00:00Z'
+                          clickedAt:
+                            type: string
+                            format: date-time
+                            description: Primeiro clique.
+                            example: '2026-05-15T14:00:00Z'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439266
+                  contact: 507f1f77bcf86cd799439012
+                  email: maria@cliente.com
+                  status: opened
+                  sentAt: '2026-05-20T12:01:00Z'
+                  openedAt: '2026-05-20T13:10:00Z'
+                total: 123
+                pages: 5
+                page: 1
+                limit: 25
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/campaigns/global-stats:
+    get:
+      tags:
+      - Campanhas
+      operationId: getCampaignsGlobalStats
+      summary: Obter resultados de todas as campanhas
+      description: 'Totais da conta: campanhas por estado, envios, aberturas e cliques.
+
+
+        **Permissão do Service Account:** `campaigns.read-stats`'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalCampaigns:
+                    type: integer
+                  totalSent:
+                    type: integer
+                  totalOpened:
+                    type: integer
+                  totalClicked:
+                    type: integer
+                  totalBounced:
+                    type: integer
+                  totalUnsubscribed:
+                    type: integer
+                  statusDraft:
+                    type: integer
+                  statusScheduled:
+                    type: integer
+                  statusRunning:
+                    type: integer
+                  statusPaused:
+                    type: integer
+                  statusCompleted:
+                    type: integer
+                  statusCancelled:
+                    type: integer
+                  globalOpenRate:
+                    type: string
+                    description: Taxa de abertura, em %.
+                    example: '38.20'
+                  globalClickRate:
+                    type: string
+                    description: Taxa de clique, em %.
+                    example: '7.40'
+              example:
+                totalCampaigns: 12
+                totalSent: 4310
+                totalOpened: 1646
+                totalClicked: 319
+                totalBounced: 21
+                totalUnsubscribed: 9
+                statusDraft: 3
+                statusScheduled: 1
+                statusRunning: 1
+                statusPaused: 0
+                statusCompleted: 6
+                statusCancelled: 1
+                globalOpenRate: '38.20'
+                globalClickRate: '7.40'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/campaign-channels/active:
+    get:
+      tags:
+      - Campanhas
+      operationId: listCampaignChannels
+      summary: Listar canais de campanha
+      description: 'Canais disponíveis na conta. O `_id` do canal é o `channel` exigido ao criar um conteúdo.
+
+
+        **Permissão do Service Account:** `campaigns.read`'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                      pattern: ^[a-fA-F0-9]{24}$
+                      example: 507f1f77bcf86cd799439011
+                    type:
+                      type: string
+                      description: Tipo.
+                      example: email
+                    name:
+                      type: string
+                    description:
+                      type: string
+                    displayOrder:
+                      type: integer
+              example:
+              - _id: 507f1f77bcf86cd799439264
+                type: email
+                name: Email
+                description: Envio de emails marketing com editor visual
+                displayOrder: 1
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/campaigns/{campaignId}/templates:
+    get:
+      tags:
+      - Campanhas
+      operationId: listCampaignContents
+      summary: Listar conteúdos da campanha
+      description: 'Devolve uma lista simples, sem paginação.
+
+
+        **Permissão do Service Account:** `campaigns.read`'
+      parameters:
+      - name: campaignId
+        in: path
+        required: true
+        description: ID da campanha.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CampaignContent'
+              example:
+              - _id: 507f1f77bcf86cd799439263
+                campaign: 507f1f77bcf86cd799439260
+                channel:
+                  _id: 507f1f77bcf86cd799439264
+                  type: email
+                  name: Email
+                name: E-mail principal
+                version: v1
+                subject: Você está convidado
+                emailSettings:
+                  preheader: Dia 28, às 19h
+                  htmlContent: <p>Olá, {{contact.full_name}}.</p><p>Esperamos você no nosso evento.</p>
+                  textContent: Olá. Esperamos você no nosso evento.
+                published: false
+                emailCheck:
+                  findings:
+                  - severity: info
+                    code: OPT_OUT_FOOTER_NOTE
+                    message: O rodapé de descadastro e o cabeçalho List-Unsubscribe entram pelo sistema no envio.
+                  linkCount: 0
+                  unsubscribe: true
+                createdAt: '2026-04-28T10:35:00Z'
+                updatedAt: '2026-04-28T10:35:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+      - Campanhas
+      operationId: createCampaignContent
+      summary: Criar conteúdo da campanha
+      description: 'Cria o conteúdo de um canal. No e-mail, o assunto vai em `subject`, na raiz, e o corpo em `emailSettings`. O conteúdo nasce
+        não publicado; a resposta traz `emailCheck`, com o que precisa de atenção.
+
+
+        **Permissão do Service Account:** `campaigns.update`'
+      parameters:
+      - name: campaignId
+        in: path
+        required: true
+        description: ID da campanha.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignContentInput'
+            example:
+              channel: 507f1f77bcf86cd799439264
+              name: E-mail principal
+              subject: Você está convidado
+              emailSettings:
+                preheader: Dia 28, às 19h
+                htmlContent: <p>Olá, {{contact.full_name}}.</p><p>Esperamos você no nosso evento.</p>
+                textContent: Olá. Esperamos você no nosso evento.
+      responses:
+        '201':
+          description: Conteúdo criado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignContent'
+              example:
+                _id: 507f1f77bcf86cd799439263
+                campaign: 507f1f77bcf86cd799439260
+                channel:
+                  _id: 507f1f77bcf86cd799439264
+                  type: email
+                  name: Email
+                name: E-mail principal
+                version: v1
+                subject: Você está convidado
+                emailSettings:
+                  preheader: Dia 28, às 19h
+                  htmlContent: <p>Olá, {{contact.full_name}}.</p><p>Esperamos você no nosso evento.</p>
+                  textContent: Olá. Esperamos você no nosso evento.
+                published: false
+                emailCheck:
+                  findings:
+                  - severity: info
+                    code: OPT_OUT_FOOTER_NOTE
+                    message: O rodapé de descadastro e o cabeçalho List-Unsubscribe entram pelo sistema no envio.
+                  linkCount: 0
+                  unsubscribe: true
+                createdAt: '2026-04-28T10:35:00Z'
+                updatedAt: '2026-04-28T10:35:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/campaigns/{campaignId}/templates/{id}:
+    get:
+      tags:
+      - Campanhas
+      operationId: getCampaignContent
+      summary: Obter conteúdo da campanha
+      parameters:
+      - name: campaignId
+        in: path
+        required: true
+        description: ID da campanha.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignContent'
+              example:
+                _id: 507f1f77bcf86cd799439263
+                campaign: 507f1f77bcf86cd799439260
+                channel:
+                  _id: 507f1f77bcf86cd799439264
+                  type: email
+                  name: Email
+                name: E-mail principal
+                version: v1
+                subject: Você está convidado
+                emailSettings:
+                  preheader: Dia 28, às 19h
+                  htmlContent: <p>Olá, {{contact.full_name}}.</p><p>Esperamos você no nosso evento.</p>
+                  textContent: Olá. Esperamos você no nosso evento.
+                published: false
+                emailCheck:
+                  findings:
+                  - severity: info
+                    code: OPT_OUT_FOOTER_NOTE
+                    message: O rodapé de descadastro e o cabeçalho List-Unsubscribe entram pelo sistema no envio.
+                  linkCount: 0
+                  unsubscribe: true
+                createdAt: '2026-04-28T10:35:00Z'
+                updatedAt: '2026-04-28T10:35:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `campaigns.read`'
+    put:
+      tags:
+      - Campanhas
+      operationId: updateCampaignContent
+      summary: Atualizar conteúdo da campanha
+      description: 'Envie só os campos que mudam.
+
+
+        **Permissão do Service Account:** `campaigns.update`'
+      parameters:
+      - name: campaignId
+        in: path
+        required: true
+        description: ID da campanha.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: []
+              properties:
+                channel:
+                  type: string
+                  pattern: ^[a-fA-F0-9]{24}$
+                  example: 507f1f77bcf86cd799439011
+                  description: Canal, de `GET /api/campaign-channels/active`.
+                name:
+                  type: string
+                  description: Nome do conteúdo.
+                subject:
+                  type: string
+                  description: Assunto do e-mail.
+                emailSettings:
+                  type: object
+                  description: Conteúdo do e-mail.
+                  properties:
+                    preheader:
+                      type: string
+                      description: Texto que aparece ao lado do assunto na caixa de entrada.
+                    htmlContent:
+                      type: string
+                      description: Corpo em HTML. Aceita variáveis, como `{{contact.full_name}}`.
+                    textContent:
+                      type: string
+                      description: Versão em texto puro.
+                    senderName:
+                      type: string
+                      description: Nome do remetente.
+                    senderEmail:
+                      type: string
+                      description: E-mail do remetente.
+                    replyTo:
+                      type: string
+                      description: Endereço de resposta.
+            example:
+              subject: Você está convidado para o dia 28
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignContent'
+              example:
+                _id: 507f1f77bcf86cd799439263
+                campaign: 507f1f77bcf86cd799439260
+                channel:
+                  _id: 507f1f77bcf86cd799439264
+                  type: email
+                  name: Email
+                name: E-mail principal
+                version: v1
+                subject: Você está convidado para o dia 28
+                emailSettings:
+                  preheader: Dia 28, às 19h
+                  htmlContent: <p>Olá, {{contact.full_name}}.</p><p>Esperamos você no nosso evento.</p>
+                  textContent: Olá. Esperamos você no nosso evento.
+                published: false
+                emailCheck:
+                  findings:
+                  - severity: info
+                    code: OPT_OUT_FOOTER_NOTE
+                    message: O rodapé de descadastro e o cabeçalho List-Unsubscribe entram pelo sistema no envio.
+                  linkCount: 0
+                  unsubscribe: true
+                createdAt: '2026-04-28T10:35:00Z'
+                updatedAt: '2026-04-28T10:35:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Campanhas
+      operationId: deleteCampaignContent
+      summary: Excluir conteúdo da campanha
+      parameters:
+      - name: campaignId
+        in: path
+        required: true
+        description: ID da campanha.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  id:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+              example:
+                success: true
+                id: 507f1f77bcf86cd799439263
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `campaigns.update`'
+  /api/campaigns/{campaignId}/templates/{id}/publish:
+    post:
+      tags:
+      - Campanhas
+      operationId: publishCampaignContent
+      summary: Publicar conteúdo da campanha
+      description: 'Marca o conteúdo como o que será enviado. Publicar não envia nada.
+
+
+        **Permissão do Service Account:** `campaigns.update`'
+      parameters:
+      - name: campaignId
+        in: path
+        required: true
+        description: ID da campanha.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  publishedAt:
+                    type: string
+                    format: date-time
+                    description: Quando foi publicado.
+                    example: '2026-05-15T14:00:00Z'
+              example:
+                success: true
+                publishedAt: '2026-04-28T10:40:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/campaigns/{campaignId}/templates/{id}/unpublish:
+    post:
+      tags:
+      - Campanhas
+      operationId: unpublishCampaignContent
+      summary: Despublicar conteúdo da campanha
+      parameters:
+      - name: campaignId
+        in: path
+        required: true
+        description: ID da campanha.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+              example:
+                success: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `campaigns.update`'
+  /api/campaigns/{campaignId}/templates/{id}/preview:
+    post:
+      tags:
+      - Campanhas
+      operationId: previewCampaignContent
+      summary: Ver a prévia do conteúdo
+      description: 'Devolve o e-mail já com os dados de um contato. Sem `contactId`, usa um contato do público; se o público estiver vazio, devolve
+        `422` com `code: PREVIEW_NO_CONTACT`.
+
+
+        **Permissão do Service Account:** `campaigns.read`'
+      parameters:
+      - name: campaignId
+        in: path
+        required: true
+        description: ID da campanha.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                contactId:
+                  type: string
+                  pattern: ^[a-fA-F0-9]{24}$
+                  example: 507f1f77bcf86cd799439011
+                  description: Contato usado na prévia.
+            example:
+              contactId: 507f1f77bcf86cd799439012
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  template:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                        pattern: ^[a-fA-F0-9]{24}$
+                        example: 507f1f77bcf86cd799439011
+                      version:
+                        type: string
+                      channelType:
+                        type: string
+                  contact:
+                    type: object
+                    description: Contato usado na prévia.
+                    properties:
+                      _id:
+                        type: string
+                        pattern: ^[a-fA-F0-9]{24}$
+                        example: 507f1f77bcf86cd799439011
+                      fullname:
+                        type: string
+                      email:
+                        type: string
+                  contactSource:
+                    type: string
+                    description: 'De onde veio o contato: escolhido na chamada, ou uma amostra do público.'
+                  rendered:
+                    type: object
+                    description: O e-mail com as variáveis preenchidas.
+                    properties:
+                      subject:
+                        type: string
+                      htmlContent:
+                        type: string
+                      preheader:
+                        type: string
+                      textContent:
+                        type: string
+                      senderName:
+                        type: string
+                      senderEmail:
+                        type: string
+                      replyTo:
+                        type: string
+              example:
+                template:
+                  _id: 507f1f77bcf86cd799439263
+                  version: v1
+                  channelType: email
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                  email: maria@cliente.com
+                rendered:
+                  subject: Você está convidado
+                  htmlContent: <p>Olá, Maria Santos.</p><p>Esperamos você no nosso evento.</p>
+                  preheader: Dia 28, às 19h
+                  textContent: Olá. Esperamos você no nosso evento.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/campaigns/{campaignId}/actions:
+    get:
+      tags:
+      - Campanhas
+      operationId: listCampaignActions
+      summary: Listar ações da campanha
+      description: 'Devolve uma lista simples, sem paginação.
+
+
+        **Permissão do Service Account:** `campaigns.read`'
+      parameters:
+      - name: campaignId
+        in: path
+        required: true
+        description: ID da campanha.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CampaignAction'
+              example:
+              - _id: 507f1f77bcf86cd799439262
+                type: create_task
+                enabled: true
+                config:
+                  taskTitle: Acompanhar {{contact.full_name}}
+                  assignTo: contact_owner
+                  dueDateAmount: 2
+                  dueDatePeriod: day
+                  priority: medium
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+      - Campanhas
+      operationId: createCampaignAction
+      summary: Criar ação da campanha
+      description: 'Hoje há um tipo: `create_task`, que cria uma tarefa para cada destinatário.
+
+
+        **Permissão do Service Account:** `campaigns.update`'
+      parameters:
+      - name: campaignId
+        in: path
+        required: true
+        description: ID da campanha.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignAction'
+            example:
+              type: create_task
+              enabled: true
+              config:
+                taskTitle: Acompanhar {{contact.full_name}}
+                assignTo: contact_owner
+                dueDateAmount: 2
+                dueDatePeriod: day
+                priority: medium
+      responses:
+        '201':
+          description: Ação criada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignAction'
+              example:
+                _id: 507f1f77bcf86cd799439262
+                type: create_task
+                enabled: true
+                config:
+                  taskTitle: Acompanhar {{contact.full_name}}
+                  assignTo: contact_owner
+                  dueDateAmount: 2
+                  dueDatePeriod: day
+                  priority: medium
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/campaigns/{campaignId}/actions/{actionId}:
+    get:
+      tags:
+      - Campanhas
+      operationId: getCampaignAction
+      summary: Obter ação da campanha
+      parameters:
+      - name: campaignId
+        in: path
+        required: true
+        description: ID da campanha.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - name: actionId
+        in: path
+        required: true
+        description: ID da ação (`_id` devolvido ao criar).
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignAction'
+              example:
+                _id: 507f1f77bcf86cd799439262
+                type: create_task
+                enabled: true
+                config:
+                  taskTitle: Acompanhar {{contact.full_name}}
+                  assignTo: contact_owner
+                  dueDateAmount: 2
+                  dueDatePeriod: day
+                  priority: medium
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `campaigns.read`'
+    put:
+      tags:
+      - Campanhas
+      operationId: updateCampaignAction
+      summary: Atualizar ação da campanha
+      description: 'Aceita `enabled` e `config`. Os campos de `config` enviados substituem os atuais; os demais ficam como estão.
+
+
+        **Permissão do Service Account:** `campaigns.update`'
+      parameters:
+      - name: campaignId
+        in: path
+        required: true
+        description: ID da campanha.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - name: actionId
+        in: path
+        required: true
+        description: ID da ação (`_id` devolvido ao criar).
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                config:
+                  type: object
+                  description: Configuração da tarefa criada.
+                  properties:
+                    taskTitle:
+                      type: string
+                      description: Título. Aceita variáveis, como `{{contact.full_name}}`.
+                    taskDescription:
+                      type: string
+                      description: Descrição.
+                    taskTypeId:
+                      type: string
+                      pattern: ^[a-fA-F0-9]{24}$
+                      example: 507f1f77bcf86cd799439011
+                      description: Tipo de tarefa.
+                    assignTo:
+                      type: string
+                      enum:
+                      - contact_owner
+                      - campaign_owner
+                      - specific_staff
+                      description: Quem recebe a tarefa.
+                    assignToStaff:
+                      type: string
+                      pattern: ^[a-fA-F0-9]{24}$
+                      example: 507f1f77bcf86cd799439011
+                      description: Usuário, em `specific_staff`.
+                    dueDateAmount:
+                      type: integer
+                      description: 'Prazo: quantidade.'
+                    dueDatePeriod:
+                      type: string
+                      enum:
+                      - hour
+                      - day
+                      - week
+                      description: 'Prazo: unidade.'
+                    priority:
+                      type: string
+                      enum:
+                      - low
+                      - medium
+                      - high
+            example:
+              config:
+                dueDateAmount: 3
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignAction'
+              example:
+                _id: 507f1f77bcf86cd799439262
+                type: create_task
+                enabled: true
+                config:
+                  taskTitle: Acompanhar {{contact.full_name}}
+                  assignTo: contact_owner
+                  dueDateAmount: 3
+                  dueDatePeriod: day
+                  priority: medium
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Campanhas
+      operationId: deleteCampaignAction
+      summary: Excluir ação da campanha
+      parameters:
+      - name: campaignId
+        in: path
+        required: true
+        description: ID da campanha.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - name: actionId
+        in: path
+        required: true
+        description: ID da ação (`_id` devolvido ao criar).
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+              example:
+                success: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `campaigns.update`'
+  /api/financialproducts:
+    get:
+      tags:
+      - Produtos financeiros
+      operationId: listFinancialProducts
+      summary: Listar produtos financeiros
+      description: 'Ordenação padrão: `createdAt`. Tamanho de página padrão: 15. Devolve só os registros ativos, dos contatos que o Service Account
+        alcança.
+
+
+        **Permissão do Service Account:** `financial-products.list`'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: source
+        in: query
+        description: Filtra pela origem. Aceita vários valores separados por vírgula.
+        schema:
+          type: string
+          example: manual,import
+      - name: search
+        in: query
+        description: Busca no nome, na descrição e nos códigos do ativo (ticker, ISIN, CETIP, CNPJ do fundo).
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/FinancialProduct'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439270
+                  contact:
+                    _id: 507f1f77bcf86cd799439012
+                    fullname: Maria Santos
+                  type: financialProductEquities
+                  source: manual
+                  name: PETR4
+                  marketName: Renda Variável
+                  marketAbbreviation: RV
+                  accountNumber: '000123'
+                  positionDate: '2026-05-10T00:00:00Z'
+                  endPositionValue: 15230.5
+                  financialProductEquities:
+                    ticker: PETR4
+                    description: Petrobras PN
+                    quantity: 400
+                    marketPrice: 38.07
+                    grossValue: 15230.5
+                  customFields: []
+                  active: true
+                  createdAt: '2026-05-10T14:00:00Z'
+                  updatedAt: '2026-05-10T14:00:00Z'
+                total: 1
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Produtos financeiros
+      operationId: createFinancialProduct
+      summary: Criar produto financeiro
+      description: 'Registra a posição de um contato num produto. `_id`, `active` e as datas de criação e alteração são definidos pelo sistema;
+        se enviados, são ignorados.
+
+
+        **Permissão do Service Account:** `financial-products.create`'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinancialProductInput'
+            example:
+              contact: 507f1f77bcf86cd799439012
+              type: financialProductEquities
+              source: manual
+              name: PETR4
+              marketName: Renda Variável
+              marketAbbreviation: RV
+              accountNumber: '000123'
+              positionDate: '2026-05-10T00:00:00Z'
+              endPositionValue: 15230.5
+              financialProductEquities:
+                ticker: PETR4
+                description: Petrobras PN
+                quantity: 400
+                marketPrice: 38.07
+                grossValue: 15230.5
+      responses:
+        '201':
+          description: Produto criado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancialProduct'
+              example:
+                _id: 507f1f77bcf86cd799439270
+                contact: 507f1f77bcf86cd799439012
+                type: financialProductEquities
+                source: manual
+                name: PETR4
+                marketName: Renda Variável
+                marketAbbreviation: RV
+                accountNumber: '000123'
+                positionDate: '2026-05-10T00:00:00Z'
+                endPositionValue: 15230.5
+                financialProductEquities:
+                  ticker: PETR4
+                  description: Petrobras PN
+                  quantity: 400
+                  marketPrice: 38.07
+                  grossValue: 15230.5
+                customFields: []
+                active: true
+                createdAt: '2026-05-10T14:00:00Z'
+                updatedAt: '2026-05-10T14:00:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/financialproducts/stats:
+    get:
+      tags:
+      - Produtos financeiros
+      operationId: getFinancialProductsStats
+      summary: Obter totais dos produtos financeiros
+      description: 'Totais da conta e por mercado.
+
+
+        **Permissão do Service Account:** `financial-products.read`'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalValue:
+                    type: number
+                    description: Soma das posições.
+                  totalProducts:
+                    type: integer
+                  uniqueContacts:
+                    type: integer
+                    description: Contatos com posição.
+                  productTypes:
+                    type: integer
+                    description: Classes distintas.
+                  byMarket:
+                    type: object
+                    description: 'Por mercado: quantidade e soma.'
+                    additionalProperties:
+                      type: object
+                      properties:
+                        count:
+                          type: integer
+                        totalValue:
+                          type: number
+              example:
+                totalValue: 15230.5
+                totalProducts: 1
+                uniqueContacts: 1
+                productTypes: 1
+                byMarket:
+                  Renda Variável:
+                    count: 1
+                    totalValue: 15230.5
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/financialproducts/{id}:
+    get:
+      tags:
+      - Produtos financeiros
+      operationId: getFinancialProduct
+      summary: Obter produto financeiro
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancialProduct'
+              example:
+                _id: 507f1f77bcf86cd799439270
+                contact:
+                  _id: 507f1f77bcf86cd799439012
+                  fullname: Maria Santos
+                type: financialProductEquities
+                source: manual
+                name: PETR4
+                marketName: Renda Variável
+                marketAbbreviation: RV
+                accountNumber: '000123'
+                positionDate: '2026-05-10T00:00:00Z'
+                endPositionValue: 15230.5
+                financialProductEquities:
+                  ticker: PETR4
+                  description: Petrobras PN
+                  quantity: 400
+                  marketPrice: 38.07
+                  grossValue: 15230.5
+                customFields: []
+                active: true
+                createdAt: '2026-05-10T14:00:00Z'
+                updatedAt: '2026-05-10T14:00:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `financial-products.read`'
+    patch:
+      tags:
+      - Produtos financeiros
+      operationId: patchFinancialProduct
+      summary: Atualizar parte do produto financeiro
+      description: 'Envie só os campos que mudam. Nos objetos de detalhe, como `financialProductEquities`, os campos enviados são alterados e
+        os demais ficam como estão.
+
+
+        **Permissão do Service Account:** `financial-products.update`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: []
+              properties:
+                contact:
+                  type: string
+                  pattern: ^[a-fA-F0-9]{24}$
+                  example: 507f1f77bcf86cd799439011
+                  description: 'Contato dono da posição. Obrigatório: sem contato, devolve `400`.'
+                type:
+                  type: string
+                  enum:
+                  - financialProductEquities
+                  - financialProductFixedIncome
+                  - financialProductInvestmentFund
+                  - financialProductPension
+                  - financialProductFixedIncomeStructuredNote
+                  - financialProductCryptoCoins
+                  - financialProductPendingSettlements
+                  description: 'Classe do produto. Os detalhes vão no objeto de mesmo nome: com `type` `financialProductEquities`, preencha `financialProductEquities`.'
+                source:
+                  type: string
+                  enum:
+                  - manual
+                  - import
+                  - btgpactual
+                  - safra
+                  - xp
+                  description: Origem do registro. Em integrações próprias, use `manual`.
+                name:
+                  type: string
+                  description: Nome do ativo.
+                  example: PETR4
+                marketName:
+                  type: string
+                  description: Mercado.
+                  example: Renda Variável
+                marketAbbreviation:
+                  type: string
+                  description: Sigla do mercado.
+                  example: RV
+                accountNumber:
+                  type: string
+                  description: Número da conta na instituição.
+                  example: '000123'
+                positionDate:
+                  type: string
+                  format: date-time
+                  description: Data da posição.
+                  example: '2026-05-15T14:00:00Z'
+                endPositionValue:
+                  type: number
+                  description: Valor da posição nessa data.
+                  example: 15230.5
+                customFields:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/CustomFieldValue'
+                  description: Campos personalizados.
+                financialProductEquities:
+                  type: object
+                  description: Ações e fundos imobiliários. Campos mais usados; outros campos do tipo também são aceitos.
+                  properties:
+                    ticker:
+                      type: string
+                      description: Código de negociação.
+                      example: PETR4
+                    description:
+                      type: string
+                      description: Nome do ativo.
+                    quantity:
+                      type: number
+                      description: Quantidade.
+                    marketPrice:
+                      type: number
+                      description: Preço de mercado.
+                    costPrice:
+                      type: number
+                      description: Preço de custo.
+                    grossValue:
+                      type: number
+                      description: Valor bruto.
+                    ISINCode:
+                      type: string
+                      description: Código ISIN.
+                    issuer:
+                      type: string
+                      description: Emissor.
+                    IsFII:
+                      type: string
+                      description: Fundo imobiliário.
+                financialProductFixedIncome:
+                  type: object
+                  description: Renda fixa. Campos mais usados; outros campos do tipo também são aceitos.
+                  properties:
+                    issuer:
+                      type: string
+                      description: Emissor.
+                    ticker:
+                      type: string
+                      description: Código do título.
+                    issueDate:
+                      type: string
+                      format: date-time
+                      description: Emissão.
+                      example: '2026-05-15T14:00:00Z'
+                    maturityDate:
+                      type: string
+                      format: date-time
+                      description: Vencimento.
+                      example: '2026-05-15T14:00:00Z'
+                    referenceIndexName:
+                      type: string
+                      description: Indexador.
+                      example: CDI
+                    indexYieldRate:
+                      type: string
+                      description: Percentual do indexador.
+                    yield:
+                      type: number
+                      description: Taxa.
+                    quantity:
+                      type: number
+                      description: Quantidade.
+                    price:
+                      type: number
+                      description: Preço unitário.
+                    grossValue:
+                      type: number
+                      description: Valor bruto.
+                    netValue:
+                      type: number
+                      description: Valor líquido.
+                    incomeTax:
+                      type: number
+                      description: Imposto de renda.
+                    IOFTax:
+                      type: number
+                      description: IOF.
+                    ISIN:
+                      type: string
+                      description: Código ISIN.
+                financialProductInvestmentFund:
+                  type: object
+                  description: Fundos de investimento. Campos mais usados; outros campos do tipo também são aceitos.
+                  properties:
+                    fundName:
+                      type: string
+                      description: Nome do fundo.
+                    fundCNPJCode:
+                      type: string
+                      description: CNPJ do fundo.
+                    managerName:
+                      type: string
+                      description: Gestor.
+                    ShareValue:
+                      type: number
+                      description: Valor da cota.
+                    fundLiquidity:
+                      type: string
+                      description: Liquidez.
+                    BenchMark:
+                      type: string
+                      description: Referência de rentabilidade.
+                financialProductPension:
+                  type: object
+                  description: Previdência. Campos mais usados; outros campos do tipo também são aceitos.
+                  properties:
+                    fundName:
+                      type: string
+                      description: Nome do fundo.
+                    certificateName:
+                      type: string
+                      description: Certificado.
+                    type:
+                      type: string
+                      description: Tipo do plano.
+                    taxRegime:
+                      type: string
+                      description: Regime de tributação.
+                    shareValue:
+                      type: number
+                      description: Valor da cota.
+                    numberOfShares:
+                      type: number
+                      description: Quantidade de cotas.
+                    grossAssetValue:
+                      type: number
+                      description: Valor bruto.
+                    netAssetValue:
+                      type: number
+                      description: Valor líquido.
+                    initialDate:
+                      type: string
+                      format: date-time
+                      description: Início.
+                      example: '2026-05-15T14:00:00Z'
+                financialProductFixedIncomeStructuredNote:
+                  type: object
+                  description: COE (notas estruturadas). Campos mais usados; outros campos do tipo também são aceitos.
+                  properties:
+                    issuer:
+                      type: string
+                      description: Emissor.
+                    fantasyName:
+                      type: string
+                      description: Nome comercial.
+                    issueDate:
+                      type: string
+                      format: date-time
+                      description: Emissão.
+                      example: '2026-05-15T14:00:00Z'
+                    maturityDate:
+                      type: string
+                      format: date-time
+                      description: Vencimento.
+                      example: '2026-05-15T14:00:00Z'
+                    quantity:
+                      type: number
+                      description: Quantidade.
+                    price:
+                      type: number
+                      description: Preço unitário.
+                    initialInvestmentValue:
+                      type: number
+                      description: Valor investido.
+                    grossValue:
+                      type: number
+                      description: Valor bruto.
+                    netValue:
+                      type: number
+                      description: Valor líquido.
+                financialProductCryptoCoins:
+                  type: object
+                  description: Criptoativos. Campos mais usados; outros campos do tipo também são aceitos.
+                  properties:
+                    quantity:
+                      type: number
+                      description: Quantidade.
+                    marketPrice:
+                      type: number
+                      description: Preço de mercado.
+                    financial:
+                      type: number
+                      description: Valor.
+                    costBasis:
+                      type: number
+                      description: Custo.
+                    positionDate:
+                      type: string
+                      format: date-time
+                      description: Data da posição.
+                      example: '2026-05-15T14:00:00Z'
+                financialProductPendingSettlements:
+                  type: object
+                  description: Valores em trânsito. Campos mais usados; outros campos do tipo também são aceitos.
+                  properties:
+                    description:
+                      type: string
+                      description: Descrição.
+                    financialValue:
+                      type: number
+                      description: Valor.
+                    settlementDate:
+                      type: string
+                      format: date-time
+                      description: Liquidação.
+                      example: '2026-05-15T14:00:00Z'
+                    transaction:
+                      type: string
+                      description: Operação.
+            example:
+              endPositionValue: 15500
+              financialProductEquities:
+                marketPrice: 38.75
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancialProduct'
+              example:
+                _id: 507f1f77bcf86cd799439270
+                contact: 507f1f77bcf86cd799439012
+                type: financialProductEquities
+                source: manual
+                name: PETR4
+                marketName: Renda Variável
+                marketAbbreviation: RV
+                accountNumber: '000123'
+                positionDate: '2026-05-10T00:00:00Z'
+                endPositionValue: 15500
+                financialProductEquities:
+                  ticker: PETR4
+                  description: Petrobras PN
+                  quantity: 400
+                  marketPrice: 38.75
+                  grossValue: 15230.5
+                customFields: []
+                active: true
+                createdAt: '2026-05-10T14:00:00Z'
+                updatedAt: '2026-05-10T14:00:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Produtos financeiros
+      operationId: updateFinancialProduct
+      summary: Substituir produto financeiro
+      description: 'Envie o produto inteiro. Para alterar poucos campos, prefira `PATCH`.
+
+
+        **Permissão do Service Account:** `financial-products.update`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinancialProductInput'
+            example:
+              contact: 507f1f77bcf86cd799439012
+              type: financialProductEquities
+              source: manual
+              name: PETR4
+              marketName: Renda Variável
+              marketAbbreviation: RV
+              accountNumber: '000123'
+              positionDate: '2026-05-10T00:00:00Z'
+              endPositionValue: 15500
+              financialProductEquities:
+                ticker: PETR4
+                description: Petrobras PN
+                quantity: 400
+                marketPrice: 38.07
+                grossValue: 15230.5
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancialProduct'
+              example:
+                _id: 507f1f77bcf86cd799439270
+                contact: 507f1f77bcf86cd799439012
+                type: financialProductEquities
+                source: manual
+                name: PETR4
+                marketName: Renda Variável
+                marketAbbreviation: RV
+                accountNumber: '000123'
+                positionDate: '2026-05-10T00:00:00Z'
+                endPositionValue: 15500
+                financialProductEquities:
+                  ticker: PETR4
+                  description: Petrobras PN
+                  quantity: 400
+                  marketPrice: 38.07
+                  grossValue: 15230.5
+                customFields: []
+                active: true
+                createdAt: '2026-05-10T14:00:00Z'
+                updatedAt: '2026-05-10T14:00:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Produtos financeiros
+      operationId: deleteFinancialProduct
+      summary: Excluir produto financeiro
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+              example:
+                success: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `financial-products.delete`'
+  /api/contacts/{id}/financialproducts:
+    get:
+      tags:
+      - Produtos financeiros
+      operationId: listContactFinancialProducts
+      summary: Listar produtos financeiros de um contato
+      description: 'Posições do contato, já prontas para exibir: nome e código do ativo, rótulos da classe e da origem, e valores principais.
+        `summary` traz o patrimônio total e a composição por classe, calculados sobre todas as posições do contato, não só as da página.'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - name: sort
+        in: query
+        description: '`value` ordena pelo valor da posição, do maior para o menor. Sem o parâmetro: `createdAt` decrescente.'
+        schema:
+          type: string
+          enum:
+          - value
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                            pattern: ^[a-fA-F0-9]{24}$
+                            example: 507f1f77bcf86cd799439011
+                          type:
+                            type: string
+                            enum:
+                            - financialProductEquities
+                            - financialProductFixedIncome
+                            - financialProductInvestmentFund
+                            - financialProductPension
+                            - financialProductFixedIncomeStructuredNote
+                            - financialProductCryptoCoins
+                            - financialProductPendingSettlements
+                          typeLabel:
+                            type: string
+                            description: Classe, por extenso.
+                          source:
+                            type: string
+                          sourceLabel:
+                            type: string
+                            description: Origem, por extenso.
+                          displayName:
+                            type: string
+                            description: Nome do ativo.
+                          displayTicker:
+                            type: string
+                            description: Código do ativo.
+                          positionDate:
+                            type: string
+                            format: date-time
+                            description: Data da posição.
+                            example: '2026-05-15T14:00:00Z'
+                          endPositionValue:
+                            type: number
+                            description: Valor da posição.
+                          grossValue:
+                            type: number
+                            description: Valor bruto.
+                          netValue:
+                            type: number
+                            description: Valor líquido.
+                          quantity:
+                            type: number
+                            description: Quantidade.
+                          accountNumber:
+                            type: string
+                          marketName:
+                            type: string
+                    summary:
+                      type: object
+                      properties:
+                        totalPatrimonio:
+                          type: number
+                          description: Soma das posições do contato.
+                        positionDate:
+                          type: string
+                          format: date-time
+                          description: Data da posição mais recente.
+                          example: '2026-05-15T14:00:00Z'
+                        totalProducts:
+                          type: integer
+                        byType:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                type: string
+                              total:
+                                type: number
+                              count:
+                                type: integer
+                          description: Composição por classe.
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439270
+                  type: financialProductEquities
+                  typeLabel: Ações / FIIs
+                  source: manual
+                  sourceLabel: Manual
+                  displayName: PETR4
+                  displayTicker: PETR4
+                  positionDate: '2026-05-10T00:00:00Z'
+                  endPositionValue: 15230.5
+                  grossValue: 15230.5
+                  quantity: 400
+                  accountNumber: '000123'
+                  marketName: Renda Variável
+                total: 1
+                pages: 1
+                page: 1
+                limit: 15
+                summary:
+                  totalPatrimonio: 15230.5
+                  positionDate: '2026-05-10T00:00:00Z'
+                  totalProducts: 1
+                  byType:
+                  - type: financialProductEquities
+                    total: 15230.5
+                    count: 1
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/ai/chats:
+    get:
+      tags:
+      - Assistente de IA
+      operationId: listAiChats
+      summary: Listar conversas com a Mag
+      description: Conversas do Service Account que fez a chamada, da mais recente para a mais antiga. As arquivadas não aparecem.
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/AiChat'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439280
+                  title: Oportunidades paradas
+                  channel: web
+                  messageCount: 0
+                  lastMessagePreview: ''
+                  pendingConfirmation: false
+                  rating: null
+                  archived: false
+                  staff: 507f1f77bcf86cd799439013
+                  lastMessageAt: '2026-05-15T14:00:00Z'
+                  createdAt: '2026-05-15T14:00:00Z'
+                  updatedAt: '2026-05-15T14:00:00Z'
+                total: 1
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Assistente de IA
+      operationId: createAiChat
+      summary: Criar conversa com a Mag
+      description: Abre uma conversa vazia. Criar não consome créditos; o consumo acontece a cada mensagem.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: Título. Sem ele, a conversa ganha um título depois da primeira resposta.
+            example:
+              title: Oportunidades paradas
+      responses:
+        '201':
+          description: Conversa criada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiChat'
+              example:
+                _id: 507f1f77bcf86cd799439280
+                title: Oportunidades paradas
+                channel: web
+                messageCount: 0
+                lastMessagePreview: ''
+                pendingConfirmation: false
+                rating: null
+                archived: false
+                staff: 507f1f77bcf86cd799439013
+                lastMessageAt: '2026-05-15T14:00:00Z'
+                createdAt: '2026-05-15T14:00:00Z'
+                updatedAt: '2026-05-15T14:00:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/ai/chats/skills:
+    get:
+      tags:
+      - Assistente de IA
+      operationId: listAiSkills
+      summary: Listar sugestões de pedido
+      description: Pedidos prontos para enviar à Mag, como "Meu dia" e "Oportunidades paradas". O `prompt` de cada um pode ser enviado como `text`
+        de uma mensagem.
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  docs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                          description: Identificador.
+                          example: stale_deals
+                        label:
+                          type: string
+                          description: Nome.
+                        category:
+                          type: string
+                          description: Categoria.
+                        description:
+                          type: string
+                          description: O que faz.
+                        prompt:
+                          type: string
+                          description: Texto do pedido.
+              example:
+                docs:
+                - key: stale_deals
+                  label: Oportunidades paradas
+                  category: Vendas
+                  description: Encontra oportunidades sem interação recente
+                  prompt: Liste as oportunidades abertas que estão sem nenhuma interação há mais de 15 dias, da mais antiga para a mais recente.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/ai/chats/balance:
+    get:
+      tags:
+      - Assistente de IA
+      operationId: getAiBalance
+      summary: Obter saldo de créditos de IA
+      description: Créditos disponíveis para as respostas da Mag.
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                    description: A conta tem créditos de IA ligados.
+                  balanceCredits:
+                    type: integer
+                    nullable: true
+                    description: Saldo da conta.
+                  accountLow:
+                    type: boolean
+                    description: O saldo está baixo.
+              example:
+                enabled: true
+                balanceCredits: 10245
+                accountLow: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/ai/chats/{chatId}:
+    get:
+      tags:
+      - Assistente de IA
+      operationId: getAiChat
+      summary: Obter conversa com a Mag
+      description: Devolve a conversa e as mensagens, em ordem.
+      parameters:
+      - name: chatId
+        in: path
+        required: true
+        description: ID da conversa.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chat:
+                    $ref: '#/components/schemas/AiChat'
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AiChatMessage'
+              example:
+                chat:
+                  _id: 507f1f77bcf86cd799439280
+                  title: Oportunidades paradas
+                  channel: web
+                  messageCount: 2
+                  lastMessagePreview: Encontrei 3 oportunidades sem interação há mais de 15 dias.
+                  pendingConfirmation: false
+                  rating: null
+                  archived: false
+                  staff: 507f1f77bcf86cd799439013
+                  lastMessageAt: '2026-05-15T14:00:00Z'
+                  createdAt: '2026-05-15T14:00:00Z'
+                  updatedAt: '2026-05-15T14:00:00Z'
+                messages:
+                - _id: 507f1f77bcf86cd799439281
+                  chat: 507f1f77bcf86cd799439280
+                  role: user
+                  content:
+                  - type: text
+                    text: Liste as oportunidades paradas há mais de 15 dias.
+                  status: completed
+                  costCents: 0
+                  toolCalls: 0
+                  createdAt: '2026-05-15T14:00:05Z'
+                - _id: 507f1f77bcf86cd799439282
+                  chat: 507f1f77bcf86cd799439280
+                  role: assistant
+                  content:
+                  - type: text
+                    text: Encontrei 3 oportunidades sem interação há mais de 15 dias.
+                  status: completed
+                  costCents: 45
+                  toolCalls: 1
+                  createdAt: '2026-05-15T14:00:09Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Assistente de IA
+      operationId: archiveAiChat
+      summary: Arquivar conversa com a Mag
+      description: A conversa deixa de aparecer na listagem.
+      parameters:
+      - name: chatId
+        in: path
+        required: true
+        description: ID da conversa.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '204':
+          description: Conversa arquivada.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/ai/chats/{chatId}/messages:
+    post:
+      tags:
+      - Assistente de IA
+      operationId: sendAiMessage
+      summary: Enviar mensagem à Mag
+      description: 'Envia um pedido em linguagem natural. A Mag consulta e altera o CRM em nome do Service Account que fez a chamada, e cada resposta
+        consome créditos de IA da conta.
+
+
+        A resposta chega em fluxo (`text/event-stream`), um evento por bloco:
+
+
+        | Evento | Quando | Dados |
+
+        |---|---|---|
+
+        | `text` | A cada trecho da resposta | `text` |
+
+        | `tool` | Quando a Mag consulta ou altera algo no CRM | a consulta ou ação em andamento |
+
+        | `confirmation` | Quando uma ação precisa de confirmação antes de ser executada | `messageId`, `message`, `preview`, `pendingToolCalls`
+        |
+
+        | `done` | No fim do turno | `messageId`, `userMessageId`, `status` (`completed` ou `awaiting_confirmation`), `costCents`, `balanceCredits`
+        |
+
+        | `title` | Depois do `done`, quando a conversa ganha um título | o título |
+
+        | `error` | Em caso de falha | `reason`, `status` (`402`: créditos insuficientes) |
+
+
+        O status HTTP é `200` mesmo quando o turno falha: confira o evento `error`.'
+      parameters:
+      - name: chatId
+        in: path
+        required: true
+        description: ID da conversa.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - text
+              properties:
+                text:
+                  type: string
+                  description: O pedido.
+            example:
+              text: Liste as oportunidades paradas há mais de 15 dias.
+      responses:
+        '200':
+          description: Fluxo de eventos.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              example: 'event: text
+
+                data: {"text":"Encontrei 3 oportunidades sem interação há mais de 15 dias."}
+
+
+                event: done
+
+                data: {"messageId":"507f1f77bcf86cd799439282","userMessageId":"507f1f77bcf86cd799439281","lastMessagePreview":"Encontrei 3 oportunidades
+                sem interação há mais de 15 dias.","status":"completed","costCents":45,"balanceCredits":10245,"creditSource":"account"}
+
+
+                '
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/ai/chats/{chatId}/messages/{messageId}/confirm:
+    post:
+      tags:
+      - Assistente de IA
+      operationId: confirmAiMessage
+      summary: Confirmar ou recusar uma ação da Mag
+      description: 'Responde a um evento `confirmation`. Com `approved: true`, a Mag executa a ação e continua; com `false`, desiste dela. Quando
+        há mais de uma ação pendente, `approvedIds` escolhe quais executar. A resposta chega em fluxo, com os mesmos eventos do envio de mensagem.'
+      parameters:
+      - name: chatId
+        in: path
+        required: true
+        description: ID da conversa.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      - name: messageId
+        in: path
+        required: true
+        description: ID da mensagem que pediu a confirmação (`messageId` do evento `confirmation`).
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - approved
+              properties:
+                approved:
+                  type: boolean
+                  description: '`true` executa; `false` recusa.'
+                approvedIds:
+                  type: array
+                  items:
+                    type: string
+                  description: Ações aprovadas, pelos `id` de `pendingToolCalls`. Sem o campo, `approved` vale para todas.
+            example:
+              approved: true
+      responses:
+        '200':
+          description: Fluxo de eventos.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              example: 'event: text
+
+                data: {"text":"Encontrei 3 oportunidades sem interação há mais de 15 dias."}
+
+
+                event: done
+
+                data: {"messageId":"507f1f77bcf86cd799439282","userMessageId":"507f1f77bcf86cd799439281","lastMessagePreview":"Encontrei 3 oportunidades
+                sem interação há mais de 15 dias.","status":"completed","costCents":45,"balanceCredits":10245,"creditSource":"account"}
+
+
+                '
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/ai/chats/{chatId}/rating:
+    post:
+      tags:
+      - Assistente de IA
+      operationId: rateAiChat
+      summary: Avaliar conversa com a Mag
+      parameters:
+      - name: chatId
+        in: path
+        required: true
+        description: ID da conversa.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - rating
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  description: Nota, de 1 a 5.
+            example:
+              rating: 5
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rating:
+                    type: integer
+              example:
+                rating: 5
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   securitySchemes:
     ServiceAccount:
@@ -15665,4 +19328,1147 @@ components:
           type: string
           format: date-time
           description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    CampaignSchedule:
+      type: object
+      description: Quando a campanha envia.
+      properties:
+        type:
+          type: string
+          enum:
+          - immediate
+          - scheduled
+          - recurring
+          - continuous
+          description: '`immediate`: ao iniciar. `scheduled`: na data de `scheduledAt`. `recurring`: repete conforme `recurrence`. `continuous`:
+            fica ligada e envia a quem passar a casar com o filtro.'
+        scheduledAt:
+          type: string
+          format: date-time
+          description: Data do envio, em `scheduled`. Precisa estar no futuro.
+          example: '2026-05-15T14:00:00Z'
+        recurrence:
+          type: object
+          description: Repetição, em `recurring`.
+          properties:
+            frequency:
+              type: string
+              enum:
+              - daily
+              - weekly
+              - monthly
+            interval:
+              type: integer
+              description: A cada quantos períodos.
+            weekdays:
+              type: array
+              items:
+                type: integer
+                minimum: 0
+                maximum: 6
+              description: Dias da semana, de 0 (domingo) a 6.
+            endAt:
+              type: string
+              format: date-time
+              description: Até quando repetir.
+              example: '2026-05-15T14:00:00Z'
+    CampaignSendSettings:
+      type: object
+      description: Ritmo e janela de envio.
+      properties:
+        throughputLimit:
+          type: integer
+          description: Máximo de envios por minuto.
+          example: 50
+        sendWindow:
+          type: object
+          description: Horário em que a campanha pode enviar.
+          properties:
+            enabled:
+              type: boolean
+            start:
+              type: string
+              description: Início, `HH:mm`.
+              example: 09:00
+            end:
+              type: string
+              description: Fim, `HH:mm`.
+              example: '18:00'
+        timezone:
+          type: string
+          description: Fuso horário.
+          example: America/Sao_Paulo
+    CampaignAction:
+      type: object
+      description: O que a campanha faz no CRM para cada destinatário, além do envio.
+      required:
+      - type
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        type:
+          type: string
+          enum:
+          - create_task
+          description: '`create_task`: cria uma tarefa.'
+        enabled:
+          type: boolean
+          description: 'Ação ligada. Padrão: `true`.'
+        config:
+          type: object
+          description: Configuração da tarefa criada.
+          properties:
+            taskTitle:
+              type: string
+              description: Título. Aceita variáveis, como `{{contact.full_name}}`.
+            taskDescription:
+              type: string
+              description: Descrição.
+            taskTypeId:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+              description: Tipo de tarefa.
+            assignTo:
+              type: string
+              enum:
+              - contact_owner
+              - campaign_owner
+              - specific_staff
+              description: Quem recebe a tarefa.
+            assignToStaff:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+              description: Usuário, em `specific_staff`.
+            dueDateAmount:
+              type: integer
+              description: 'Prazo: quantidade.'
+            dueDatePeriod:
+              type: string
+              enum:
+              - hour
+              - day
+              - week
+              description: 'Prazo: unidade.'
+            priority:
+              type: string
+              enum:
+              - low
+              - medium
+              - high
+    Campaign:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          description: Nome.
+          example: Convite para o evento de maio
+        description:
+          type: string
+          description: Descrição.
+        status:
+          type: string
+          enum:
+          - draft
+          - scheduled
+          - running
+          - paused
+          - completed
+          - cancelled
+          - active
+          description: '`draft`: em montagem. `scheduled`: agendada. `running`: enviando. `paused`: pausada. `completed`: terminou. `cancelled`:
+            cancelada. `active`: campanha contínua ligada.'
+        targetEntity:
+          type: string
+          enum:
+          - contact
+          - deal
+          - organization
+          - customer
+          - lead
+          - prospect
+          description: 'Tipo de registro do público. Padrão: `contact`.'
+        channelType:
+          type: string
+          description: Canal principal.
+          example: email
+        channels:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                pattern: ^[a-fA-F0-9]{24}$
+                example: 507f1f77bcf86cd799439011
+              type:
+                type: string
+                description: Canal.
+                example: email
+              enabled:
+                type: boolean
+              senders:
+                type: array
+                items:
+                  type: string
+                  pattern: ^[a-fA-F0-9]{24}$
+                  example: 507f1f77bcf86cd799439011
+                description: Remetentes.
+          description: Canais da campanha. Uma campanha nova nasce com o canal de e-mail.
+        filter:
+          type: object
+          description: 'Público: quem recebe.'
+          properties:
+            ruleset:
+              $ref: '#/components/schemas/Ruleset'
+        schedule:
+          $ref: '#/components/schemas/CampaignSchedule'
+        sendSettings:
+          $ref: '#/components/schemas/CampaignSendSettings'
+        tracking:
+          type: object
+          description: Parâmetros UTM nos links.
+          properties:
+            utmEnabled:
+              type: boolean
+            utm:
+              type: object
+              properties:
+                source:
+                  type: string
+                medium:
+                  type: string
+                campaign:
+                  type: string
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/CampaignAction'
+          description: Ações no CRM.
+        stats:
+          type: object
+          description: Contadores de envio.
+          properties:
+            totalRecipients:
+              type: integer
+            queued:
+              type: integer
+            sent:
+              type: integer
+            delivered:
+              type: integer
+            opened:
+              type: integer
+            clicked:
+              type: integer
+            bounced:
+              type: integer
+            complained:
+              type: integer
+            unsubscribed:
+              type: integer
+            uniqueOpens:
+              type: integer
+            uniqueClicks:
+              type: integer
+            replied:
+              type: integer
+            failed:
+              type: integer
+        folder:
+          type: object
+          nullable: true
+          description: Pasta.
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            name:
+              type: string
+        owner:
+          type: object
+          description: Usuário dono.
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            fullname:
+              type: string
+            email:
+              type: string
+        active:
+          type: boolean
+        cancelledAt:
+          type: string
+          format: date-time
+          description: Quando foi cancelada.
+          example: '2026-05-15T14:00:00Z'
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    CampaignInput:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          description: Nome.
+        description:
+          type: string
+          description: Descrição.
+        targetEntity:
+          type: string
+          enum:
+          - contact
+          - deal
+          - organization
+          - customer
+          - lead
+          - prospect
+          description: 'Tipo de registro do público. Padrão: `contact`.'
+        filter:
+          type: object
+          description: Público. O `ruleset` segue "Regras de filtro".
+          properties:
+            ruleset:
+              $ref: '#/components/schemas/Ruleset'
+        schedule:
+          $ref: '#/components/schemas/CampaignSchedule'
+        sendSettings:
+          $ref: '#/components/schemas/CampaignSendSettings'
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/CampaignAction'
+          description: Ações no CRM.
+        folder:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Pasta.
+    CampaignContent:
+      type: object
+      description: Conteúdo de um canal da campanha.
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        campaign:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Campanha.
+        channel:
+          type: object
+          description: Canal.
+          properties:
+            _id:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+            type:
+              type: string
+              description: Tipo.
+              example: email
+            name:
+              type: string
+        name:
+          type: string
+          description: Nome do conteúdo.
+          example: E-mail principal
+        version:
+          type: string
+          description: Versão.
+          example: v1
+        subject:
+          type: string
+          description: Assunto do e-mail.
+        emailSettings:
+          type: object
+          description: Conteúdo do e-mail.
+          properties:
+            preheader:
+              type: string
+              description: Texto que aparece ao lado do assunto na caixa de entrada.
+            htmlContent:
+              type: string
+              description: Corpo em HTML. Aceita variáveis, como `{{contact.full_name}}`.
+            textContent:
+              type: string
+              description: Versão em texto puro.
+            senderName:
+              type: string
+              description: Nome do remetente.
+            senderEmail:
+              type: string
+              description: E-mail do remetente.
+            replyTo:
+              type: string
+              description: Endereço de resposta.
+        published:
+          type: boolean
+          description: Só o conteúdo publicado é enviado.
+        publishedAt:
+          type: string
+          format: date-time
+          description: Quando foi publicado.
+          example: '2026-05-15T14:00:00Z'
+        emailCheck:
+          type: object
+          description: Conferência do e-mail, devolvida ao criar e ao obter.
+          properties:
+            findings:
+              type: array
+              items:
+                type: object
+                properties:
+                  severity:
+                    type: string
+                    enum:
+                    - error
+                    - warning
+                    - info
+                  code:
+                    type: string
+                    description: Tipo do achado.
+                    example: SUBJECT_MISSING
+                  message:
+                    type: string
+                    description: Explicação, em português.
+              description: Achados.
+            linkCount:
+              type: integer
+            unsubscribe:
+              type: boolean
+              description: O descadastro está garantido. O rodapé e o cabeçalho `List-Unsubscribe` entram pelo sistema no envio.
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    CampaignContentInput:
+      type: object
+      required:
+      - channel
+      properties:
+        channel:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Canal, de `GET /api/campaign-channels/active`.
+        name:
+          type: string
+          description: Nome do conteúdo.
+        subject:
+          type: string
+          description: Assunto do e-mail.
+        emailSettings:
+          type: object
+          description: Conteúdo do e-mail.
+          properties:
+            preheader:
+              type: string
+              description: Texto que aparece ao lado do assunto na caixa de entrada.
+            htmlContent:
+              type: string
+              description: Corpo em HTML. Aceita variáveis, como `{{contact.full_name}}`.
+            textContent:
+              type: string
+              description: Versão em texto puro.
+            senderName:
+              type: string
+              description: Nome do remetente.
+            senderEmail:
+              type: string
+              description: E-mail do remetente.
+            replyTo:
+              type: string
+              description: Endereço de resposta.
+    FinancialProduct:
+      type: object
+      description: Posição de um contato num produto financeiro.
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        contact:
+          description: Contato dono da posição. Na listagem e na consulta vem com `_id` e `fullname`.
+          oneOf:
+          - type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          - type: object
+            properties:
+              _id:
+                type: string
+                pattern: ^[a-fA-F0-9]{24}$
+                example: 507f1f77bcf86cd799439011
+              fullname:
+                type: string
+        type:
+          type: string
+          enum:
+          - financialProductEquities
+          - financialProductFixedIncome
+          - financialProductInvestmentFund
+          - financialProductPension
+          - financialProductFixedIncomeStructuredNote
+          - financialProductCryptoCoins
+          - financialProductPendingSettlements
+          description: 'Classe do produto. Os detalhes vão no objeto de mesmo nome: com `type` `financialProductEquities`, preencha `financialProductEquities`.'
+        source:
+          type: string
+          enum:
+          - manual
+          - import
+          - btgpactual
+          - safra
+          - xp
+          description: Origem do registro. Em integrações próprias, use `manual`.
+        name:
+          type: string
+          description: Nome do ativo.
+          example: PETR4
+        marketName:
+          type: string
+          description: Mercado.
+          example: Renda Variável
+        marketAbbreviation:
+          type: string
+          description: Sigla do mercado.
+          example: RV
+        accountNumber:
+          type: string
+          description: Número da conta na instituição.
+          example: '000123'
+        positionDate:
+          type: string
+          format: date-time
+          description: Data da posição.
+          example: '2026-05-15T14:00:00Z'
+        endPositionValue:
+          type: number
+          description: Valor da posição nessa data.
+          example: 15230.5
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+          description: Campos personalizados.
+        financialProductEquities:
+          type: object
+          description: Ações e fundos imobiliários. Campos mais usados; outros campos do tipo também são aceitos.
+          properties:
+            ticker:
+              type: string
+              description: Código de negociação.
+              example: PETR4
+            description:
+              type: string
+              description: Nome do ativo.
+            quantity:
+              type: number
+              description: Quantidade.
+            marketPrice:
+              type: number
+              description: Preço de mercado.
+            costPrice:
+              type: number
+              description: Preço de custo.
+            grossValue:
+              type: number
+              description: Valor bruto.
+            ISINCode:
+              type: string
+              description: Código ISIN.
+            issuer:
+              type: string
+              description: Emissor.
+            IsFII:
+              type: string
+              description: Fundo imobiliário.
+        financialProductFixedIncome:
+          type: object
+          description: Renda fixa. Campos mais usados; outros campos do tipo também são aceitos.
+          properties:
+            issuer:
+              type: string
+              description: Emissor.
+            ticker:
+              type: string
+              description: Código do título.
+            issueDate:
+              type: string
+              format: date-time
+              description: Emissão.
+              example: '2026-05-15T14:00:00Z'
+            maturityDate:
+              type: string
+              format: date-time
+              description: Vencimento.
+              example: '2026-05-15T14:00:00Z'
+            referenceIndexName:
+              type: string
+              description: Indexador.
+              example: CDI
+            indexYieldRate:
+              type: string
+              description: Percentual do indexador.
+            yield:
+              type: number
+              description: Taxa.
+            quantity:
+              type: number
+              description: Quantidade.
+            price:
+              type: number
+              description: Preço unitário.
+            grossValue:
+              type: number
+              description: Valor bruto.
+            netValue:
+              type: number
+              description: Valor líquido.
+            incomeTax:
+              type: number
+              description: Imposto de renda.
+            IOFTax:
+              type: number
+              description: IOF.
+            ISIN:
+              type: string
+              description: Código ISIN.
+        financialProductInvestmentFund:
+          type: object
+          description: Fundos de investimento. Campos mais usados; outros campos do tipo também são aceitos.
+          properties:
+            fundName:
+              type: string
+              description: Nome do fundo.
+            fundCNPJCode:
+              type: string
+              description: CNPJ do fundo.
+            managerName:
+              type: string
+              description: Gestor.
+            ShareValue:
+              type: number
+              description: Valor da cota.
+            fundLiquidity:
+              type: string
+              description: Liquidez.
+            BenchMark:
+              type: string
+              description: Referência de rentabilidade.
+        financialProductPension:
+          type: object
+          description: Previdência. Campos mais usados; outros campos do tipo também são aceitos.
+          properties:
+            fundName:
+              type: string
+              description: Nome do fundo.
+            certificateName:
+              type: string
+              description: Certificado.
+            type:
+              type: string
+              description: Tipo do plano.
+            taxRegime:
+              type: string
+              description: Regime de tributação.
+            shareValue:
+              type: number
+              description: Valor da cota.
+            numberOfShares:
+              type: number
+              description: Quantidade de cotas.
+            grossAssetValue:
+              type: number
+              description: Valor bruto.
+            netAssetValue:
+              type: number
+              description: Valor líquido.
+            initialDate:
+              type: string
+              format: date-time
+              description: Início.
+              example: '2026-05-15T14:00:00Z'
+        financialProductFixedIncomeStructuredNote:
+          type: object
+          description: COE (notas estruturadas). Campos mais usados; outros campos do tipo também são aceitos.
+          properties:
+            issuer:
+              type: string
+              description: Emissor.
+            fantasyName:
+              type: string
+              description: Nome comercial.
+            issueDate:
+              type: string
+              format: date-time
+              description: Emissão.
+              example: '2026-05-15T14:00:00Z'
+            maturityDate:
+              type: string
+              format: date-time
+              description: Vencimento.
+              example: '2026-05-15T14:00:00Z'
+            quantity:
+              type: number
+              description: Quantidade.
+            price:
+              type: number
+              description: Preço unitário.
+            initialInvestmentValue:
+              type: number
+              description: Valor investido.
+            grossValue:
+              type: number
+              description: Valor bruto.
+            netValue:
+              type: number
+              description: Valor líquido.
+        financialProductCryptoCoins:
+          type: object
+          description: Criptoativos. Campos mais usados; outros campos do tipo também são aceitos.
+          properties:
+            quantity:
+              type: number
+              description: Quantidade.
+            marketPrice:
+              type: number
+              description: Preço de mercado.
+            financial:
+              type: number
+              description: Valor.
+            costBasis:
+              type: number
+              description: Custo.
+            positionDate:
+              type: string
+              format: date-time
+              description: Data da posição.
+              example: '2026-05-15T14:00:00Z'
+        financialProductPendingSettlements:
+          type: object
+          description: Valores em trânsito. Campos mais usados; outros campos do tipo também são aceitos.
+          properties:
+            description:
+              type: string
+              description: Descrição.
+            financialValue:
+              type: number
+              description: Valor.
+            settlementDate:
+              type: string
+              format: date-time
+              description: Liquidação.
+              example: '2026-05-15T14:00:00Z'
+            transaction:
+              type: string
+              description: Operação.
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    FinancialProductInput:
+      type: object
+      required:
+      - contact
+      properties:
+        contact:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: 'Contato dono da posição. Obrigatório: sem contato, devolve `400`.'
+        type:
+          type: string
+          enum:
+          - financialProductEquities
+          - financialProductFixedIncome
+          - financialProductInvestmentFund
+          - financialProductPension
+          - financialProductFixedIncomeStructuredNote
+          - financialProductCryptoCoins
+          - financialProductPendingSettlements
+          description: 'Classe do produto. Os detalhes vão no objeto de mesmo nome: com `type` `financialProductEquities`, preencha `financialProductEquities`.'
+        source:
+          type: string
+          enum:
+          - manual
+          - import
+          - btgpactual
+          - safra
+          - xp
+          description: Origem do registro. Em integrações próprias, use `manual`.
+        name:
+          type: string
+          description: Nome do ativo.
+          example: PETR4
+        marketName:
+          type: string
+          description: Mercado.
+          example: Renda Variável
+        marketAbbreviation:
+          type: string
+          description: Sigla do mercado.
+          example: RV
+        accountNumber:
+          type: string
+          description: Número da conta na instituição.
+          example: '000123'
+        positionDate:
+          type: string
+          format: date-time
+          description: Data da posição.
+          example: '2026-05-15T14:00:00Z'
+        endPositionValue:
+          type: number
+          description: Valor da posição nessa data.
+          example: 15230.5
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+          description: Campos personalizados.
+        financialProductEquities:
+          type: object
+          description: Ações e fundos imobiliários. Campos mais usados; outros campos do tipo também são aceitos.
+          properties:
+            ticker:
+              type: string
+              description: Código de negociação.
+              example: PETR4
+            description:
+              type: string
+              description: Nome do ativo.
+            quantity:
+              type: number
+              description: Quantidade.
+            marketPrice:
+              type: number
+              description: Preço de mercado.
+            costPrice:
+              type: number
+              description: Preço de custo.
+            grossValue:
+              type: number
+              description: Valor bruto.
+            ISINCode:
+              type: string
+              description: Código ISIN.
+            issuer:
+              type: string
+              description: Emissor.
+            IsFII:
+              type: string
+              description: Fundo imobiliário.
+        financialProductFixedIncome:
+          type: object
+          description: Renda fixa. Campos mais usados; outros campos do tipo também são aceitos.
+          properties:
+            issuer:
+              type: string
+              description: Emissor.
+            ticker:
+              type: string
+              description: Código do título.
+            issueDate:
+              type: string
+              format: date-time
+              description: Emissão.
+              example: '2026-05-15T14:00:00Z'
+            maturityDate:
+              type: string
+              format: date-time
+              description: Vencimento.
+              example: '2026-05-15T14:00:00Z'
+            referenceIndexName:
+              type: string
+              description: Indexador.
+              example: CDI
+            indexYieldRate:
+              type: string
+              description: Percentual do indexador.
+            yield:
+              type: number
+              description: Taxa.
+            quantity:
+              type: number
+              description: Quantidade.
+            price:
+              type: number
+              description: Preço unitário.
+            grossValue:
+              type: number
+              description: Valor bruto.
+            netValue:
+              type: number
+              description: Valor líquido.
+            incomeTax:
+              type: number
+              description: Imposto de renda.
+            IOFTax:
+              type: number
+              description: IOF.
+            ISIN:
+              type: string
+              description: Código ISIN.
+        financialProductInvestmentFund:
+          type: object
+          description: Fundos de investimento. Campos mais usados; outros campos do tipo também são aceitos.
+          properties:
+            fundName:
+              type: string
+              description: Nome do fundo.
+            fundCNPJCode:
+              type: string
+              description: CNPJ do fundo.
+            managerName:
+              type: string
+              description: Gestor.
+            ShareValue:
+              type: number
+              description: Valor da cota.
+            fundLiquidity:
+              type: string
+              description: Liquidez.
+            BenchMark:
+              type: string
+              description: Referência de rentabilidade.
+        financialProductPension:
+          type: object
+          description: Previdência. Campos mais usados; outros campos do tipo também são aceitos.
+          properties:
+            fundName:
+              type: string
+              description: Nome do fundo.
+            certificateName:
+              type: string
+              description: Certificado.
+            type:
+              type: string
+              description: Tipo do plano.
+            taxRegime:
+              type: string
+              description: Regime de tributação.
+            shareValue:
+              type: number
+              description: Valor da cota.
+            numberOfShares:
+              type: number
+              description: Quantidade de cotas.
+            grossAssetValue:
+              type: number
+              description: Valor bruto.
+            netAssetValue:
+              type: number
+              description: Valor líquido.
+            initialDate:
+              type: string
+              format: date-time
+              description: Início.
+              example: '2026-05-15T14:00:00Z'
+        financialProductFixedIncomeStructuredNote:
+          type: object
+          description: COE (notas estruturadas). Campos mais usados; outros campos do tipo também são aceitos.
+          properties:
+            issuer:
+              type: string
+              description: Emissor.
+            fantasyName:
+              type: string
+              description: Nome comercial.
+            issueDate:
+              type: string
+              format: date-time
+              description: Emissão.
+              example: '2026-05-15T14:00:00Z'
+            maturityDate:
+              type: string
+              format: date-time
+              description: Vencimento.
+              example: '2026-05-15T14:00:00Z'
+            quantity:
+              type: number
+              description: Quantidade.
+            price:
+              type: number
+              description: Preço unitário.
+            initialInvestmentValue:
+              type: number
+              description: Valor investido.
+            grossValue:
+              type: number
+              description: Valor bruto.
+            netValue:
+              type: number
+              description: Valor líquido.
+        financialProductCryptoCoins:
+          type: object
+          description: Criptoativos. Campos mais usados; outros campos do tipo também são aceitos.
+          properties:
+            quantity:
+              type: number
+              description: Quantidade.
+            marketPrice:
+              type: number
+              description: Preço de mercado.
+            financial:
+              type: number
+              description: Valor.
+            costBasis:
+              type: number
+              description: Custo.
+            positionDate:
+              type: string
+              format: date-time
+              description: Data da posição.
+              example: '2026-05-15T14:00:00Z'
+        financialProductPendingSettlements:
+          type: object
+          description: Valores em trânsito. Campos mais usados; outros campos do tipo também são aceitos.
+          properties:
+            description:
+              type: string
+              description: Descrição.
+            financialValue:
+              type: number
+              description: Valor.
+            settlementDate:
+              type: string
+              format: date-time
+              description: Liquidação.
+              example: '2026-05-15T14:00:00Z'
+            transaction:
+              type: string
+              description: Operação.
+    AiChat:
+      type: object
+      description: Conversa com a Mag, a assistente de IA.
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        title:
+          type: string
+          description: Título.
+          example: Oportunidades paradas
+        channel:
+          type: string
+          description: Canal da conversa.
+          example: web
+        messageCount:
+          type: integer
+          description: Quantidade de mensagens.
+        lastMessagePreview:
+          type: string
+          description: Trecho da última mensagem.
+        pendingConfirmation:
+          type: boolean
+          description: A Mag está esperando a confirmação de uma ação.
+        rating:
+          type: integer
+          nullable: true
+          description: Nota dada à conversa, de 1 a 5.
+        archived:
+          type: boolean
+        staff:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Usuário dono da conversa.
+        lastMessageAt:
+          type: string
+          format: date-time
+          description: Última mensagem.
+          example: '2026-05-15T14:00:00Z'
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    AiChatMessage:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        chat:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Conversa.
+        role:
+          type: string
+          enum:
+          - user
+          - assistant
+          description: '`user`: a pergunta. `assistant`: a resposta da Mag.'
+        content:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                description: Tipo do trecho.
+                example: text
+              text:
+                type: string
+                description: Texto.
+          description: Conteúdo, em trechos.
+        status:
+          type: string
+          description: 'Estado da mensagem: `completed` ou `awaiting_confirmation`.'
+          example: completed
+        costCents:
+          type: integer
+          description: Créditos consumidos pela resposta.
+        toolCalls:
+          type: integer
+          description: Quantas consultas ou ações a Mag fez.
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
           example: '2026-05-15T14:00:00Z'
