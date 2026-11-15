@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { ServiceAccountCredentials, TokenManager } from './auth';
 import { Configuration } from './generated/configuration';
 import {
-    AutomationsApi, ContactsApi, CustomFieldsApi, CustomersApi, DashboardsApi, DealsApi, FormsApi, JourneysApi, LeadsApi, MeetingsApi, ObservationsApi,
+    AiAssistantApi, AutomationsApi, CampaignsApi, ContactsApi, CustomFieldsApi, CustomersApi, DashboardsApi, DealsApi, FinancialProductsApi, FormsApi, JourneysApi, LeadsApi, MeetingsApi, ObservationsApi,
     OrganizationsApi, PipelinesApi, PricebooksApi, ProductItemsApi, ProductsApi, ProspectsApi, ResourceKeywordsApi, StaffsApi, TaskTypesApi, TasksApi, TeamsApi, TicketsApi,
     TreatmentsApi, WebhooksApi, WorkflowsApi,
 } from './generated/api';
@@ -54,6 +54,9 @@ export class MagnetCustomer {
     readonly automations: AutomationsApi;
     readonly forms: FormsApi;
     readonly workflows: WorkflowsApi;
+    readonly campaigns: CampaignsApi;
+    readonly financialProducts: FinancialProductsApi;
+    readonly aiAssistant: AiAssistantApi;
 
     readonly tokens: TokenManager;
     readonly baseUrl: string;
@@ -108,5 +111,8 @@ export class MagnetCustomer {
         this.automations = build(AutomationsApi);
         this.forms = build(FormsApi);
         this.workflows = build(WorkflowsApi);
+        this.campaigns = build(CampaignsApi);
+        this.financialProducts = build(FinancialProductsApi);
+        this.aiAssistant = build(AiAssistantApi);
     }
 }

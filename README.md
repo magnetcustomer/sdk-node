@@ -68,7 +68,10 @@ Cada método devolve a resposta do [axios](https://axios-http.com): o corpo est�
 | `crm.resourceKeywords` | Campos que podem entrar em regras de filtro |
 | `crm.automations` | Automações de processo |
 | `crm.workflows` | Workflows: desenho, publicação, inscrições e resultados |
+| `crm.campaigns` | Campanhas: público, conteúdo, verificação, ciclo de envio e resultados |
 | `crm.forms` | Formulários e respostas |
+| `crm.financialProducts` | Produtos financeiros: posições dos contatos e totais |
+| `crm.aiAssistant` | Conversas com a Mag, a assistente de IA (resposta em fluxo de eventos) |
 | `crm.meetings` | Reuniões, tipos e salas |
 | `crm.tasks`, `crm.taskTypes` | Tarefas e tipos de tarefa |
 | `crm.observations` | Observações |
@@ -102,6 +105,27 @@ Passe uma lista; o SDK envia no formato que a API espera (`staffs[]=...`), inclu
 ```ts
 await crm.contacts.listContacts({ page: 1, staffs: [staffId] });
 ```
+
+## Assistente de IA
+
+A Mag responde em fluxo de eventos (`text/event-stream`). O SDK devolve o fluxo inteiro como texto quando a resposta termina; cada bloco traz `event:` e `data:`.
+
+```ts
+const chat = await crm.aiAssistant.createAiChat({ createAiChatRequest: { title: 'Oportunidades paradas' } });
+
+const { data } = await crm.aiAssistant.sendAiMessage({
+    chatId: chat.data._id!,
+    sendAiMessageRequest: { text: 'Liste as oportunidades paradas há mais de 15 dias.' },
+});
+
+const events = String(data).trim().split('\n\n').map((block) => {
+    const [eventLine, dataLine] = block.split('\n');
+    return { event: eventLine.replace('event: ', ''), data: JSON.parse(dataLine.replace('data: ', '')) };
+});
+const answer = events.filter((e) => e.event === 'text').map((e) => e.data.text).join('');
+```
+
+Cada resposta consome créditos de IA da conta. O status HTTP é `200` mesmo quando o turno falha: confira se veio um evento `error`.
 
 ## Webhooks
 

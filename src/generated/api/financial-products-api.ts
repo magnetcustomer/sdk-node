@@ -1,0 +1,823 @@
+/* tslint:disable */
+/* eslint-disable */
+/**
+ * API da Magnet Customer
+ * A API REST da Magnet Customer permite ler e gravar os registros do CRM a partir dos seus sistemas.  # Comece aqui  ## 1. Crie um Service Account  No CRM, abra **Configurações › Service Accounts** (apenas administradores), clique em **Novo service account**, escolha a validade e as permissões, e copie o **Client ID** e o **Client Secret**. O secret aparece uma única vez.  ## 2. Solicite um token  ```bash curl -X POST https://magnetcustomer.net/realms/platform/protocol/openid-connect/token \\   -H \"Content-Type: application/x-www-form-urlencoded\" \\   -d \"grant_type=client_credentials\" \\   -d \"client_id=SEU_CLIENT_ID\" \\   -d \"client_secret=SEU_CLIENT_SECRET\" ```  ```json { \"access_token\": \"eyJhbGciOiJSUzI1NiIs...\", \"expires_in\": 900, \"token_type\": \"Bearer\" } ```  O token vale 15 minutos e este fluxo não tem refresh token: quando vencer, ou ao receber `401`, repita o pedido.  ## 3. Chame a API  Cada conta tem o seu endereço. Troque `sua-conta` pelo subdomínio que você usa para abrir o CRM:  ```bash curl \"https://sua-conta.platform-api.magnetcustomer.com/api/deals?page=1&limit=15\" \\   -H \"Authorization: Bearer SEU_TOKEN\" ```  Requisições com corpo levam também `Content-Type: application/json`.  # Convenções  ## Paginação  Envie sempre `page`. Com ele, toda listagem devolve o mesmo envelope:  ```json { \"docs\": [], \"total\": 132, \"pages\": 9, \"page\": 1, \"limit\": 15 } ```  | Parâmetro | Padrão | Descrição | |---|---|---| | `page` | — | Página, a partir de 1. **Obrigatório na prática** | | `limit` | 15 | Registros por página. Máximo 100: acima disso a API usa 100 | | `sortBy` | varia por recurso | Campo de ordenação | | `sortType` | `desc` | `asc` ou `desc` | | `search` | — | Busca textual, quando o recurso aceita |  Sem `page`, algumas listagens (Contatos, Pipelines, Campos personalizados e os cadastros de apoio, como tipos e situações) devolvem uma lista simples (`[...]`), sem o envelope, e ignoram `limit`. Para percorrer tudo, peça `page=1` e avance até `page` ser igual a `pages`. Uma página além do fim devolve `docs` vazio.  O tamanho de página padrão é 15, com duas exceções: 25 em Leads, Prospects e Clientes, e 100 em Usuários. Um `limit` inválido cai no padrão.  ## Identificadores e datas  Todo ID é um texto de 24 caracteres hexadecimais, como `507f1f77bcf86cd799439011`. Ao gravar, envie a referência como **ID em texto** — nunca o objeto.  No corpo e nas respostas, datas são ISO 8601 em UTC, como `2026-05-15T10:00:00Z`. Nos filtros de data da URL (`minDate`, `createdAt_minDate`, `dateOfExpires_minDate`...), envie um **timestamp em milissegundos**, como `1798761600000`.  ## Listas na URL  Filtros que aceitam vários valores levam colchetes no nome:  ``` /api/contacts?page=1&staffs[]=507f191e810c19729de860eb&staffs[]=507f191e810c19729de860ec ```  Um valor único sem colchetes (`staffs=id`) ou separado por vírgula (`staffs=id1,id2`) também é aceito.  ## Campos ausentes  Campo sem valor costuma vir **ausente** da resposta, não como `null`. Trate a falta da chave como vazio.  ## Campos personalizados  Os campos criados pelo administrador da conta vão na lista `customFields`:  ```json { \"customFields\": [ { \"customField\": \"507f1f77bcf86cd799439014\", \"k\": \"segmento\", \"v\": \"Tecnologia\" } ] } ```  O valor vai em **`v`**. Um item com `value` é aceito sem erro, mas o campo fica vazio. Descubra os campos e os IDs com `GET /api/customfields?page=1&feature=deal` (troque `deal` por `meeting`, `task`, `contact`...). Com `&required=true` vêm só os obrigatórios da conta.  ## Erros  ```json {   \"reason\": \"Missing required parameters\",   \"message\": \"Missing required parameters\",   \"code\": \"VALIDATION_ERROR\",   \"errors\": [ { \"field\": \"title\", \"message\": \"must NOT have fewer than 1 characters\", \"keyword\": \"minLength\" } ] } ```  | Status | Quando | |---|---| | `400` | Corpo ou parâmetro inválido: campo obrigatório ausente, tipo errado, valor fora da lista, ID fora do formato | | `401` | Token ausente, inválido ou vencido. Corpo: `{\"reason\": \"Access Denied\"}` | | `403` | O Service Account não tem a permissão da rota (`type: SA_PERMISSION_DENIED`, com `requiredPermission`) | | `404` | Registro não encontrado | | `409` | O registro não está no estado que a operação exige | | `429` | Limite de requisições excedido. Espere o tempo de `Retry-After` |  ## Permissões  Um Service Account só chama as rotas que as permissões dele liberam. Cada operação desta referência informa a permissão exigida, quando há uma: marque-a ao criar o Service Account. Uma chamada sem a permissão devolve `403` com o nome dela em `requiredPermission`.  Rotas de administração da conta (usuários, perfis, criação de webhooks, configurações) exigem um usuário administrador e não estão disponíveis para Service Accounts; por isso não aparecem aqui.  ## Limite de requisições  Os limites são aplicados por conta. Ao receber `429`, espere os segundos indicados em `Retry-After` e tente de novo com intervalo crescente.  ## Área de trabalho  Em contas com áreas de trabalho, a API define a área do registro pela credencial ou pelo registro pai. Não envie `workspace`.  # Regras de filtro  Dashboards, widgets, predefinições de filtro, automações, workflows e campanhas usam o mesmo formato para dizer quais registros entram: o **conjunto de regras** (`ruleset`).  ```json {   \"condition\": \"AND\",   \"rules\": [     { \"fieldId\": \"deal.amount\", \"operator\": \"greater\", \"value\": 1000 },     {       \"condition\": \"OR\",       \"rules\": [         { \"fieldId\": \"deal.won\", \"operator\": \"false_value\" },         { \"fieldId\": \"deal.stage_name\", \"operator\": \"contains\", \"value\": \"Proposta\" }       ]     }   ] } ```  - **`condition`**: `AND` exige todas as regras; `OR`, pelo menos uma. - **`rules`**: cada item é uma condição (`fieldId`, `operator`, `value`) ou um grupo aninhado (`condition`, `rules`). - **`fieldId`**: o `slug` de um campo. A lista de campos da conta, com os personalizados, vem de `GET /api/resource-keywords`; filtre por recurso com `?modelRef=deal`. - **`operator`**: escolha pelo tipo do campo (`type`, na lista de campos).  | Tipo do campo | Operadores | |---|---| | Texto (`string`) | `equals`, `not_equal`, `contains`, `not_contains`, `starts_with`, `ends_with`, `exists`, `not_exists` | | Número e valor (`number`, `monetary`, `days`) | `equals`, `not_equal`, `greater`, `greater_or_equals`, `less`, `less_or_equals`, `between` (com `valueMin` e `valueMax`) | | Sim ou não (`boolean`) | `true_value`, `false_value` | | Lista (`select`) | `in`, `not_in`, com `value` em lista | | Data (`date`) | `current_day`, `current_week`, `current_month`, `current_year`, `before_day`, `before_week`, `before_month`, `before_year`, `last_n_days`, `next_n_days`, `before_date`, `after_date`, `date_between` |  As regras de um widget não são validadas na gravação: um campo ou operador que não existe é aceito, e o resultado vem vazio. Confira os nomes antes de enviar.  # Workflows  Um workflow é um desenho de **passos** (`nodes`) ligados por **saídas** (`edges`). O contato entra por um gatilho e segue as ligações até um passo `end`. Todo caminho precisa terminar num `end`.  ```json {   \"nodes\": [     { \"id\": \"n1\", \"type\": \"manual_trigger\", \"config\": {} },     { \"id\": \"n2\", \"type\": \"wait\", \"config\": { \"amount\": 2, \"unit\": \"days\" } },     { \"id\": \"n3\", \"type\": \"end\", \"config\": {} }   ],   \"edges\": [     { \"id\": \"e1\", \"from\": \"n1\", \"port\": \"default\", \"to\": \"n2\" },     { \"id\": \"e2\", \"from\": \"n2\", \"port\": \"default\", \"to\": \"n3\" }   ] } ```  O ciclo é: criar (`POST /api/workflows`), desenhar (`PATCH`, com `draftGraph`), conferir (`POST .../validate` com `forPublish: true`) e publicar (`POST .../publish`). Só depois de publicado o workflow age sobre contatos.  ## Gatilhos  | `type` | Quando o contato entra | `config` | |---|---|---| | `manual_trigger` | Quando alguém, ou a API, inscreve o contato (`POST /api/workflows/{id}/enrollments`) | vazio | | `segment_trigger` | Na agenda, para os contatos que casam com o filtro | `schedule` (obrigatório): `mode` (`daily`, `weekly`, `monthly`), `hour` (0–23), `minute`, `weekday` (0–6, em `weekly`), `day` (1–28, em `monthly`). `ruleset`: quem entra. `exclude`: quem não entra, no mesmo formato | | `form_trigger` | Quando o contato responde um formulário | `formId` (obrigatório) | | `crm_event_trigger` | Quando um evento do CRM acontece | `event` (obrigatório): `contact.created`, `deal.created`, `deal.stage_changed`, `deal.won`, `deal.lost`, `meeting.created`, `journey.created`, `journey.phase_entered`, `journey.closed`. `filter`: `pipelineId`, `stageId` (eventos de oportunidade); `journeyFlowId`, `phaseId`, `closeStatus`, `churnReasonId` (eventos de jornada). `ruleset`: filtro sobre o contato |  ## Passos  | `type` | O que faz | Saídas (`port`) | `config` | |---|---|---|---| | `wait` | Espera um tempo | `default` | `amount` (1–999) e `unit` (`minutes`, `hours`, `days`, `weeks`), obrigatórios. `businessDaysOnly` | | `if_else` | Separa em dois caminhos | `yes`, `no` | `ruleset` (obrigatório) | | `split` | Separa em vários caminhos; o contato segue o primeiro que casar | o `id` de cada caminho, e `none` | `branches` (2 a 12): `id`, `label` e `ruleset` de cada caminho | | `send_email` | Envia um e-mail | `default` | `designTemplateId` e `subject`, obrigatórios. `preheader`, `links` (`linkId`, `name`), `utm` (`enabled`, `campaign`), `respectContactLimit` | | `wait_reaction` | Espera uma reação a um e-mail anterior | o `id` de cada reação, e `timeout` | `reactionTo` (o `id` do passo de e-mail), `branches` (1 a 8: `id`, `label`, `kind` — `opened`, `clicked_any`, `clicked_link` com `linkId`, ou `crm_event` com `event`) e `timeout` (`amount`, `unit` em `hours`, `days` ou `weeks`), todos obrigatórios | | `create_task` | Cria uma tarefa | `default` | `taskTypeSlug`, `title`, `due` (`mode`: `days_after` com `days`, ou `end_of_cycle_month`) e `assignee` (`mode`: `contact_owner`, `staff` com `staffId`, ou `journey_staff`), obrigatórios. `observation`, `estimatedMinutes` | | `create_deal` | Cria uma oportunidade | `default` | `pipelineId`, `stageId`, `title` e `assignee` (`mode`: `contact_owner`, ou `staff` com `staffId`), obrigatórios. `value`, `expectedClose` (`days`) | | `update_contact` | Altera campos do contato | `default` | `fields` (obrigatório): lista de `fieldId` e `value` | | `end` | Termina o caminho | nenhuma | vazio |  As condições (`ruleset`) seguem o formato de \"Regras de filtro\".  # Webhooks  Para ser avisado quando algo muda no CRM, em vez de consultar a API de tempos em tempos, use webhooks. Um administrador cria o webhook no CRM, em **Integrações › Webhooks**, informando a URL do seu sistema e os eventos. A lista de eventos está em `GET /api/webhooks/triggers`; o formato da entrega, a assinatura e os reenvios estão na seção Webhooks do portal.  # Cobertura  Esta referência cobre Contatos (leads, prospects e clientes), Empresas, Oportunidades, Pipelines, etapas e motivos de perda, Produtos, tabelas de preço e itens de produto, Jornadas, Reuniões, Tarefas, Observações, Tickets, Atendimentos, Usuários, Equipes, Áreas de trabalho, Campos personalizados, Dashboards (com widgets, filtros e resultados), Automações de processo, Workflows, Campanhas, Produtos financeiros, Formulários (com respostas), a assistente de IA e os eventos de webhook. 
+ *
+ * The version of the OpenAPI document: 2026-11
+ * Contact: suporte@magnetcustomer.com
+ *
+ * NOTE: This class is auto generated by OpenAPI Generator (https://openapi-generator.tech).
+ * https://openapi-generator.tech
+ * Do not edit the class manually.
+ */
+
+
+import type { Configuration } from '../configuration';
+import type { AxiosPromise, AxiosInstance, RawAxiosRequestConfig } from 'axios';
+import globalAxios from 'axios';
+// Some imports not used depending on template conditions
+// @ts-ignore
+import { DUMMY_BASE_URL, assertParamExists, setApiKeyToObject, setBasicAuthToObject, setBearerAuthToObject, setOAuthToObject, setSearchParams, serializeDataIfNeeded, toPathString, createRequestFunction, replaceWithSerializableTypeIfNeeded } from '../common';
+// @ts-ignore
+import { BASE_PATH, COLLECTION_FORMATS, type RequestArgs, BaseAPI, RequiredError, operationServerMap } from '../base';
+// @ts-ignore
+import type { FinancialProduct } from '../models';
+// @ts-ignore
+import type { FinancialProductInput } from '../models';
+// @ts-ignore
+import type { GetFinancialProductsStats200Response } from '../models';
+// @ts-ignore
+import type { ListContactFinancialProducts200Response } from '../models';
+// @ts-ignore
+import type { ListDeals401Response } from '../models';
+// @ts-ignore
+import type { ListDeals403Response } from '../models';
+// @ts-ignore
+import type { ListFinancialProducts200Response } from '../models';
+// @ts-ignore
+import type { PatchFinancialProductRequest } from '../models';
+// @ts-ignore
+import type { UnpublishCampaignContent200Response } from '../models';
+/**
+ * FinancialProductsApi - axios parameter creator
+ */
+export const FinancialProductsApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Registra a posição de um contato num produto. `_id`, `active` e as datas de criação e alteração são definidos pelo sistema; se enviados, são ignorados.  **Permissão do Service Account:** `financial-products.create`
+         * @summary Criar produto financeiro
+         * @param {FinancialProductInput} financialProductInput 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createFinancialProduct: async (financialProductInput: FinancialProductInput, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'financialProductInput' is not null or undefined
+            assertParamExists('createFinancialProduct', 'financialProductInput', financialProductInput)
+            const localVarPath = `/api/financialproducts`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ServiceAccount required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "ServiceAccount", [], configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(financialProductInput, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * **Permissão do Service Account:** `financial-products.delete`
+         * @summary Excluir produto financeiro
+         * @param {string} id ID do registro.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteFinancialProduct: async (id: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('deleteFinancialProduct', 'id', id)
+            const localVarPath = `/api/financialproducts/{id}`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ServiceAccount required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "ServiceAccount", [], configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * **Permissão do Service Account:** `financial-products.read`
+         * @summary Obter produto financeiro
+         * @param {string} id ID do registro.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getFinancialProduct: async (id: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('getFinancialProduct', 'id', id)
+            const localVarPath = `/api/financialproducts/{id}`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ServiceAccount required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "ServiceAccount", [], configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Totais da conta e por mercado.  **Permissão do Service Account:** `financial-products.read`
+         * @summary Obter totais dos produtos financeiros
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getFinancialProductsStats: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/financialproducts/stats`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ServiceAccount required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "ServiceAccount", [], configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Posições do contato, já prontas para exibir: nome e código do ativo, rótulos da classe e da origem, e valores principais. `summary` traz o patrimônio total e a composição por classe, calculados sobre todas as posições do contato, não só as da página.
+         * @summary Listar produtos financeiros de um contato
+         * @param {string} id ID do registro.
+         * @param {number} [page] Página, a partir de 1. **Envie sempre**: sem &#x60;page&#x60;, a resposta vem como lista simples, sem o envelope de paginação, e &#x60;limit&#x60; é ignorado.
+         * @param {number} [limit] Registros por página. Padrão: 15, salvo indicação na operação. Máximo: 100 — acima disso a API usa 100.
+         * @param {ListContactFinancialProductsSortEnum} [sort] &#x60;value&#x60; ordena pelo valor da posição, do maior para o menor. Sem o parâmetro: &#x60;createdAt&#x60; decrescente.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listContactFinancialProducts: async (id: string, page?: number, limit?: number, sort?: ListContactFinancialProductsSortEnum, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('listContactFinancialProducts', 'id', id)
+            const localVarPath = `/api/contacts/{id}/financialproducts`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ServiceAccount required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "ServiceAccount", [], configuration)
+
+            if (page !== undefined) {
+                localVarQueryParameter['page'] = page;
+            }
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (sort !== undefined) {
+                localVarQueryParameter['sort'] = sort;
+            }
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Ordenação padrão: `createdAt`. Tamanho de página padrão: 15. Devolve só os registros ativos, dos contatos que o Service Account alcança.  **Permissão do Service Account:** `financial-products.list`
+         * @summary Listar produtos financeiros
+         * @param {number} [page] Página, a partir de 1. **Envie sempre**: sem &#x60;page&#x60;, a resposta vem como lista simples, sem o envelope de paginação, e &#x60;limit&#x60; é ignorado.
+         * @param {number} [limit] Registros por página. Padrão: 15, salvo indicação na operação. Máximo: 100 — acima disso a API usa 100.
+         * @param {string} [sortBy] Campo de ordenação. O padrão varia por recurso.
+         * @param {ListFinancialProductsSortTypeEnum} [sortType] Direção da ordenação.
+         * @param {string} [source] Filtra pela origem. Aceita vários valores separados por vírgula.
+         * @param {string} [search] Busca no nome, na descrição e nos códigos do ativo (ticker, ISIN, CETIP, CNPJ do fundo).
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listFinancialProducts: async (page?: number, limit?: number, sortBy?: string, sortType?: ListFinancialProductsSortTypeEnum, source?: string, search?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/financialproducts`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ServiceAccount required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "ServiceAccount", [], configuration)
+
+            if (page !== undefined) {
+                localVarQueryParameter['page'] = page;
+            }
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (sortBy !== undefined) {
+                localVarQueryParameter['sortBy'] = sortBy;
+            }
+
+            if (sortType !== undefined) {
+                localVarQueryParameter['sortType'] = sortType;
+            }
+
+            if (source !== undefined) {
+                localVarQueryParameter['source'] = source;
+            }
+
+            if (search !== undefined) {
+                localVarQueryParameter['search'] = search;
+            }
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Envie só os campos que mudam. Nos objetos de detalhe, como `financialProductEquities`, os campos enviados são alterados e os demais ficam como estão.  **Permissão do Service Account:** `financial-products.update`
+         * @summary Atualizar parte do produto financeiro
+         * @param {string} id ID do registro.
+         * @param {PatchFinancialProductRequest} patchFinancialProductRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        patchFinancialProduct: async (id: string, patchFinancialProductRequest: PatchFinancialProductRequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('patchFinancialProduct', 'id', id)
+            // verify required parameter 'patchFinancialProductRequest' is not null or undefined
+            assertParamExists('patchFinancialProduct', 'patchFinancialProductRequest', patchFinancialProductRequest)
+            const localVarPath = `/api/financialproducts/{id}`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ServiceAccount required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "ServiceAccount", [], configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(patchFinancialProductRequest, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Envie o produto inteiro. Para alterar poucos campos, prefira `PATCH`.  **Permissão do Service Account:** `financial-products.update`
+         * @summary Substituir produto financeiro
+         * @param {string} id ID do registro.
+         * @param {FinancialProductInput} financialProductInput 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateFinancialProduct: async (id: string, financialProductInput: FinancialProductInput, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('updateFinancialProduct', 'id', id)
+            // verify required parameter 'financialProductInput' is not null or undefined
+            assertParamExists('updateFinancialProduct', 'financialProductInput', financialProductInput)
+            const localVarPath = `/api/financialproducts/{id}`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication ServiceAccount required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "ServiceAccount", [], configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(financialProductInput, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * FinancialProductsApi - functional programming interface
+ */
+export const FinancialProductsApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = FinancialProductsApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Registra a posição de um contato num produto. `_id`, `active` e as datas de criação e alteração são definidos pelo sistema; se enviados, são ignorados.  **Permissão do Service Account:** `financial-products.create`
+         * @summary Criar produto financeiro
+         * @param {FinancialProductInput} financialProductInput 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createFinancialProduct(financialProductInput: FinancialProductInput, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FinancialProduct>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createFinancialProduct(financialProductInput, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FinancialProductsApi.createFinancialProduct']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * **Permissão do Service Account:** `financial-products.delete`
+         * @summary Excluir produto financeiro
+         * @param {string} id ID do registro.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteFinancialProduct(id: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<UnpublishCampaignContent200Response>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteFinancialProduct(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FinancialProductsApi.deleteFinancialProduct']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * **Permissão do Service Account:** `financial-products.read`
+         * @summary Obter produto financeiro
+         * @param {string} id ID do registro.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getFinancialProduct(id: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FinancialProduct>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getFinancialProduct(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FinancialProductsApi.getFinancialProduct']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Totais da conta e por mercado.  **Permissão do Service Account:** `financial-products.read`
+         * @summary Obter totais dos produtos financeiros
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getFinancialProductsStats(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<GetFinancialProductsStats200Response>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getFinancialProductsStats(options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FinancialProductsApi.getFinancialProductsStats']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Posições do contato, já prontas para exibir: nome e código do ativo, rótulos da classe e da origem, e valores principais. `summary` traz o patrimônio total e a composição por classe, calculados sobre todas as posições do contato, não só as da página.
+         * @summary Listar produtos financeiros de um contato
+         * @param {string} id ID do registro.
+         * @param {number} [page] Página, a partir de 1. **Envie sempre**: sem &#x60;page&#x60;, a resposta vem como lista simples, sem o envelope de paginação, e &#x60;limit&#x60; é ignorado.
+         * @param {number} [limit] Registros por página. Padrão: 15, salvo indicação na operação. Máximo: 100 — acima disso a API usa 100.
+         * @param {ListContactFinancialProductsSortEnum} [sort] &#x60;value&#x60; ordena pelo valor da posição, do maior para o menor. Sem o parâmetro: &#x60;createdAt&#x60; decrescente.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async listContactFinancialProducts(id: string, page?: number, limit?: number, sort?: ListContactFinancialProductsSortEnum, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ListContactFinancialProducts200Response>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listContactFinancialProducts(id, page, limit, sort, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FinancialProductsApi.listContactFinancialProducts']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Ordenação padrão: `createdAt`. Tamanho de página padrão: 15. Devolve só os registros ativos, dos contatos que o Service Account alcança.  **Permissão do Service Account:** `financial-products.list`
+         * @summary Listar produtos financeiros
+         * @param {number} [page] Página, a partir de 1. **Envie sempre**: sem &#x60;page&#x60;, a resposta vem como lista simples, sem o envelope de paginação, e &#x60;limit&#x60; é ignorado.
+         * @param {number} [limit] Registros por página. Padrão: 15, salvo indicação na operação. Máximo: 100 — acima disso a API usa 100.
+         * @param {string} [sortBy] Campo de ordenação. O padrão varia por recurso.
+         * @param {ListFinancialProductsSortTypeEnum} [sortType] Direção da ordenação.
+         * @param {string} [source] Filtra pela origem. Aceita vários valores separados por vírgula.
+         * @param {string} [search] Busca no nome, na descrição e nos códigos do ativo (ticker, ISIN, CETIP, CNPJ do fundo).
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async listFinancialProducts(page?: number, limit?: number, sortBy?: string, sortType?: ListFinancialProductsSortTypeEnum, source?: string, search?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ListFinancialProducts200Response>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listFinancialProducts(page, limit, sortBy, sortType, source, search, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FinancialProductsApi.listFinancialProducts']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Envie só os campos que mudam. Nos objetos de detalhe, como `financialProductEquities`, os campos enviados são alterados e os demais ficam como estão.  **Permissão do Service Account:** `financial-products.update`
+         * @summary Atualizar parte do produto financeiro
+         * @param {string} id ID do registro.
+         * @param {PatchFinancialProductRequest} patchFinancialProductRequest 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async patchFinancialProduct(id: string, patchFinancialProductRequest: PatchFinancialProductRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FinancialProduct>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.patchFinancialProduct(id, patchFinancialProductRequest, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FinancialProductsApi.patchFinancialProduct']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Envie o produto inteiro. Para alterar poucos campos, prefira `PATCH`.  **Permissão do Service Account:** `financial-products.update`
+         * @summary Substituir produto financeiro
+         * @param {string} id ID do registro.
+         * @param {FinancialProductInput} financialProductInput 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async updateFinancialProduct(id: string, financialProductInput: FinancialProductInput, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<FinancialProduct>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateFinancialProduct(id, financialProductInput, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FinancialProductsApi.updateFinancialProduct']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * FinancialProductsApi - factory interface
+ */
+export const FinancialProductsApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = FinancialProductsApiFp(configuration)
+    return {
+        /**
+         * Registra a posição de um contato num produto. `_id`, `active` e as datas de criação e alteração são definidos pelo sistema; se enviados, são ignorados.  **Permissão do Service Account:** `financial-products.create`
+         * @summary Criar produto financeiro
+         * @param {FinancialProductsApiCreateFinancialProductRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createFinancialProduct(requestParameters: FinancialProductsApiCreateFinancialProductRequest, options?: RawAxiosRequestConfig): AxiosPromise<FinancialProduct> {
+            return localVarFp.createFinancialProduct(requestParameters.financialProductInput, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * **Permissão do Service Account:** `financial-products.delete`
+         * @summary Excluir produto financeiro
+         * @param {FinancialProductsApiDeleteFinancialProductRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteFinancialProduct(requestParameters: FinancialProductsApiDeleteFinancialProductRequest, options?: RawAxiosRequestConfig): AxiosPromise<UnpublishCampaignContent200Response> {
+            return localVarFp.deleteFinancialProduct(requestParameters.id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * **Permissão do Service Account:** `financial-products.read`
+         * @summary Obter produto financeiro
+         * @param {FinancialProductsApiGetFinancialProductRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getFinancialProduct(requestParameters: FinancialProductsApiGetFinancialProductRequest, options?: RawAxiosRequestConfig): AxiosPromise<FinancialProduct> {
+            return localVarFp.getFinancialProduct(requestParameters.id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Totais da conta e por mercado.  **Permissão do Service Account:** `financial-products.read`
+         * @summary Obter totais dos produtos financeiros
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getFinancialProductsStats(options?: RawAxiosRequestConfig): AxiosPromise<GetFinancialProductsStats200Response> {
+            return localVarFp.getFinancialProductsStats(options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Posições do contato, já prontas para exibir: nome e código do ativo, rótulos da classe e da origem, e valores principais. `summary` traz o patrimônio total e a composição por classe, calculados sobre todas as posições do contato, não só as da página.
+         * @summary Listar produtos financeiros de um contato
+         * @param {FinancialProductsApiListContactFinancialProductsRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listContactFinancialProducts(requestParameters: FinancialProductsApiListContactFinancialProductsRequest, options?: RawAxiosRequestConfig): AxiosPromise<ListContactFinancialProducts200Response> {
+            return localVarFp.listContactFinancialProducts(requestParameters.id, requestParameters.page, requestParameters.limit, requestParameters.sort, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Ordenação padrão: `createdAt`. Tamanho de página padrão: 15. Devolve só os registros ativos, dos contatos que o Service Account alcança.  **Permissão do Service Account:** `financial-products.list`
+         * @summary Listar produtos financeiros
+         * @param {FinancialProductsApiListFinancialProductsRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listFinancialProducts(requestParameters: FinancialProductsApiListFinancialProductsRequest = {}, options?: RawAxiosRequestConfig): AxiosPromise<ListFinancialProducts200Response> {
+            return localVarFp.listFinancialProducts(requestParameters.page, requestParameters.limit, requestParameters.sortBy, requestParameters.sortType, requestParameters.source, requestParameters.search, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Envie só os campos que mudam. Nos objetos de detalhe, como `financialProductEquities`, os campos enviados são alterados e os demais ficam como estão.  **Permissão do Service Account:** `financial-products.update`
+         * @summary Atualizar parte do produto financeiro
+         * @param {FinancialProductsApiPatchFinancialProductRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        patchFinancialProduct(requestParameters: FinancialProductsApiPatchFinancialProductRequest, options?: RawAxiosRequestConfig): AxiosPromise<FinancialProduct> {
+            return localVarFp.patchFinancialProduct(requestParameters.id, requestParameters.patchFinancialProductRequest, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Envie o produto inteiro. Para alterar poucos campos, prefira `PATCH`.  **Permissão do Service Account:** `financial-products.update`
+         * @summary Substituir produto financeiro
+         * @param {FinancialProductsApiUpdateFinancialProductRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateFinancialProduct(requestParameters: FinancialProductsApiUpdateFinancialProductRequest, options?: RawAxiosRequestConfig): AxiosPromise<FinancialProduct> {
+            return localVarFp.updateFinancialProduct(requestParameters.id, requestParameters.financialProductInput, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * Request parameters for createFinancialProduct operation in FinancialProductsApi.
+ */
+export interface FinancialProductsApiCreateFinancialProductRequest {
+    readonly financialProductInput: FinancialProductInput
+}
+
+/**
+ * Request parameters for deleteFinancialProduct operation in FinancialProductsApi.
+ */
+export interface FinancialProductsApiDeleteFinancialProductRequest {
+    /**
+     * ID do registro.
+     */
+    readonly id: string
+}
+
+/**
+ * Request parameters for getFinancialProduct operation in FinancialProductsApi.
+ */
+export interface FinancialProductsApiGetFinancialProductRequest {
+    /**
+     * ID do registro.
+     */
+    readonly id: string
+}
+
+/**
+ * Request parameters for listContactFinancialProducts operation in FinancialProductsApi.
+ */
+export interface FinancialProductsApiListContactFinancialProductsRequest {
+    /**
+     * ID do registro.
+     */
+    readonly id: string
+
+    /**
+     * Página, a partir de 1. **Envie sempre**: sem &#x60;page&#x60;, a resposta vem como lista simples, sem o envelope de paginação, e &#x60;limit&#x60; é ignorado.
+     */
+    readonly page?: number
+
+    /**
+     * Registros por página. Padrão: 15, salvo indicação na operação. Máximo: 100 — acima disso a API usa 100.
+     */
+    readonly limit?: number
+
+    /**
+     * &#x60;value&#x60; ordena pelo valor da posição, do maior para o menor. Sem o parâmetro: &#x60;createdAt&#x60; decrescente.
+     */
+    readonly sort?: ListContactFinancialProductsSortEnum
+}
+
+/**
+ * Request parameters for listFinancialProducts operation in FinancialProductsApi.
+ */
+export interface FinancialProductsApiListFinancialProductsRequest {
+    /**
+     * Página, a partir de 1. **Envie sempre**: sem &#x60;page&#x60;, a resposta vem como lista simples, sem o envelope de paginação, e &#x60;limit&#x60; é ignorado.
+     */
+    readonly page?: number
+
+    /**
+     * Registros por página. Padrão: 15, salvo indicação na operação. Máximo: 100 — acima disso a API usa 100.
+     */
+    readonly limit?: number
+
+    /**
+     * Campo de ordenação. O padrão varia por recurso.
+     */
+    readonly sortBy?: string
+
+    /**
+     * Direção da ordenação.
+     */
+    readonly sortType?: ListFinancialProductsSortTypeEnum
+
+    /**
+     * Filtra pela origem. Aceita vários valores separados por vírgula.
+     */
+    readonly source?: string
+
+    /**
+     * Busca no nome, na descrição e nos códigos do ativo (ticker, ISIN, CETIP, CNPJ do fundo).
+     */
+    readonly search?: string
+}
+
+/**
+ * Request parameters for patchFinancialProduct operation in FinancialProductsApi.
+ */
+export interface FinancialProductsApiPatchFinancialProductRequest {
+    /**
+     * ID do registro.
+     */
+    readonly id: string
+
+    readonly patchFinancialProductRequest: PatchFinancialProductRequest
+}
+
+/**
+ * Request parameters for updateFinancialProduct operation in FinancialProductsApi.
+ */
+export interface FinancialProductsApiUpdateFinancialProductRequest {
+    /**
+     * ID do registro.
+     */
+    readonly id: string
+
+    readonly financialProductInput: FinancialProductInput
+}
+
+/**
+ * FinancialProductsApi - object-oriented interface
+ */
+export class FinancialProductsApi extends BaseAPI {
+    /**
+     * Registra a posição de um contato num produto. `_id`, `active` e as datas de criação e alteração são definidos pelo sistema; se enviados, são ignorados.  **Permissão do Service Account:** `financial-products.create`
+     * @summary Criar produto financeiro
+     * @param {FinancialProductsApiCreateFinancialProductRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public createFinancialProduct(requestParameters: FinancialProductsApiCreateFinancialProductRequest, options?: RawAxiosRequestConfig) {
+        return FinancialProductsApiFp(this.configuration).createFinancialProduct(requestParameters.financialProductInput, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * **Permissão do Service Account:** `financial-products.delete`
+     * @summary Excluir produto financeiro
+     * @param {FinancialProductsApiDeleteFinancialProductRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public deleteFinancialProduct(requestParameters: FinancialProductsApiDeleteFinancialProductRequest, options?: RawAxiosRequestConfig) {
+        return FinancialProductsApiFp(this.configuration).deleteFinancialProduct(requestParameters.id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * **Permissão do Service Account:** `financial-products.read`
+     * @summary Obter produto financeiro
+     * @param {FinancialProductsApiGetFinancialProductRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getFinancialProduct(requestParameters: FinancialProductsApiGetFinancialProductRequest, options?: RawAxiosRequestConfig) {
+        return FinancialProductsApiFp(this.configuration).getFinancialProduct(requestParameters.id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Totais da conta e por mercado.  **Permissão do Service Account:** `financial-products.read`
+     * @summary Obter totais dos produtos financeiros
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getFinancialProductsStats(options?: RawAxiosRequestConfig) {
+        return FinancialProductsApiFp(this.configuration).getFinancialProductsStats(options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Posições do contato, já prontas para exibir: nome e código do ativo, rótulos da classe e da origem, e valores principais. `summary` traz o patrimônio total e a composição por classe, calculados sobre todas as posições do contato, não só as da página.
+     * @summary Listar produtos financeiros de um contato
+     * @param {FinancialProductsApiListContactFinancialProductsRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public listContactFinancialProducts(requestParameters: FinancialProductsApiListContactFinancialProductsRequest, options?: RawAxiosRequestConfig) {
+        return FinancialProductsApiFp(this.configuration).listContactFinancialProducts(requestParameters.id, requestParameters.page, requestParameters.limit, requestParameters.sort, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Ordenação padrão: `createdAt`. Tamanho de página padrão: 15. Devolve só os registros ativos, dos contatos que o Service Account alcança.  **Permissão do Service Account:** `financial-products.list`
+     * @summary Listar produtos financeiros
+     * @param {FinancialProductsApiListFinancialProductsRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public listFinancialProducts(requestParameters: FinancialProductsApiListFinancialProductsRequest = {}, options?: RawAxiosRequestConfig) {
+        return FinancialProductsApiFp(this.configuration).listFinancialProducts(requestParameters.page, requestParameters.limit, requestParameters.sortBy, requestParameters.sortType, requestParameters.source, requestParameters.search, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Envie só os campos que mudam. Nos objetos de detalhe, como `financialProductEquities`, os campos enviados são alterados e os demais ficam como estão.  **Permissão do Service Account:** `financial-products.update`
+     * @summary Atualizar parte do produto financeiro
+     * @param {FinancialProductsApiPatchFinancialProductRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public patchFinancialProduct(requestParameters: FinancialProductsApiPatchFinancialProductRequest, options?: RawAxiosRequestConfig) {
+        return FinancialProductsApiFp(this.configuration).patchFinancialProduct(requestParameters.id, requestParameters.patchFinancialProductRequest, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Envie o produto inteiro. Para alterar poucos campos, prefira `PATCH`.  **Permissão do Service Account:** `financial-products.update`
+     * @summary Substituir produto financeiro
+     * @param {FinancialProductsApiUpdateFinancialProductRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public updateFinancialProduct(requestParameters: FinancialProductsApiUpdateFinancialProductRequest, options?: RawAxiosRequestConfig) {
+        return FinancialProductsApiFp(this.configuration).updateFinancialProduct(requestParameters.id, requestParameters.financialProductInput, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+export const ListContactFinancialProductsSortEnum = {
+    value: 'value',
+} as const;
+export type ListContactFinancialProductsSortEnum = typeof ListContactFinancialProductsSortEnum[keyof typeof ListContactFinancialProductsSortEnum];
+export const ListFinancialProductsSortTypeEnum = {
+    asc: 'asc',
+    desc: 'desc',
+} as const;
+export type ListFinancialProductsSortTypeEnum = typeof ListFinancialProductsSortTypeEnum[keyof typeof ListFinancialProductsSortTypeEnum];
