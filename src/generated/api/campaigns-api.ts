@@ -803,7 +803,7 @@ export const CampaignsApiAxiosParamCreator = function (configuration?: Configura
             };
         },
         /**
-         * Só campanhas em execução podem ser pausadas; nos outros estados, devolve `400`.  **Permissão do Service Account:** `campaigns.pause`
+         * Numa campanha em execução, interrompe os envios (`status` `paused`). Numa campanha agendada, desfaz o agendamento: ela volta a rascunho (`draft`), com o `schedule` preservado. Nos outros estados, devolve `400`.  **Permissão do Service Account:** `campaigns.pause`
          * @summary Pausar campanha
          * @param {string} id ID do registro.
          * @param {*} [options] Override http request option.
@@ -1161,7 +1161,7 @@ export const CampaignsApiAxiosParamCreator = function (configuration?: Configura
             };
         },
         /**
-         * Envie só os campos que mudam. Uma campanha agendada precisa ser cancelada antes de trocar o agendamento. A exclusão é feita na plataforma, por um administrador; pela API, use o cancelamento.  **Permissão do Service Account:** `campaigns.update`
+         * Envie só os campos que mudam. Numa campanha já agendada (`status` `scheduled`), só a data pode mudar, para outra data futura; para trocar o tipo de envio ou tirar a data, desagende antes com a pausa, senão a resposta é `409` com `code: UNSCHEDULE_BEFORE_CHANGING_SCHEDULE`. A exclusão é feita na plataforma, por um administrador; pela API, use o cancelamento.  **Permissão do Service Account:** `campaigns.update`
          * @summary Atualizar campanha
          * @param {string} id ID do registro.
          * @param {UpdateCampaignRequest} updateCampaignRequest 
@@ -1251,7 +1251,7 @@ export const CampaignsApiAxiosParamCreator = function (configuration?: Configura
             };
         },
         /**
-         * Envie só os campos que mudam.  **Permissão do Service Account:** `campaigns.update`
+         * Os campos da raiz (`name`, `subject`) mudam um a um. **`emailSettings`, quando enviado, substitui o conteúdo inteiro do e-mail**: envie-o completo, com `htmlContent`, `textContent` e `preheader`, mesmo para mudar um só. Depois de alterar um conteúdo publicado, confira a verificação de envio.  **Permissão do Service Account:** `campaigns.update`
          * @summary Atualizar conteúdo da campanha
          * @param {string} campaignId ID da campanha.
          * @param {string} id ID do registro.
@@ -1544,7 +1544,7 @@ export const CampaignsApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Só campanhas em execução podem ser pausadas; nos outros estados, devolve `400`.  **Permissão do Service Account:** `campaigns.pause`
+         * Numa campanha em execução, interrompe os envios (`status` `paused`). Numa campanha agendada, desfaz o agendamento: ela volta a rascunho (`draft`), com o `schedule` preservado. Nos outros estados, devolve `400`.  **Permissão do Service Account:** `campaigns.pause`
          * @summary Pausar campanha
          * @param {string} id ID do registro.
          * @param {*} [options] Override http request option.
@@ -1665,7 +1665,7 @@ export const CampaignsApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Envie só os campos que mudam. Uma campanha agendada precisa ser cancelada antes de trocar o agendamento. A exclusão é feita na plataforma, por um administrador; pela API, use o cancelamento.  **Permissão do Service Account:** `campaigns.update`
+         * Envie só os campos que mudam. Numa campanha já agendada (`status` `scheduled`), só a data pode mudar, para outra data futura; para trocar o tipo de envio ou tirar a data, desagende antes com a pausa, senão a resposta é `409` com `code: UNSCHEDULE_BEFORE_CHANGING_SCHEDULE`. A exclusão é feita na plataforma, por um administrador; pela API, use o cancelamento.  **Permissão do Service Account:** `campaigns.update`
          * @summary Atualizar campanha
          * @param {string} id ID do registro.
          * @param {UpdateCampaignRequest} updateCampaignRequest 
@@ -1694,7 +1694,7 @@ export const CampaignsApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Envie só os campos que mudam.  **Permissão do Service Account:** `campaigns.update`
+         * Os campos da raiz (`name`, `subject`) mudam um a um. **`emailSettings`, quando enviado, substitui o conteúdo inteiro do e-mail**: envie-o completo, com `htmlContent`, `textContent` e `preheader`, mesmo para mudar um só. Depois de alterar um conteúdo publicado, confira a verificação de envio.  **Permissão do Service Account:** `campaigns.update`
          * @summary Atualizar conteúdo da campanha
          * @param {string} campaignId ID da campanha.
          * @param {string} id ID do registro.
@@ -1886,7 +1886,7 @@ export const CampaignsApiFactory = function (configuration?: Configuration, base
             return localVarFp.listCampaigns(requestParameters.page, requestParameters.limit, requestParameters.sortBy, requestParameters.sortType, requestParameters.status, requestParameters.targetEntity, requestParameters.search, options).then((request) => request(axios, basePath));
         },
         /**
-         * Só campanhas em execução podem ser pausadas; nos outros estados, devolve `400`.  **Permissão do Service Account:** `campaigns.pause`
+         * Numa campanha em execução, interrompe os envios (`status` `paused`). Numa campanha agendada, desfaz o agendamento: ela volta a rascunho (`draft`), com o `schedule` preservado. Nos outros estados, devolve `400`.  **Permissão do Service Account:** `campaigns.pause`
          * @summary Pausar campanha
          * @param {CampaignsApiPauseCampaignRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -1976,7 +1976,7 @@ export const CampaignsApiFactory = function (configuration?: Configuration, base
             return localVarFp.unpublishCampaignContent(requestParameters.campaignId, requestParameters.id, options).then((request) => request(axios, basePath));
         },
         /**
-         * Envie só os campos que mudam. Uma campanha agendada precisa ser cancelada antes de trocar o agendamento. A exclusão é feita na plataforma, por um administrador; pela API, use o cancelamento.  **Permissão do Service Account:** `campaigns.update`
+         * Envie só os campos que mudam. Numa campanha já agendada (`status` `scheduled`), só a data pode mudar, para outra data futura; para trocar o tipo de envio ou tirar a data, desagende antes com a pausa, senão a resposta é `409` com `code: UNSCHEDULE_BEFORE_CHANGING_SCHEDULE`. A exclusão é feita na plataforma, por um administrador; pela API, use o cancelamento.  **Permissão do Service Account:** `campaigns.update`
          * @summary Atualizar campanha
          * @param {CampaignsApiUpdateCampaignRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -1996,7 +1996,7 @@ export const CampaignsApiFactory = function (configuration?: Configuration, base
             return localVarFp.updateCampaignAction(requestParameters.campaignId, requestParameters.actionId, requestParameters.updateCampaignActionRequest, options).then((request) => request(axios, basePath));
         },
         /**
-         * Envie só os campos que mudam.  **Permissão do Service Account:** `campaigns.update`
+         * Os campos da raiz (`name`, `subject`) mudam um a um. **`emailSettings`, quando enviado, substitui o conteúdo inteiro do e-mail**: envie-o completo, com `htmlContent`, `textContent` e `preheader`, mesmo para mudar um só. Depois de alterar um conteúdo publicado, confira a verificação de envio.  **Permissão do Service Account:** `campaigns.update`
          * @summary Atualizar conteúdo da campanha
          * @param {CampaignsApiUpdateCampaignContentRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -2579,7 +2579,7 @@ export class CampaignsApi extends BaseAPI {
     }
 
     /**
-     * Só campanhas em execução podem ser pausadas; nos outros estados, devolve `400`.  **Permissão do Service Account:** `campaigns.pause`
+     * Numa campanha em execução, interrompe os envios (`status` `paused`). Numa campanha agendada, desfaz o agendamento: ela volta a rascunho (`draft`), com o `schedule` preservado. Nos outros estados, devolve `400`.  **Permissão do Service Account:** `campaigns.pause`
      * @summary Pausar campanha
      * @param {CampaignsApiPauseCampaignRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -2678,7 +2678,7 @@ export class CampaignsApi extends BaseAPI {
     }
 
     /**
-     * Envie só os campos que mudam. Uma campanha agendada precisa ser cancelada antes de trocar o agendamento. A exclusão é feita na plataforma, por um administrador; pela API, use o cancelamento.  **Permissão do Service Account:** `campaigns.update`
+     * Envie só os campos que mudam. Numa campanha já agendada (`status` `scheduled`), só a data pode mudar, para outra data futura; para trocar o tipo de envio ou tirar a data, desagende antes com a pausa, senão a resposta é `409` com `code: UNSCHEDULE_BEFORE_CHANGING_SCHEDULE`. A exclusão é feita na plataforma, por um administrador; pela API, use o cancelamento.  **Permissão do Service Account:** `campaigns.update`
      * @summary Atualizar campanha
      * @param {CampaignsApiUpdateCampaignRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -2700,7 +2700,7 @@ export class CampaignsApi extends BaseAPI {
     }
 
     /**
-     * Envie só os campos que mudam.  **Permissão do Service Account:** `campaigns.update`
+     * Os campos da raiz (`name`, `subject`) mudam um a um. **`emailSettings`, quando enviado, substitui o conteúdo inteiro do e-mail**: envie-o completo, com `htmlContent`, `textContent` e `preheader`, mesmo para mudar um só. Depois de alterar um conteúdo publicado, confira a verificação de envio.  **Permissão do Service Account:** `campaigns.update`
      * @summary Atualizar conteúdo da campanha
      * @param {CampaignsApiUpdateCampaignContentRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.

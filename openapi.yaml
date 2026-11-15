@@ -146,7 +146,8 @@ tags:
     de produtos financeiros ligado.'
 - name: Assistente de IA
   description: 'Conversas com a Mag, a assistente de IA do CRM: envie pedidos em linguagem natural e receba a resposta em fluxo. Disponível nas
-    contas com a assistente ligada; cada resposta consome créditos de IA.'
+    contas com a assistente ligada; cada resposta consome créditos de IA. As consultas e ações da Mag são feitas em nome do Service Account e
+    passam pelas permissões dele.'
 - name: Campanhas
   description: 'Envios em massa por e-mail: público, conteúdo, agendamento, verificação antes do envio e resultados.'
 - name: Workflows
@@ -11791,8 +11792,9 @@ paths:
       - Campanhas
       operationId: updateCampaign
       summary: Atualizar campanha
-      description: 'Envie só os campos que mudam. Uma campanha agendada precisa ser cancelada antes de trocar o agendamento. A exclusão é feita
-        na plataforma, por um administrador; pela API, use o cancelamento.
+      description: 'Envie só os campos que mudam. Numa campanha já agendada (`status` `scheduled`), só a data pode mudar, para outra data futura;
+        para trocar o tipo de envio ou tirar a data, desagende antes com a pausa, senão a resposta é `409` com `code: UNSCHEDULE_BEFORE_CHANGING_SCHEDULE`.
+        A exclusão é feita na plataforma, por um administrador; pela API, use o cancelamento.
 
 
         **Permissão do Service Account:** `campaigns.update`'
@@ -12224,7 +12226,7 @@ paths:
                           type: string
                           enum:
                           - block
-                          - warn
+                          - warning
                           - info
                         location:
                           type: string
@@ -12390,7 +12392,8 @@ paths:
       - Campanhas
       operationId: pauseCampaign
       summary: Pausar campanha
-      description: 'Só campanhas em execução podem ser pausadas; nos outros estados, devolve `400`.
+      description: 'Numa campanha em execução, interrompe os envios (`status` `paused`). Numa campanha agendada, desfaz o agendamento: ela volta
+        a rascunho (`draft`), com o `schedule` preservado. Nos outros estados, devolve `400`.
 
 
         **Permissão do Service Account:** `campaigns.pause`'
@@ -13135,7 +13138,9 @@ paths:
       - Campanhas
       operationId: updateCampaignContent
       summary: Atualizar conteúdo da campanha
-      description: 'Envie só os campos que mudam.
+      description: 'Os campos da raiz (`name`, `subject`) mudam um a um. **`emailSettings`, quando enviado, substitui o conteúdo inteiro do e-mail**:
+        envie-o completo, com `htmlContent`, `textContent` e `preheader`, mesmo para mudar um só. Depois de alterar um conteúdo publicado, confira
+        a verificação de envio.
 
 
         **Permissão do Service Account:** `campaigns.update`'
@@ -13701,16 +13706,20 @@ paths:
                     dueDatePeriod:
                       type: string
                       enum:
+                      - minute
                       - hour
                       - day
                       - week
-                      description: 'Prazo: unidade.'
+                      - month
+                      description: 'Prazo: unidade. Padrão: `hour`.'
                     priority:
                       type: string
                       enum:
                       - low
                       - medium
                       - high
+                      - urgent
+                      description: 'Padrão: `medium`.'
             example:
               config:
                 dueDateAmount: 3
@@ -14473,7 +14482,8 @@ paths:
       operationId: listContactFinancialProducts
       summary: Listar produtos financeiros de um contato
       description: 'Posições do contato, já prontas para exibir: nome e código do ativo, rótulos da classe e da origem, e valores principais.
-        `summary` traz o patrimônio total e a composição por classe, calculados sobre todas as posições do contato, não só as da página.'
+        `summary` traz o patrimônio total e a composição por classe, calculados sobre todas as posições do contato, não só as da página. Tamanho
+        de página padrão: 15.'
       parameters:
       - $ref: '#/components/parameters/Id'
       - $ref: '#/components/parameters/Page'
@@ -14617,7 +14627,8 @@ paths:
       - Assistente de IA
       operationId: listAiChats
       summary: Listar conversas com a Mag
-      description: Conversas do Service Account que fez a chamada, da mais recente para a mais antiga. As arquivadas não aparecem.
+      description: 'Conversas do Service Account que fez a chamada, da mais recente para a mais antiga. As arquivadas não aparecem. Tamanho de
+        página padrão: 25.'
       parameters:
       - $ref: '#/components/parameters/Page'
       - $ref: '#/components/parameters/Limit'
@@ -14652,7 +14663,7 @@ paths:
                 total: 1
                 pages: 1
                 page: 1
-                limit: 15
+                limit: 25
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -19449,16 +19460,20 @@ components:
             dueDatePeriod:
               type: string
               enum:
+              - minute
               - hour
               - day
               - week
-              description: 'Prazo: unidade.'
+              - month
+              description: 'Prazo: unidade. Padrão: `hour`.'
             priority:
               type: string
               enum:
               - low
               - medium
               - high
+              - urgent
+              description: 'Padrão: `medium`.'
     Campaign:
       type: object
       properties:
