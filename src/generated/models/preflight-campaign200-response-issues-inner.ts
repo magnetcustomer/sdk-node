@@ -36,7 +36,7 @@ export interface PreflightCampaign200ResponseIssuesInner {
 
 export const PreflightCampaign200ResponseIssuesInnerSeverityEnum = {
     block: 'block',
-    warn: 'warn',
+    warning: 'warning',
     info: 'info',
 } as const;
 

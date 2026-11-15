@@ -245,7 +245,7 @@ export const AiAssistantApiAxiosParamCreator = function (configuration?: Configu
             };
         },
         /**
-         * Conversas do Service Account que fez a chamada, da mais recente para a mais antiga. As arquivadas não aparecem.
+         * Conversas do Service Account que fez a chamada, da mais recente para a mais antiga. As arquivadas não aparecem. Tamanho de página padrão: 25.
          * @summary Listar conversas com a Mag
          * @param {number} [page] Página, a partir de 1. **Envie sempre**: sem &#x60;page&#x60;, a resposta vem como lista simples, sem o envelope de paginação, e &#x60;limit&#x60; é ignorado.
          * @param {number} [limit] Registros por página. Padrão: 15, salvo indicação na operação. Máximo: 100 — acima disso a API usa 100.
@@ -484,7 +484,7 @@ export const AiAssistantApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Conversas do Service Account que fez a chamada, da mais recente para a mais antiga. As arquivadas não aparecem.
+         * Conversas do Service Account que fez a chamada, da mais recente para a mais antiga. As arquivadas não aparecem. Tamanho de página padrão: 25.
          * @summary Listar conversas com a Mag
          * @param {number} [page] Página, a partir de 1. **Envie sempre**: sem &#x60;page&#x60;, a resposta vem como lista simples, sem o envelope de paginação, e &#x60;limit&#x60; é ignorado.
          * @param {number} [limit] Registros por página. Padrão: 15, salvo indicação na operação. Máximo: 100 — acima disso a API usa 100.
@@ -596,7 +596,7 @@ export const AiAssistantApiFactory = function (configuration?: Configuration, ba
             return localVarFp.getAiChat(requestParameters.chatId, options).then((request) => request(axios, basePath));
         },
         /**
-         * Conversas do Service Account que fez a chamada, da mais recente para a mais antiga. As arquivadas não aparecem.
+         * Conversas do Service Account que fez a chamada, da mais recente para a mais antiga. As arquivadas não aparecem. Tamanho de página padrão: 25.
          * @summary Listar conversas com a Mag
          * @param {AiAssistantApiListAiChatsRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -779,7 +779,7 @@ export class AiAssistantApi extends BaseAPI {
     }
 
     /**
-     * Conversas do Service Account que fez a chamada, da mais recente para a mais antiga. As arquivadas não aparecem.
+     * Conversas do Service Account que fez a chamada, da mais recente para a mais antiga. As arquivadas não aparecem. Tamanho de página padrão: 25.
      * @summary Listar conversas com a Mag
      * @param {AiAssistantApiListAiChatsRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.

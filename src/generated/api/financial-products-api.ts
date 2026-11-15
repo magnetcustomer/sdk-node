@@ -194,7 +194,7 @@ export const FinancialProductsApiAxiosParamCreator = function (configuration?: C
             };
         },
         /**
-         * Posições do contato, já prontas para exibir: nome e código do ativo, rótulos da classe e da origem, e valores principais. `summary` traz o patrimônio total e a composição por classe, calculados sobre todas as posições do contato, não só as da página.
+         * Posições do contato, já prontas para exibir: nome e código do ativo, rótulos da classe e da origem, e valores principais. `summary` traz o patrimônio total e a composição por classe, calculados sobre todas as posições do contato, não só as da página. Tamanho de página padrão: 15.
          * @summary Listar produtos financeiros de um contato
          * @param {string} id ID do registro.
          * @param {number} [page] Página, a partir de 1. **Envie sempre**: sem &#x60;page&#x60;, a resposta vem como lista simples, sem o envelope de paginação, e &#x60;limit&#x60; é ignorado.
@@ -457,7 +457,7 @@ export const FinancialProductsApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Posições do contato, já prontas para exibir: nome e código do ativo, rótulos da classe e da origem, e valores principais. `summary` traz o patrimônio total e a composição por classe, calculados sobre todas as posições do contato, não só as da página.
+         * Posições do contato, já prontas para exibir: nome e código do ativo, rótulos da classe e da origem, e valores principais. `summary` traz o patrimônio total e a composição por classe, calculados sobre todas as posições do contato, não só as da página. Tamanho de página padrão: 15.
          * @summary Listar produtos financeiros de um contato
          * @param {string} id ID do registro.
          * @param {number} [page] Página, a partir de 1. **Envie sempre**: sem &#x60;page&#x60;, a resposta vem como lista simples, sem o envelope de paginação, e &#x60;limit&#x60; é ignorado.
@@ -567,7 +567,7 @@ export const FinancialProductsApiFactory = function (configuration?: Configurati
             return localVarFp.getFinancialProductsStats(options).then((request) => request(axios, basePath));
         },
         /**
-         * Posições do contato, já prontas para exibir: nome e código do ativo, rótulos da classe e da origem, e valores principais. `summary` traz o patrimônio total e a composição por classe, calculados sobre todas as posições do contato, não só as da página.
+         * Posições do contato, já prontas para exibir: nome e código do ativo, rótulos da classe e da origem, e valores principais. `summary` traz o patrimônio total e a composição por classe, calculados sobre todas as posições do contato, não só as da página. Tamanho de página padrão: 15.
          * @summary Listar produtos financeiros de um contato
          * @param {FinancialProductsApiListContactFinancialProductsRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -768,7 +768,7 @@ export class FinancialProductsApi extends BaseAPI {
     }
 
     /**
-     * Posições do contato, já prontas para exibir: nome e código do ativo, rótulos da classe e da origem, e valores principais. `summary` traz o patrimônio total e a composição por classe, calculados sobre todas as posições do contato, não só as da página.
+     * Posições do contato, já prontas para exibir: nome e código do ativo, rótulos da classe e da origem, e valores principais. `summary` traz o patrimônio total e a composição por classe, calculados sobre todas as posições do contato, não só as da página. Tamanho de página padrão: 15.
      * @summary Listar produtos financeiros de um contato
      * @param {FinancialProductsApiListContactFinancialProductsRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.

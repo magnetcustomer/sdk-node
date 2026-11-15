@@ -43,9 +43,12 @@ export interface UpdateCampaignActionRequestConfig {
      */
     'dueDateAmount'?: number;
     /**
-     * Prazo: unidade.
+     * Prazo: unidade. Padrão: `hour`.
      */
     'dueDatePeriod'?: UpdateCampaignActionRequestConfigDueDatePeriodEnum;
+    /**
+     * Padrão: `medium`.
+     */
     'priority'?: UpdateCampaignActionRequestConfigPriorityEnum;
 }
 
@@ -57,9 +60,11 @@ export const UpdateCampaignActionRequestConfigAssignToEnum = {
 
 export type UpdateCampaignActionRequestConfigAssignToEnum = typeof UpdateCampaignActionRequestConfigAssignToEnum[keyof typeof UpdateCampaignActionRequestConfigAssignToEnum];
 export const UpdateCampaignActionRequestConfigDueDatePeriodEnum = {
+    minute: 'minute',
     hour: 'hour',
     day: 'day',
     week: 'week',
+    month: 'month',
 } as const;
 
 export type UpdateCampaignActionRequestConfigDueDatePeriodEnum = typeof UpdateCampaignActionRequestConfigDueDatePeriodEnum[keyof typeof UpdateCampaignActionRequestConfigDueDatePeriodEnum];
@@ -67,6 +72,7 @@ export const UpdateCampaignActionRequestConfigPriorityEnum = {
     low: 'low',
     medium: 'medium',
     high: 'high',
+    urgent: 'urgent',
 } as const;
 
 export type UpdateCampaignActionRequestConfigPriorityEnum = typeof UpdateCampaignActionRequestConfigPriorityEnum[keyof typeof UpdateCampaignActionRequestConfigPriorityEnum];
