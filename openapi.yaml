@@ -39,26 +39,52 @@ info:
     \ exigem um usuário administrador e não estão disponíveis para Service Accounts; por isso não aparecem aqui.\n\n## Limite de requisições\n\
     \nOs limites são aplicados por conta. Ao receber `429`, espere os segundos indicados em `Retry-After` e tente de novo com intervalo crescente.\n\
     \n## Área de trabalho\n\nEm contas com áreas de trabalho, a API define a área do registro pela credencial ou pelo registro pai. Não envie\
-    \ `workspace`.\n\n# Regras de filtro\n\nDashboards, widgets, predefinições de filtro e automações usam o mesmo formato para dizer quais registros\
-    \ entram: o **conjunto de regras** (`ruleset`).\n\n```json\n{\n  \"condition\": \"AND\",\n  \"rules\": [\n    { \"fieldId\": \"deal.amount\"\
-    , \"operator\": \"greater\", \"value\": 1000 },\n    {\n      \"condition\": \"OR\",\n      \"rules\": [\n        { \"fieldId\": \"deal.won\"\
-    , \"operator\": \"false_value\" },\n        { \"fieldId\": \"deal.stage_name\", \"operator\": \"contains\", \"value\": \"Proposta\" }\n  \
-    \    ]\n    }\n  ]\n}\n```\n\n- **`condition`**: `AND` exige todas as regras; `OR`, pelo menos uma.\n- **`rules`**: cada item é uma condição\
-    \ (`fieldId`, `operator`, `value`) ou um grupo aninhado (`condition`, `rules`).\n- **`fieldId`**: o `slug` de um campo. A lista de campos\
-    \ da conta, com os personalizados, vem de `GET /api/resource-keywords`; filtre por recurso com `?modelRef=deal`.\n- **`operator`**: escolha\
-    \ pelo tipo do campo (`type`, na lista de campos).\n\n| Tipo do campo | Operadores |\n|---|---|\n| Texto (`string`) | `equals`, `not_equal`,\
+    \ `workspace`.\n\n# Regras de filtro\n\nDashboards, widgets, predefinições de filtro, automações e workflows usam o mesmo formato para dizer\
+    \ quais registros entram: o **conjunto de regras** (`ruleset`).\n\n```json\n{\n  \"condition\": \"AND\",\n  \"rules\": [\n    { \"fieldId\"\
+    : \"deal.amount\", \"operator\": \"greater\", \"value\": 1000 },\n    {\n      \"condition\": \"OR\",\n      \"rules\": [\n        { \"fieldId\"\
+    : \"deal.won\", \"operator\": \"false_value\" },\n        { \"fieldId\": \"deal.stage_name\", \"operator\": \"contains\", \"value\": \"Proposta\"\
+    \ }\n      ]\n    }\n  ]\n}\n```\n\n- **`condition`**: `AND` exige todas as regras; `OR`, pelo menos uma.\n- **`rules`**: cada item é uma\
+    \ condição (`fieldId`, `operator`, `value`) ou um grupo aninhado (`condition`, `rules`).\n- **`fieldId`**: o `slug` de um campo. A lista de\
+    \ campos da conta, com os personalizados, vem de `GET /api/resource-keywords`; filtre por recurso com `?modelRef=deal`.\n- **`operator`**:\
+    \ escolha pelo tipo do campo (`type`, na lista de campos).\n\n| Tipo do campo | Operadores |\n|---|---|\n| Texto (`string`) | `equals`, `not_equal`,\
     \ `contains`, `not_contains`, `starts_with`, `ends_with`, `exists`, `not_exists` |\n| Número e valor (`number`, `monetary`, `days`) | `equals`,\
     \ `not_equal`, `greater`, `greater_or_equals`, `less`, `less_or_equals`, `between` (com `valueMin` e `valueMax`) |\n| Sim ou não (`boolean`)\
     \ | `true_value`, `false_value` |\n| Lista (`select`) | `in`, `not_in`, com `value` em lista |\n| Data (`date`) | `current_day`, `current_week`,\
     \ `current_month`, `current_year`, `before_day`, `before_week`, `before_month`, `before_year`, `last_n_days`, `next_n_days`, `before_date`,\
     \ `after_date`, `date_between` |\n\nAs regras de um widget não são validadas na gravação: um campo ou operador que não existe é aceito, e\
-    \ o resultado vem vazio. Confira os nomes antes de enviar.\n\n# Webhooks\n\nPara ser avisado quando algo muda no CRM, em vez de consultar\
-    \ a API de tempos em tempos, use webhooks. Um administrador cria o webhook no CRM, em **Integrações › Webhooks**, informando a URL do seu\
-    \ sistema e os eventos. A lista de eventos está em `GET /api/webhooks/triggers`; o formato da entrega, a assinatura e os reenvios estão na\
-    \ seção Webhooks do portal.\n\n# Cobertura\n\nEsta referência cobre Contatos (leads, prospects e clientes), Empresas, Oportunidades, Pipelines,\
-    \ etapas e motivos de perda, Produtos, tabelas de preço e itens de produto, Jornadas, Reuniões, Tarefas, Observações, Tickets, Atendimentos,\
-    \ Usuários, Equipes, Áreas de trabalho, Campos personalizados, Dashboards (com widgets, filtros e resultados), Automações de processo e os\
-    \ eventos de webhook.\n"
+    \ o resultado vem vazio. Confira os nomes antes de enviar.\n\n# Workflows\n\nUm workflow é um desenho de **passos** (`nodes`) ligados por\
+    \ **saídas** (`edges`). O contato entra por um gatilho e segue as ligações até um passo `end`. Todo caminho precisa terminar num `end`.\n\n\
+    ```json\n{\n  \"nodes\": [\n    { \"id\": \"n1\", \"type\": \"manual_trigger\", \"config\": {} },\n    { \"id\": \"n2\", \"type\": \"wait\"\
+    , \"config\": { \"amount\": 2, \"unit\": \"days\" } },\n    { \"id\": \"n3\", \"type\": \"end\", \"config\": {} }\n  ],\n  \"edges\": [\n\
+    \    { \"id\": \"e1\", \"from\": \"n1\", \"port\": \"default\", \"to\": \"n2\" },\n    { \"id\": \"e2\", \"from\": \"n2\", \"port\": \"default\"\
+    , \"to\": \"n3\" }\n  ]\n}\n```\n\nO ciclo é: criar (`POST /api/workflows`), desenhar (`PATCH`, com `draftGraph`), conferir (`POST .../validate`\
+    \ com `forPublish: true`) e publicar (`POST .../publish`). Só depois de publicado o workflow age sobre contatos.\n\n## Gatilhos\n\n| `type`\
+    \ | Quando o contato entra | `config` |\n|---|---|---|\n| `manual_trigger` | Quando alguém, ou a API, inscreve o contato (`POST /api/workflows/{id}/enrollments`)\
+    \ | vazio |\n| `segment_trigger` | Na agenda, para os contatos que casam com o filtro | `schedule` (obrigatório): `mode` (`daily`, `weekly`,\
+    \ `monthly`), `hour` (0–23), `minute`, `weekday` (0–6, em `weekly`), `day` (1–28, em `monthly`). `ruleset`: quem entra. `exclude`: quem não\
+    \ entra, no mesmo formato |\n| `form_trigger` | Quando o contato responde um formulário | `formId` (obrigatório) |\n| `crm_event_trigger`\
+    \ | Quando um evento do CRM acontece | `event` (obrigatório): `contact.created`, `deal.created`, `deal.stage_changed`, `deal.won`, `deal.lost`,\
+    \ `meeting.created`, `journey.created`, `journey.phase_entered`, `journey.closed`. `filter`: `pipelineId`, `stageId` (eventos de oportunidade);\
+    \ `journeyFlowId`, `phaseId`, `closeStatus`, `churnReasonId` (eventos de jornada). `ruleset`: filtro sobre o contato |\n\n## Passos\n\n| `type`\
+    \ | O que faz | Saídas (`port`) | `config` |\n|---|---|---|---|\n| `wait` | Espera um tempo | `default` | `amount` (1–999) e `unit` (`minutes`,\
+    \ `hours`, `days`, `weeks`), obrigatórios. `businessDaysOnly` |\n| `if_else` | Separa em dois caminhos | `yes`, `no` | `ruleset` (obrigatório)\
+    \ |\n| `split` | Separa em vários caminhos; o contato segue o primeiro que casar | o `id` de cada caminho, e `none` | `branches` (2 a 12):\
+    \ `id`, `label` e `ruleset` de cada caminho |\n| `send_email` | Envia um e-mail | `default` | `designTemplateId` e `subject`, obrigatórios.\
+    \ `preheader`, `links` (`linkId`, `name`), `utm` (`enabled`, `campaign`), `respectContactLimit` |\n| `wait_reaction` | Espera uma reação a\
+    \ um e-mail anterior | o `id` de cada reação, e `timeout` | `reactionTo` (o `id` do passo de e-mail), `branches` (1 a 8: `id`, `label`, `kind`\
+    \ — `opened`, `clicked_any`, `clicked_link` com `linkId`, ou `crm_event` com `event`) e `timeout` (`amount`, `unit` em `hours`, `days` ou\
+    \ `weeks`), todos obrigatórios |\n| `create_task` | Cria uma tarefa | `default` | `taskTypeSlug`, `title`, `due` (`mode`: `days_after` com\
+    \ `days`, ou `end_of_cycle_month`) e `assignee` (`mode`: `contact_owner`, `staff` com `staffId`, ou `journey_staff`), obrigatórios. `observation`,\
+    \ `estimatedMinutes` |\n| `create_deal` | Cria uma oportunidade | `default` | `pipelineId`, `stageId`, `title` e `assignee` (`mode`: `contact_owner`,\
+    \ ou `staff` com `staffId`), obrigatórios. `value`, `expectedClose` (`days`) |\n| `update_contact` | Altera campos do contato | `default`\
+    \ | `fields` (obrigatório): lista de `fieldId` e `value` |\n| `end` | Termina o caminho | nenhuma | vazio |\n\nAs condições (`ruleset`) seguem\
+    \ o formato de \"Regras de filtro\".\n\n# Webhooks\n\nPara ser avisado quando algo muda no CRM, em vez de consultar a API de tempos em tempos,\
+    \ use webhooks. Um administrador cria o webhook no CRM, em **Integrações › Webhooks**, informando a URL do seu sistema e os eventos. A lista\
+    \ de eventos está em `GET /api/webhooks/triggers`; o formato da entrega, a assinatura e os reenvios estão na seção Webhooks do portal.\n\n\
+    # Cobertura\n\nEsta referência cobre Contatos (leads, prospects e clientes), Empresas, Oportunidades, Pipelines, etapas e motivos de perda,\
+    \ Produtos, tabelas de preço e itens de produto, Jornadas, Reuniões, Tarefas, Observações, Tickets, Atendimentos, Usuários, Equipes, Áreas\
+    \ de trabalho, Campos personalizados, Dashboards (com widgets, filtros e resultados), Automações de processo, Workflows, Formulários (com\
+    \ respostas) e os eventos de webhook.\n"
   contact:
     name: Suporte Magnet Customer
     email: suporte@magnetcustomer.com
@@ -112,6 +138,12 @@ tags:
   description: 'Consulta dos campos da conta: IDs, chaves e quais são obrigatórios.'
 - name: Equipes e áreas de trabalho
   description: Consulta das equipes e das áreas de trabalho da conta.
+- name: Formulários
+  description: 'Formulários de captação: campos, validações, regras condicionais e respostas. A publicação, que gera o endereço público, é feita
+    na tela do CRM.'
+- name: Workflows
+  description: 'Sequências de passos por contato: gatilho, esperas, condições, e-mails e ações no CRM. Disponível nas contas com o módulo de workflows
+    ligado.'
 - name: Automações
   description: 'Automações de processo: o que dispara, quais registros entram e quais ações são executadas.'
 - name: Dashboards
@@ -153,8 +185,12 @@ x-tagGroups:
   - Usuários
   - Campos personalizados
   - Equipes e áreas de trabalho
+- name: Captação
+  tags:
+  - Formulários
 - name: Automação
   tags:
+  - Workflows
   - Automações
 - name: Indicadores
   tags:
@@ -8997,6 +9033,2420 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+  /api/forms:
+    get:
+      tags:
+      - Formulários
+      operationId: listForms
+      summary: Listar formulários
+      description: 'Ordenação padrão: `title`.
+
+
+        **Permissão do Service Account:** `forms.list`'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/SortBy'
+      - $ref: '#/components/parameters/SortType'
+      - name: search
+        in: query
+        description: Busca no título.
+        schema:
+          type: string
+      - name: folderId
+        in: query
+        description: ID da pasta, ou `none` para os que estão fora de pasta.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Form'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439230
+                  title: Fale com um especialista
+                  status: draft
+                  published: false
+                  shareLink: null
+                  settings:
+                    contactSource: lead
+                    autoCreateContact: true
+                    formAfterSent: thanks_page
+                    thanksPage: Obrigado! Em breve entraremos em contato.
+                  grid:
+                    rows:
+                    - id: row_0
+                      columns:
+                      - id: col_0
+                        width: 12
+                        field:
+                          id: field_0
+                          componentType: customField
+                          customField: 507f1f77bcf86cd799439220
+                          name: Nome completo
+                          position: 0
+                          gridPosition:
+                            rowId: row_0
+                            columnId: col_0
+                            columnWidth: 12
+                          settings:
+                            required: true
+                            placeholder: Seu nome
+                          validations:
+                          - type: minLength
+                            value: 3
+                            message: Informe o nome completo
+                    - id: row_1
+                      columns:
+                      - id: col_1
+                        width: 12
+                        field:
+                          id: field_1
+                          componentType: customField
+                          customField: 507f1f77bcf86cd799439221
+                          name: E-mail
+                          position: 1
+                          gridPosition:
+                            rowId: row_1
+                            columnId: col_1
+                            columnWidth: 12
+                          settings:
+                            required: true
+                          validations:
+                          - type: email
+                          conditionalRules:
+                          - action: show
+                            logic: and
+                            conditions:
+                            - fieldId: field_0
+                              operator: isNotEmpty
+                  active: true
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 4
+                pages: 1
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Formulários
+      operationId: createForm
+      summary: Criar formulário
+      description: 'Cria o formulário em rascunho. O único campo obrigatório é `title`.
+
+
+        **Os campos não são definidos aqui.** A criação monta a grade sozinha, com os campos que a conta exige para um contato da fase escolhida
+        em `settings.contactSource`. Para definir os seus campos, atualize o formulário enviando `grid`.
+
+
+        **Permissão do Service Account:** `forms.create`'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: '#/components/schemas/FormInput'
+              - type: object
+                required:
+                - title
+            example:
+              title: Fale com um especialista
+              settings:
+                contactSource: lead
+                autoCreateContact: true
+                formAfterSent: thanks_page
+                thanksPage: Obrigado! Em breve entraremos em contato.
+      responses:
+        '201':
+          description: Formulário criado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+              example:
+                _id: 507f1f77bcf86cd799439230
+                title: Fale com um especialista
+                status: draft
+                published: false
+                shareLink: null
+                settings:
+                  contactSource: lead
+                  autoCreateContact: true
+                  formAfterSent: thanks_page
+                  thanksPage: Obrigado! Em breve entraremos em contato.
+                grid:
+                  rows:
+                  - id: row_0
+                    columns:
+                    - id: col_0
+                      width: 12
+                      field:
+                        id: field_0
+                        componentType: customField
+                        customField: 507f1f77bcf86cd799439220
+                        name: Nome completo
+                        position: 0
+                        gridPosition:
+                          rowId: row_0
+                          columnId: col_0
+                          columnWidth: 12
+                        settings:
+                          required: true
+                          placeholder: Seu nome
+                        validations:
+                        - type: minLength
+                          value: 3
+                          message: Informe o nome completo
+                  - id: row_1
+                    columns:
+                    - id: col_1
+                      width: 12
+                      field:
+                        id: field_1
+                        componentType: customField
+                        customField: 507f1f77bcf86cd799439221
+                        name: E-mail
+                        position: 1
+                        gridPosition:
+                          rowId: row_1
+                          columnId: col_1
+                          columnWidth: 12
+                        settings:
+                          required: true
+                        validations:
+                        - type: email
+                        conditionalRules:
+                        - action: show
+                          logic: and
+                          conditions:
+                          - fieldId: field_0
+                            operator: isNotEmpty
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/forms/{id}:
+    get:
+      tags:
+      - Formulários
+      operationId: getForm
+      summary: Obter formulário
+      description: 'Traz a grade e, em `components`, os mesmos campos em lista com o campo do contato completo.
+
+
+        **Permissão do Service Account:** `forms.read`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+              example:
+                _id: 507f1f77bcf86cd799439230
+                title: Fale com um especialista
+                status: draft
+                published: false
+                shareLink: null
+                settings:
+                  contactSource: lead
+                  autoCreateContact: true
+                  formAfterSent: thanks_page
+                  thanksPage: Obrigado! Em breve entraremos em contato.
+                grid:
+                  rows:
+                  - id: row_0
+                    columns:
+                    - id: col_0
+                      width: 12
+                      field:
+                        id: field_0
+                        componentType: customField
+                        customField: 507f1f77bcf86cd799439220
+                        name: Nome completo
+                        position: 0
+                        gridPosition:
+                          rowId: row_0
+                          columnId: col_0
+                          columnWidth: 12
+                        settings:
+                          required: true
+                          placeholder: Seu nome
+                        validations:
+                        - type: minLength
+                          value: 3
+                          message: Informe o nome completo
+                  - id: row_1
+                    columns:
+                    - id: col_1
+                      width: 12
+                      field:
+                        id: field_1
+                        componentType: customField
+                        customField: 507f1f77bcf86cd799439221
+                        name: E-mail
+                        position: 1
+                        gridPosition:
+                          rowId: row_1
+                          columnId: col_1
+                          columnWidth: 12
+                        settings:
+                          required: true
+                        validations:
+                        - type: email
+                        conditionalRules:
+                        - action: show
+                          logic: and
+                          conditions:
+                          - fieldId: field_0
+                            operator: isNotEmpty
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Formulários
+      operationId: updateForm
+      summary: Atualizar formulário
+      description: 'Envie `title` e o que muda. Para trocar os campos, envie a `grid` inteira: ela substitui a anterior.
+
+
+        Na grade, `componentType` aceita `customField` e `consent`. Outros tipos de componente da tela (título, texto, separador) são recusados
+        com `400`. Uma atualização recusada deixa o formulário sem a lista de campos até a próxima atualização aceita: reenvie a grade corrigida
+        em seguida.
+
+
+        `status`, `published` e `shareLink` não mudam por aqui.
+
+
+        **Permissão do Service Account:** `forms.update`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: '#/components/schemas/FormInput'
+              - type: object
+                required:
+                - title
+            example:
+              title: Fale com um especialista
+              settings:
+                contactSource: lead
+                autoCreateContact: true
+                formAfterSent: thanks_page
+                thanksPage: Obrigado! Em breve entraremos em contato.
+              grid:
+                rows:
+                - id: row_0
+                  columns:
+                  - id: col_0
+                    width: 12
+                    field:
+                      id: field_0
+                      componentType: customField
+                      customField: 507f1f77bcf86cd799439220
+                      name: Nome completo
+                      position: 0
+                      gridPosition:
+                        rowId: row_0
+                        columnId: col_0
+                        columnWidth: 12
+                      settings:
+                        required: true
+                        placeholder: Seu nome
+                      validations:
+                      - type: minLength
+                        value: 3
+                        message: Informe o nome completo
+                - id: row_1
+                  columns:
+                  - id: col_1
+                    width: 12
+                    field:
+                      id: field_1
+                      componentType: customField
+                      customField: 507f1f77bcf86cd799439221
+                      name: E-mail
+                      position: 1
+                      gridPosition:
+                        rowId: row_1
+                        columnId: col_1
+                        columnWidth: 12
+                      settings:
+                        required: true
+                      validations:
+                      - type: email
+                      conditionalRules:
+                      - action: show
+                        logic: and
+                        conditions:
+                        - fieldId: field_0
+                          operator: isNotEmpty
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+              example:
+                _id: 507f1f77bcf86cd799439230
+                title: Fale com um especialista
+                status: draft
+                published: false
+                shareLink: null
+                settings:
+                  contactSource: lead
+                  autoCreateContact: true
+                  formAfterSent: thanks_page
+                  thanksPage: Obrigado! Em breve entraremos em contato.
+                grid:
+                  rows:
+                  - id: row_0
+                    columns:
+                    - id: col_0
+                      width: 12
+                      field:
+                        id: field_0
+                        componentType: customField
+                        customField: 507f1f77bcf86cd799439220
+                        name: Nome completo
+                        position: 0
+                        gridPosition:
+                          rowId: row_0
+                          columnId: col_0
+                          columnWidth: 12
+                        settings:
+                          required: true
+                          placeholder: Seu nome
+                        validations:
+                        - type: minLength
+                          value: 3
+                          message: Informe o nome completo
+                  - id: row_1
+                    columns:
+                    - id: col_1
+                      width: 12
+                      field:
+                        id: field_1
+                        componentType: customField
+                        customField: 507f1f77bcf86cd799439221
+                        name: E-mail
+                        position: 1
+                        gridPosition:
+                          rowId: row_1
+                          columnId: col_1
+                          columnWidth: 12
+                        settings:
+                          required: true
+                        validations:
+                        - type: email
+                        conditionalRules:
+                        - action: show
+                          logic: and
+                          conditions:
+                          - fieldId: field_0
+                            operator: isNotEmpty
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/forms/stats:
+    get:
+      tags:
+      - Formulários
+      operationId: getFormsStats
+      summary: Obter totais dos formulários
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  published:
+                    type: integer
+                  drafts:
+                    type: integer
+                  totalSubmissions:
+                    type: integer
+                  pendingSubmissions:
+                    type: integer
+                    description: Respostas ainda sem contato vinculado.
+              example:
+                total: 4
+                published: 3
+                drafts: 1
+                totalSubmissions: 128
+                pendingSubmissions: 5
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+      description: '**Permissão do Service Account:** `forms.read`'
+  /api/forms/{id}/submit:
+    post:
+      tags:
+      - Formulários
+      operationId: submitForm
+      summary: Enviar uma resposta
+      description: 'Registra uma resposta como se a pessoa tivesse preenchido o formulário. Use para trazer respostas coletadas em outro lugar.
+
+
+        `payload` tem o formato de um contato: campos de sistema pelo nome (`fullname`, `email`, `doc`, `phones`) e campos personalizados em `customFields`,
+        com `customField` e `v`. Com `settings.autoCreateContact` ligado, a resposta cria ou atualiza o contato; desligado, fica pendente.'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - payload
+              properties:
+                payload:
+                  type: object
+                  description: Respostas.
+                  properties:
+                    fullname:
+                      type: string
+                      description: Nome completo.
+                    email:
+                      type: string
+                      description: E-mail.
+                    doc:
+                      type: string
+                      description: CPF ou CNPJ.
+                    phones:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          number:
+                            type: string
+                            description: Número, só dígitos.
+                            example: '11987654321'
+                          ddi:
+                            type: string
+                            description: Código do país, com `+`.
+                            example: '+55'
+                          typePhone:
+                            type: string
+                            description: Tipo do telefone.
+                            example: cellphone
+                      description: Telefones.
+                    customFields:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/CustomFieldValue'
+                      description: Respostas de campos personalizados.
+            example:
+              payload:
+                fullname: Maria Santos
+                email: maria@cliente.com
+                phones:
+                - number: '11987654321'
+                  ddi: '+55'
+                  typePhone: cellphone
+      responses:
+        '201':
+          description: Resposta registrada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  submissionId:
+                    type: string
+                    description: Identificador da resposta.
+                  createdInCrm:
+                    type: boolean
+                    description: Virou contato na hora.
+                  crmContact:
+                    type: string
+                    nullable: true
+                    description: ID do contato criado ou atualizado.
+              example:
+                submissionId: X2TOyH5DGw
+                createdInCrm: true
+                crmContact: 507f1f77bcf86cd799439012
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/forms/{id}/submissions:
+    get:
+      tags:
+      - Formulários
+      operationId: listFormSubmissions
+      summary: Listar respostas do formulário
+      description: Da mais recente para a mais antiga.
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - name: createdInCrm
+        in: query
+        description: Com `true`, só as que viraram contato; com `false`, só as que não.
+        schema:
+          type: boolean
+      - name: pendingLink
+        in: query
+        description: Com `true`, só as que aguardam vínculo.
+        schema:
+          type: boolean
+      - name: pendingReason
+        in: query
+        description: Motivo da pendência.
+        schema:
+          type: string
+          enum:
+          - auto_create_disabled
+          - contact_creation_failed
+      - name: search
+        in: query
+        description: Busca em nome, e-mail, documento e telefone respondidos.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/FormSubmission'
+              example:
+                docs:
+                - _id: X2TOyH5DGw
+                  form: 507f1f77bcf86cd799439230
+                  payload:
+                    fullname: Maria Santos
+                    email: maria@cliente.com
+                  createdInCrm: true
+                  crmContact: 507f1f77bcf86cd799439012
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 128
+                pages: 9
+                page: 1
+                limit: 15
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/forms/{id}/submissions/stats:
+    get:
+      tags:
+      - Formulários
+      operationId: getFormSubmissionsStats
+      summary: Obter totais das respostas
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  created:
+                    type: integer
+                    description: Viraram contato.
+                  pending:
+                    type: integer
+                  thisMonth:
+                    type: integer
+                  pendingLink:
+                    type: integer
+                  pendingByReason:
+                    type: object
+                    properties:
+                      auto_create_disabled:
+                        type: integer
+                      contact_creation_failed:
+                        type: integer
+              example:
+                total: 128
+                created: 123
+                pending: 5
+                thisMonth: 31
+                pendingLink: 5
+                pendingByReason:
+                  auto_create_disabled: 4
+                  contact_creation_failed: 1
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/forms-submissions/{id}/create-contact:
+    post:
+      tags:
+      - Formulários
+      operationId: createContactFromSubmission
+      summary: Criar contato a partir de uma resposta
+      description: Para respostas pendentes. Responde `409` se a resposta já virou contato.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador da resposta (`_id` de 10 caracteres).
+        schema:
+          type: string
+          example: X2TOyH5DGw
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Resposta atualizada, com o contato criado.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/forms-submissions/{id}/link:
+    post:
+      tags:
+      - Formulários
+      operationId: linkSubmissionToContact
+      summary: Vincular uma resposta a um contato existente
+      description: Responde `409` se a resposta já tem contato.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador da resposta (`_id` de 10 caracteres).
+        schema:
+          type: string
+          example: X2TOyH5DGw
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - contactId
+              properties:
+                contactId:
+                  type: string
+                  pattern: ^[a-fA-F0-9]{24}$
+                  example: 507f1f77bcf86cd799439011
+                  description: ID do contato.
+            example:
+              contactId: 507f1f77bcf86cd799439012
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Resposta atualizada, com o contato vinculado.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/workflows:
+    get:
+      tags:
+      - Workflows
+      operationId: listWorkflows
+      summary: Listar workflows
+      description: 'Ordenação padrão: `updatedAt` decrescente. Tamanho de página padrão: 25. A listagem não traz o desenho; use a operação de
+        obter.
+
+
+        **Permissão do Service Account:** `workflows.list`'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      - name: search
+        in: query
+        description: Busca no nome.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Workflow'
+              example:
+                docs:
+                - _id: 507f1f77bcf86cd799439240
+                  name: Boas-vindas a novos clientes
+                  description: Acompanhamento da primeira semana.
+                  status: draft
+                  timezone: America/Sao_Paulo
+                  triggerKinds: []
+                  active: true
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+                total: 3
+                pages: 1
+                page: 1
+                limit: 25
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags:
+      - Workflows
+      operationId: createWorkflow
+      summary: Criar workflow
+      description: 'Cria o workflow em rascunho. Só `name` e `description` são aceitos aqui; um campo a mais devolve `400`. O rascunho nasce com
+        um gatilho de segmento de exemplo: defina os seus passos em seguida, pela atualização.
+
+
+        **Permissão do Service Account:** `workflows.edit`'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - name
+              properties:
+                name:
+                  type: string
+                  description: Nome.
+                description:
+                  type: string
+                  description: Descrição.
+            example:
+              name: Boas-vindas a novos clientes
+              description: Acompanhamento da primeira semana.
+      responses:
+        '201':
+          description: Workflow criado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+              example:
+                _id: 507f1f77bcf86cd799439240
+                name: Boas-vindas a novos clientes
+                description: Acompanhamento da primeira semana.
+                status: draft
+                draftGraph:
+                  nodes:
+                  - id: n1
+                    type: manual_trigger
+                    config: {}
+                    position:
+                      x: 0
+                      y: 0
+                  - id: n2
+                    type: if_else
+                    label: É cliente?
+                    config:
+                      ruleset:
+                        condition: AND
+                        rules:
+                        - fieldId: contact.lifecycle
+                          operator: equals
+                          value: customer
+                    position:
+                      x: 0
+                      y: 120
+                  - id: n3
+                    type: wait
+                    config:
+                      amount: 2
+                      unit: days
+                      businessDaysOnly: true
+                    position:
+                      x: -150
+                      y: 240
+                  - id: n4
+                    type: create_task
+                    config:
+                      taskTypeSlug: follow-up
+                      title: Ligar para o cliente
+                      due:
+                        mode: days_after
+                        days: 1
+                      assignee:
+                        mode: contact_owner
+                    position:
+                      x: -150
+                      y: 360
+                  - id: n5
+                    type: end
+                    config: {}
+                    position:
+                      x: -150
+                      y: 480
+                  - id: n6
+                    type: end
+                    config: {}
+                    position:
+                      x: 150
+                      y: 240
+                  edges:
+                  - id: e1
+                    from: n1
+                    port: default
+                    to: n2
+                  - id: e2
+                    from: n2
+                    port: 'yes'
+                    to: n3
+                  - id: e3
+                    from: n3
+                    port: default
+                    to: n4
+                  - id: e4
+                    from: n4
+                    port: default
+                    to: n5
+                  - id: e5
+                    from: n2
+                    port: 'no'
+                    to: n6
+                settings:
+                  reentry:
+                    mode: once_per_cycle
+                  notifyOnError: []
+                timezone: America/Sao_Paulo
+                triggerKinds: []
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/workflows/{id}:
+    get:
+      tags:
+      - Workflows
+      operationId: getWorkflow
+      summary: Obter workflow
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+              example:
+                _id: 507f1f77bcf86cd799439240
+                name: Boas-vindas a novos clientes
+                description: Acompanhamento da primeira semana.
+                status: draft
+                draftGraph:
+                  nodes:
+                  - id: n1
+                    type: manual_trigger
+                    config: {}
+                    position:
+                      x: 0
+                      y: 0
+                  - id: n2
+                    type: if_else
+                    label: É cliente?
+                    config:
+                      ruleset:
+                        condition: AND
+                        rules:
+                        - fieldId: contact.lifecycle
+                          operator: equals
+                          value: customer
+                    position:
+                      x: 0
+                      y: 120
+                  - id: n3
+                    type: wait
+                    config:
+                      amount: 2
+                      unit: days
+                      businessDaysOnly: true
+                    position:
+                      x: -150
+                      y: 240
+                  - id: n4
+                    type: create_task
+                    config:
+                      taskTypeSlug: follow-up
+                      title: Ligar para o cliente
+                      due:
+                        mode: days_after
+                        days: 1
+                      assignee:
+                        mode: contact_owner
+                    position:
+                      x: -150
+                      y: 360
+                  - id: n5
+                    type: end
+                    config: {}
+                    position:
+                      x: -150
+                      y: 480
+                  - id: n6
+                    type: end
+                    config: {}
+                    position:
+                      x: 150
+                      y: 240
+                  edges:
+                  - id: e1
+                    from: n1
+                    port: default
+                    to: n2
+                  - id: e2
+                    from: n2
+                    port: 'yes'
+                    to: n3
+                  - id: e3
+                    from: n3
+                    port: default
+                    to: n4
+                  - id: e4
+                    from: n4
+                    port: default
+                    to: n5
+                  - id: e5
+                    from: n2
+                    port: 'no'
+                    to: n6
+                settings:
+                  reentry:
+                    mode: once_per_cycle
+                  notifyOnError: []
+                timezone: America/Sao_Paulo
+                triggerKinds: []
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      description: '**Permissão do Service Account:** `workflows.list`'
+    patch:
+      tags:
+      - Workflows
+      operationId: updateWorkflow
+      summary: Atualizar o rascunho do workflow
+      description: 'Envie só o que muda. `draftGraph` substitui o desenho inteiro. A alteração fica no rascunho: quem já está no workflow segue
+        na versão publicada até uma nova publicação.
+
+
+        A resposta vem em um envelope: `{ "workflow": {...} }`.
+
+
+        **Permissão do Service Account:** `workflows.edit`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                name:
+                  type: string
+                  description: Nome.
+                description:
+                  type: string
+                  description: Descrição.
+                timezone:
+                  type: string
+                  description: Fuso horário.
+                draftGraph:
+                  $ref: '#/components/schemas/WorkflowGraph'
+                settings:
+                  $ref: '#/components/schemas/WorkflowSettings'
+            example:
+              draftGraph:
+                nodes:
+                - id: n1
+                  type: manual_trigger
+                  config: {}
+                  position:
+                    x: 0
+                    y: 0
+                - id: n2
+                  type: if_else
+                  label: É cliente?
+                  config:
+                    ruleset:
+                      condition: AND
+                      rules:
+                      - fieldId: contact.lifecycle
+                        operator: equals
+                        value: customer
+                  position:
+                    x: 0
+                    y: 120
+                - id: n3
+                  type: wait
+                  config:
+                    amount: 2
+                    unit: days
+                    businessDaysOnly: true
+                  position:
+                    x: -150
+                    y: 240
+                - id: n4
+                  type: create_task
+                  config:
+                    taskTypeSlug: follow-up
+                    title: Ligar para o cliente
+                    due:
+                      mode: days_after
+                      days: 1
+                    assignee:
+                      mode: contact_owner
+                  position:
+                    x: -150
+                    y: 360
+                - id: n5
+                  type: end
+                  config: {}
+                  position:
+                    x: -150
+                    y: 480
+                - id: n6
+                  type: end
+                  config: {}
+                  position:
+                    x: 150
+                    y: 240
+                edges:
+                - id: e1
+                  from: n1
+                  port: default
+                  to: n2
+                - id: e2
+                  from: n2
+                  port: 'yes'
+                  to: n3
+                - id: e3
+                  from: n3
+                  port: default
+                  to: n4
+                - id: e4
+                  from: n4
+                  port: default
+                  to: n5
+                - id: e5
+                  from: n2
+                  port: 'no'
+                  to: n6
+              settings:
+                reentry:
+                  mode: after_days
+                  days: 30
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workflow:
+                    $ref: '#/components/schemas/Workflow'
+              example:
+                workflow:
+                  _id: 507f1f77bcf86cd799439240
+                  name: Boas-vindas a novos clientes
+                  description: Acompanhamento da primeira semana.
+                  status: draft
+                  draftGraph:
+                    nodes:
+                    - id: n1
+                      type: manual_trigger
+                      config: {}
+                      position:
+                        x: 0
+                        y: 0
+                    - id: n2
+                      type: if_else
+                      label: É cliente?
+                      config:
+                        ruleset:
+                          condition: AND
+                          rules:
+                          - fieldId: contact.lifecycle
+                            operator: equals
+                            value: customer
+                      position:
+                        x: 0
+                        y: 120
+                    - id: n3
+                      type: wait
+                      config:
+                        amount: 2
+                        unit: days
+                        businessDaysOnly: true
+                      position:
+                        x: -150
+                        y: 240
+                    - id: n4
+                      type: create_task
+                      config:
+                        taskTypeSlug: follow-up
+                        title: Ligar para o cliente
+                        due:
+                          mode: days_after
+                          days: 1
+                        assignee:
+                          mode: contact_owner
+                      position:
+                        x: -150
+                        y: 360
+                    - id: n5
+                      type: end
+                      config: {}
+                      position:
+                        x: -150
+                        y: 480
+                    - id: n6
+                      type: end
+                      config: {}
+                      position:
+                        x: 150
+                        y: 240
+                    edges:
+                    - id: e1
+                      from: n1
+                      port: default
+                      to: n2
+                    - id: e2
+                      from: n2
+                      port: 'yes'
+                      to: n3
+                    - id: e3
+                      from: n3
+                      port: default
+                      to: n4
+                    - id: e4
+                      from: n4
+                      port: default
+                      to: n5
+                    - id: e5
+                      from: n2
+                      port: 'no'
+                      to: n6
+                  settings:
+                    reentry:
+                      mode: once_per_cycle
+                    notifyOnError: []
+                  timezone: America/Sao_Paulo
+                  triggerKinds: []
+                  active: true
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Workflows
+      operationId: archiveWorkflow
+      summary: Arquivar workflow
+      description: 'O workflow passa a `archived` e sai das listagens. Quem estava nele para de avançar.
+
+
+        **Permissão do Service Account:** `workflows.publish`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Workflow arquivado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+              example:
+                _id: 507f1f77bcf86cd799439240
+                name: Boas-vindas a novos clientes
+                description: Acompanhamento da primeira semana.
+                status: archived
+                draftGraph:
+                  nodes:
+                  - id: n1
+                    type: manual_trigger
+                    config: {}
+                    position:
+                      x: 0
+                      y: 0
+                  - id: n2
+                    type: if_else
+                    label: É cliente?
+                    config:
+                      ruleset:
+                        condition: AND
+                        rules:
+                        - fieldId: contact.lifecycle
+                          operator: equals
+                          value: customer
+                    position:
+                      x: 0
+                      y: 120
+                  - id: n3
+                    type: wait
+                    config:
+                      amount: 2
+                      unit: days
+                      businessDaysOnly: true
+                    position:
+                      x: -150
+                      y: 240
+                  - id: n4
+                    type: create_task
+                    config:
+                      taskTypeSlug: follow-up
+                      title: Ligar para o cliente
+                      due:
+                        mode: days_after
+                        days: 1
+                      assignee:
+                        mode: contact_owner
+                    position:
+                      x: -150
+                      y: 360
+                  - id: n5
+                    type: end
+                    config: {}
+                    position:
+                      x: -150
+                      y: 480
+                  - id: n6
+                    type: end
+                    config: {}
+                    position:
+                      x: 150
+                      y: 240
+                  edges:
+                  - id: e1
+                    from: n1
+                    port: default
+                    to: n2
+                  - id: e2
+                    from: n2
+                    port: 'yes'
+                    to: n3
+                  - id: e3
+                    from: n3
+                    port: default
+                    to: n4
+                  - id: e4
+                    from: n4
+                    port: default
+                    to: n5
+                  - id: e5
+                    from: n2
+                    port: 'no'
+                    to: n6
+                settings:
+                  reentry:
+                    mode: once_per_cycle
+                  notifyOnError: []
+                timezone: America/Sao_Paulo
+                triggerKinds: []
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/workflows/{id}/validate:
+    post:
+      tags:
+      - Workflows
+      operationId: validateWorkflow
+      summary: Validar o desenho do workflow
+      description: 'Confere o rascunho gravado, ou o `draftGraph` enviado, e devolve os problemas por passo. Com `forPublish: true`, aplica também
+        as exigências da publicação. Lista vazia em `issues` significa pronto para publicar.
+
+
+        **Permissão do Service Account:** `workflows.edit`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                draftGraph:
+                  $ref: '#/components/schemas/WorkflowGraph'
+                settings:
+                  $ref: '#/components/schemas/WorkflowSettings'
+                forPublish:
+                  type: boolean
+                  description: Aplica as exigências da publicação.
+            example:
+              forPublish: true
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  issues:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        nodeId:
+                          type: string
+                          description: Passo com problema.
+                        code:
+                          type: string
+                          description: Tipo do problema.
+                          example: missing_end
+                        message:
+                          type: string
+                          description: Explicação, em português.
+                    description: Problemas que impedem a publicação.
+                  warnings:
+                    type: array
+                    items:
+                      type: object
+                    description: Avisos que não impedem a publicação.
+              example:
+                issues:
+                - nodeId: n4
+                  code: missing_end
+                  message: O caminho depois do passo "Criar tarefa" precisa terminar num Fim.
+                warnings: []
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/workflows/{id}/publish:
+    post:
+      tags:
+      - Workflows
+      operationId: publishWorkflow
+      summary: Publicar workflow
+      description: 'Torna o rascunho a versão em execução e muda a situação para `active`. **A partir daqui o workflow age sobre contatos reais**:
+        um gatilho de segmento passa a rodar na agenda; os de formulário e de evento, a cada ocorrência. Valide antes.
+
+
+        A resposta vem em um envelope: `{ "workflow": {...} }`.
+
+
+        **Permissão do Service Account:** `workflows.publish`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                runCurrentCycle:
+                  type: boolean
+                  description: 'Em gatilho de segmento: executa já o ciclo atual, sem esperar a próxima data da agenda.'
+            example: {}
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workflow:
+                    $ref: '#/components/schemas/Workflow'
+              example:
+                workflow:
+                  _id: 507f1f77bcf86cd799439240
+                  name: Boas-vindas a novos clientes
+                  description: Acompanhamento da primeira semana.
+                  status: active
+                  draftGraph:
+                    nodes:
+                    - id: n1
+                      type: manual_trigger
+                      config: {}
+                      position:
+                        x: 0
+                        y: 0
+                    - id: n2
+                      type: if_else
+                      label: É cliente?
+                      config:
+                        ruleset:
+                          condition: AND
+                          rules:
+                          - fieldId: contact.lifecycle
+                            operator: equals
+                            value: customer
+                      position:
+                        x: 0
+                        y: 120
+                    - id: n3
+                      type: wait
+                      config:
+                        amount: 2
+                        unit: days
+                        businessDaysOnly: true
+                      position:
+                        x: -150
+                        y: 240
+                    - id: n4
+                      type: create_task
+                      config:
+                        taskTypeSlug: follow-up
+                        title: Ligar para o cliente
+                        due:
+                          mode: days_after
+                          days: 1
+                        assignee:
+                          mode: contact_owner
+                      position:
+                        x: -150
+                        y: 360
+                    - id: n5
+                      type: end
+                      config: {}
+                      position:
+                        x: -150
+                        y: 480
+                    - id: n6
+                      type: end
+                      config: {}
+                      position:
+                        x: 150
+                        y: 240
+                    edges:
+                    - id: e1
+                      from: n1
+                      port: default
+                      to: n2
+                    - id: e2
+                      from: n2
+                      port: 'yes'
+                      to: n3
+                    - id: e3
+                      from: n3
+                      port: default
+                      to: n4
+                    - id: e4
+                      from: n4
+                      port: default
+                      to: n5
+                    - id: e5
+                      from: n2
+                      port: 'no'
+                      to: n6
+                  settings:
+                    reentry:
+                      mode: once_per_cycle
+                    notifyOnError: []
+                  timezone: America/Sao_Paulo
+                  triggerKinds:
+                  - manual
+                  active: true
+                  createdAt: '2026-04-28T10:30:00Z'
+                  updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/workflows/{id}/pause:
+    post:
+      tags:
+      - Workflows
+      operationId: pauseWorkflow
+      summary: Pausar workflow
+      description: '`new_entries` barra só novas entradas; `all` também segura quem já está no meio do caminho.
+
+
+        **Permissão do Service Account:** `workflows.publish`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                mode:
+                  type: string
+                  enum:
+                  - new_entries
+                  - all
+                  description: O que pausar.
+            example:
+              mode: all
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+              example:
+                _id: 507f1f77bcf86cd799439240
+                name: Boas-vindas a novos clientes
+                description: Acompanhamento da primeira semana.
+                status: paused
+                draftGraph:
+                  nodes:
+                  - id: n1
+                    type: manual_trigger
+                    config: {}
+                    position:
+                      x: 0
+                      y: 0
+                  - id: n2
+                    type: if_else
+                    label: É cliente?
+                    config:
+                      ruleset:
+                        condition: AND
+                        rules:
+                        - fieldId: contact.lifecycle
+                          operator: equals
+                          value: customer
+                    position:
+                      x: 0
+                      y: 120
+                  - id: n3
+                    type: wait
+                    config:
+                      amount: 2
+                      unit: days
+                      businessDaysOnly: true
+                    position:
+                      x: -150
+                      y: 240
+                  - id: n4
+                    type: create_task
+                    config:
+                      taskTypeSlug: follow-up
+                      title: Ligar para o cliente
+                      due:
+                        mode: days_after
+                        days: 1
+                      assignee:
+                        mode: contact_owner
+                    position:
+                      x: -150
+                      y: 360
+                  - id: n5
+                    type: end
+                    config: {}
+                    position:
+                      x: -150
+                      y: 480
+                  - id: n6
+                    type: end
+                    config: {}
+                    position:
+                      x: 150
+                      y: 240
+                  edges:
+                  - id: e1
+                    from: n1
+                    port: default
+                    to: n2
+                  - id: e2
+                    from: n2
+                    port: 'yes'
+                    to: n3
+                  - id: e3
+                    from: n3
+                    port: default
+                    to: n4
+                  - id: e4
+                    from: n4
+                    port: default
+                    to: n5
+                  - id: e5
+                    from: n2
+                    port: 'no'
+                    to: n6
+                settings:
+                  reentry:
+                    mode: once_per_cycle
+                  notifyOnError: []
+                timezone: America/Sao_Paulo
+                triggerKinds: []
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/workflows/{id}/resume:
+    post:
+      tags:
+      - Workflows
+      operationId: resumeWorkflow
+      summary: Retomar workflow
+      description: 'Volta a situação para `active`. Sem corpo.
+
+
+        **Permissão do Service Account:** `workflows.publish`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+              example:
+                _id: 507f1f77bcf86cd799439240
+                name: Boas-vindas a novos clientes
+                description: Acompanhamento da primeira semana.
+                status: active
+                draftGraph:
+                  nodes:
+                  - id: n1
+                    type: manual_trigger
+                    config: {}
+                    position:
+                      x: 0
+                      y: 0
+                  - id: n2
+                    type: if_else
+                    label: É cliente?
+                    config:
+                      ruleset:
+                        condition: AND
+                        rules:
+                        - fieldId: contact.lifecycle
+                          operator: equals
+                          value: customer
+                    position:
+                      x: 0
+                      y: 120
+                  - id: n3
+                    type: wait
+                    config:
+                      amount: 2
+                      unit: days
+                      businessDaysOnly: true
+                    position:
+                      x: -150
+                      y: 240
+                  - id: n4
+                    type: create_task
+                    config:
+                      taskTypeSlug: follow-up
+                      title: Ligar para o cliente
+                      due:
+                        mode: days_after
+                        days: 1
+                      assignee:
+                        mode: contact_owner
+                    position:
+                      x: -150
+                      y: 360
+                  - id: n5
+                    type: end
+                    config: {}
+                    position:
+                      x: -150
+                      y: 480
+                  - id: n6
+                    type: end
+                    config: {}
+                    position:
+                      x: 150
+                      y: 240
+                  edges:
+                  - id: e1
+                    from: n1
+                    port: default
+                    to: n2
+                  - id: e2
+                    from: n2
+                    port: 'yes'
+                    to: n3
+                  - id: e3
+                    from: n3
+                    port: default
+                    to: n4
+                  - id: e4
+                    from: n4
+                    port: default
+                    to: n5
+                  - id: e5
+                    from: n2
+                    port: 'no'
+                    to: n6
+                settings:
+                  reentry:
+                    mode: once_per_cycle
+                  notifyOnError: []
+                timezone: America/Sao_Paulo
+                triggerKinds: []
+                active: true
+                createdAt: '2026-04-28T10:30:00Z'
+                updatedAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/workflows/{id}/enrollments:
+    post:
+      tags:
+      - Workflows
+      operationId: enrollContactInWorkflow
+      summary: Inscrever um contato no workflow
+      description: 'Coloca o contato no início de um workflow publicado que tenha o gatilho de entrada manual (`manual_trigger`). Responde `409`
+        se o workflow não estiver aceitando entradas (rascunho, pausado ou arquivado).
+
+
+        **Permissão do Service Account:** `workflows.manage-enrollments`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - contactId
+              properties:
+                contactId:
+                  type: string
+                  pattern: ^[a-fA-F0-9]{24}$
+                  example: 507f1f77bcf86cd799439011
+                  description: ID do contato.
+            example:
+              contactId: 507f1f77bcf86cd799439012
+      responses:
+        '201':
+          description: Contato inscrito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                    description: ID da inscrição.
+                  workflow:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                    description: ID do workflow.
+                  version:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                    description: Versão em que entrou.
+                  contact:
+                    type: string
+                    pattern: ^[a-fA-F0-9]{24}$
+                    example: 507f1f77bcf86cd799439011
+                    description: ID do contato.
+                  state:
+                    type: string
+                    description: Situação da inscrição, como `ready` ou `running`.
+                    example: ready
+                  node:
+                    type: string
+                    description: Passo em que está.
+                    example: n1
+                  entry:
+                    type: object
+                    properties:
+                      source:
+                        type: string
+                        description: Como entrou.
+                        example: manual
+                      by:
+                        type: string
+                        pattern: ^[a-fA-F0-9]{24}$
+                        example: 507f1f77bcf86cd799439011
+                        description: Quem inscreveu.
+                  enteredAt:
+                    type: string
+                    format: date-time
+                    description: Entrada.
+                    example: '2026-05-15T14:00:00Z'
+                  nextRunAt:
+                    type: string
+                    format: date-time
+                    description: Próximo avanço.
+                    example: '2026-05-15T14:00:00Z'
+              example:
+                _id: 507f1f77bcf86cd799439250
+                workflow: 507f1f77bcf86cd799439240
+                version: 507f1f77bcf86cd799439241
+                contact: 507f1f77bcf86cd799439012
+                state: ready
+                node: n1
+                entry:
+                  source: manual
+                  by: 507f191e810c19729de860eb
+                enteredAt: '2026-04-28T10:30:00Z'
+                nextRunAt: '2026-04-28T10:30:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/workflows/enrollments:
+    get:
+      tags:
+      - Workflows
+      operationId: listContactEnrollments
+      summary: Listar os workflows de um contato
+      description: 'Em quais workflows o contato está ou esteve, e em que passo.
+
+
+        **Permissão do Service Account:** `workflows.list`'
+      parameters:
+      - name: contact
+        in: query
+        description: ID do contato. Obrigatório.
+        schema:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        required: true
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          enrollmentId:
+                            type: string
+                            pattern: ^[a-fA-F0-9]{24}$
+                            example: 507f1f77bcf86cd799439011
+                          workflow:
+                            type: object
+                            properties:
+                              _id:
+                                type: string
+                                pattern: ^[a-fA-F0-9]{24}$
+                                example: 507f1f77bcf86cd799439011
+                              name:
+                                type: string
+                              status:
+                                type: string
+                          state:
+                            type: string
+                          node:
+                            type: string
+                          nodeName:
+                            type: string
+                          nodeType:
+                            type: string
+                          enteredAt:
+                            type: string
+                            format: date-time
+                            description: Entrada.
+                            example: '2026-05-15T14:00:00Z'
+                          finishedAt:
+                            type: string
+                            format: date-time
+                            nullable: true
+                          exitReason:
+                            type: string
+                            nullable: true
+              example:
+                docs:
+                - enrollmentId: 507f1f77bcf86cd799439250
+                  workflow:
+                    _id: 507f1f77bcf86cd799439240
+                    name: Boas-vindas a novos clientes
+                    status: active
+                  state: ready
+                  node: n1
+                  nodeName: Entrada manual
+                  nodeType: manual_trigger
+                  enteredAt: '2026-04-28T10:30:00Z'
+                  finishedAt: null
+                  exitReason: null
+                total: 1
+                pages: 1
+                page: 1
+                limit: 25
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/workflows/{id}/executions:
+    get:
+      tags:
+      - Workflows
+      operationId: listWorkflowExecutions
+      summary: Listar execuções do workflow
+      description: 'Quem entrou, por onde passou e como terminou.
+
+
+        **Permissão do Service Account:** `workflows.list`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Page'
+                - type: object
+                  properties:
+                    docs:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          enrollmentId:
+                            type: string
+                            pattern: ^[a-fA-F0-9]{24}$
+                            example: 507f1f77bcf86cd799439011
+                          contact:
+                            type: object
+                            properties:
+                              _id:
+                                type: string
+                                pattern: ^[a-fA-F0-9]{24}$
+                                example: 507f1f77bcf86cd799439011
+                              name:
+                                type: string
+                              email:
+                                type: string
+                                nullable: true
+                          enteredAt:
+                            type: string
+                            format: date-time
+                            description: Entrada.
+                            example: '2026-05-15T14:00:00Z'
+                          entry:
+                            type: object
+                            properties:
+                              kind:
+                                type: string
+                                description: Como entrou.
+                                example: manual
+                          state:
+                            type: string
+                            description: Situação.
+                            example: running
+                          result:
+                            type: object
+                            properties:
+                              kind:
+                                type: string
+                              nodeId:
+                                type: string
+                              nodeName:
+                                type: string
+                              actions:
+                                type: array
+                                items:
+                                  type: object
+              example:
+                docs:
+                - enrollmentId: 507f1f77bcf86cd799439250
+                  contact:
+                    _id: 507f1f77bcf86cd799439012
+                    name: Maria Santos
+                    email: maria@cliente.com
+                  enteredAt: '2026-04-28T10:30:00Z'
+                  entry:
+                    kind: manual
+                  state: running
+                  result:
+                    kind: running
+                    nodeId: n1
+                    nodeName: Entrada manual
+                    actions: []
+                total: 1
+                pages: 1
+                page: 1
+                limit: 25
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/workflows/{id}/results:
+    get:
+      tags:
+      - Workflows
+      operationId: getWorkflowResults
+      summary: Obter os resultados do workflow
+      description: 'Totais do período (padrão: últimos 30 dias) e números por passo e por e-mail.
+
+
+        **Permissão do Service Account:** `workflows.list`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  period:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                      from:
+                        type: string
+                      to:
+                        type: string
+                      timezone:
+                        type: string
+                  totals:
+                    type: object
+                    properties:
+                      entered:
+                        type: integer
+                        description: Entraram.
+                      inFlow:
+                        type: integer
+                        description: Ainda no caminho.
+                      goalReached:
+                        type: integer
+                        description: Atingiram a meta.
+                      goalRate:
+                        type: number
+                        nullable: true
+                      unsubscribed:
+                        type: integer
+                      failed:
+                        type: integer
+                  nodes:
+                    type: object
+                    description: Números por passo, pela chave `id` do passo.
+                  emails:
+                    type: object
+                    description: Números por e-mail.
+              example:
+                period:
+                  key: 30d
+                  from: '2026-03-30'
+                  to: '2026-04-28'
+                  timezone: America/Sao_Paulo
+                totals:
+                  entered: 120
+                  inFlow: 34
+                  goalReached: 41
+                  goalRate: 34.2
+                  unsubscribed: 2
+                  failed: 1
+                nodes: {}
+                emails: {}
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/workflows/{id}/check-contact:
+    post:
+      tags:
+      - Workflows
+      operationId: checkContactInWorkflow
+      summary: Verificar se um contato entraria no workflow
+      description: 'Explica, para um contato, se ele entra no workflow publicado e por quê. Responde `409` se o workflow não tem versão publicada.
+
+
+        **Permissão do Service Account:** `workflows.list`'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - contactId
+              properties:
+                contactId:
+                  type: string
+                  pattern: ^[a-fA-F0-9]{24}$
+                  example: 507f1f77bcf86cd799439011
+                  description: ID do contato.
+            example:
+              contactId: 507f1f77bcf86cd799439012
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verdict:
+                    type: string
+                    description: Resultado.
+                    example: outside
+                  reason:
+                    type: string
+                    description: Explicação, em português.
+                  trigger:
+                    type: string
+                    description: Gatilho do workflow.
+                  enrollments:
+                    type: array
+                    items:
+                      type: object
+                    description: Inscrições do contato neste workflow.
+                  reentry:
+                    type: object
+                    properties:
+                      mode:
+                        type: string
+                      blocked:
+                        type: boolean
+              example:
+                verdict: outside
+                reason: Este workflow só recebe entrada manual.
+                trigger: manual_trigger
+                enrollments: []
+                reentry:
+                  mode: once_per_cycle
+                  blocked: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
 components:
   securitySchemes:
     ServiceAccount:
@@ -12563,6 +15013,648 @@ components:
           type: string
           format: date-time
           description: Última execução.
+          example: '2026-05-15T14:00:00Z'
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    FormField:
+      type: object
+      description: Um campo do formulário.
+      required:
+      - id
+      - componentType
+      properties:
+        id:
+          type: string
+          description: Identificador do campo dentro do formulário. Você escolhe; precisa ser único no formulário.
+          example: field_0
+        componentType:
+          type: string
+          enum:
+          - customField
+          - consent
+          description: '`customField`: pergunta ligada a um campo do contato. `consent`: caixa de aceite.'
+        customField:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: 'Em `customField`: ID do campo do contato (de `GET /api/customfields?page=1&feature=contact`). Ao ler o formulário, vem
+            o campo completo.'
+        name:
+          type: string
+          description: Rótulo mostrado a quem preenche.
+          example: Nome completo
+        position:
+          type: integer
+          description: Ordem do campo, a partir de 0.
+        gridPosition:
+          type: object
+          description: Onde o campo fica na grade.
+          properties:
+            rowId:
+              type: string
+              description: '`id` da linha.'
+            columnId:
+              type: string
+              description: '`id` da coluna.'
+            columnWidth:
+              type: integer
+              minimum: 1
+              maximum: 12
+        settings:
+          type: object
+          properties:
+            required:
+              type: boolean
+              description: Resposta obrigatória.
+            placeholder:
+              type: string
+              description: Texto de exemplo dentro do campo.
+            helpText:
+              type: string
+              description: Texto de ajuda.
+            defaultValue:
+              description: Valor inicial.
+            hidden:
+              type: boolean
+              description: Campo oculto, preenchido só pelo valor inicial.
+            readonly:
+              type: boolean
+              description: Campo visível, mas não editável.
+        validations:
+          type: array
+          items:
+            type: object
+            required:
+            - type
+            properties:
+              type:
+                type: string
+                enum:
+                - minLength
+                - maxLength
+                - pattern
+                - email
+                - phone
+                - cpf
+                - cnpj
+                - date
+                - number
+                - url
+                - custom
+                description: Regra aplicada ao valor digitado.
+              value:
+                description: 'Parâmetro da regra: o tamanho em `minLength` e `maxLength`, a expressão em `pattern`.'
+              message:
+                type: string
+                description: Mensagem mostrada quando a regra falha.
+          description: Regras de validação do valor.
+        conditionalRules:
+          type: array
+          items:
+            type: object
+            required:
+            - action
+            - conditions
+            properties:
+              action:
+                type: string
+                enum:
+                - show
+                - hide
+                - require
+                - disable
+                description: O que acontece com o campo quando as condições valem.
+              logic:
+                type: string
+                enum:
+                - and
+                - or
+                default: and
+                description: Como combinar as condições.
+              conditions:
+                type: array
+                items:
+                  type: object
+                  required:
+                  - fieldId
+                  - operator
+                  properties:
+                    fieldId:
+                      type: string
+                      description: '`id` do campo observado, no mesmo formulário.'
+                      example: field_0
+                    operator:
+                      type: string
+                      enum:
+                      - equals
+                      - notEquals
+                      - contains
+                      - notContains
+                      - isEmpty
+                      - isNotEmpty
+                      - greaterThan
+                      - lessThan
+                      - startsWith
+                      - endsWith
+                    value:
+                      description: Valor comparado.
+                description: Condições sobre outros campos do formulário.
+          description: Regras que mostram, escondem, obrigam ou travam o campo conforme outras respostas.
+    FormGrid:
+      type: object
+      description: 'Disposição dos campos: linhas com até 12 colunas de largura. Cada coluna leva um campo.'
+      properties:
+        rows:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - columns
+            properties:
+              id:
+                type: string
+                description: Identificador da linha.
+                example: row_0
+              columns:
+                type: array
+                items:
+                  type: object
+                  required:
+                  - id
+                  - width
+                  properties:
+                    id:
+                      type: string
+                      description: Identificador da coluna.
+                      example: col_0
+                    width:
+                      type: integer
+                      minimum: 1
+                      maximum: 12
+                      description: Largura da coluna; a soma da linha é 12.
+                    field:
+                      $ref: '#/components/schemas/FormField'
+    FormSettings:
+      type: object
+      properties:
+        contactSource:
+          type: string
+          enum:
+          - lead
+          - prospect
+          - customer
+          description: 'Fase em que o contato é criado a partir da resposta. Padrão: `customer`.'
+        autoCreateContact:
+          type: boolean
+          description: 'Com `true`, cada resposta cria ou atualiza o contato na hora. Com `false`, a resposta fica pendente até alguém vinculá-la.
+            Padrão: `false`.'
+        ownersOnMerge:
+          type: string
+          enum:
+          - merge
+          - replace
+          description: 'Quando a resposta casa com um contato existente: somar os responsáveis ou substituí-los.'
+        formAfterSent:
+          type: string
+          enum:
+          - thanks_page
+          - redirect_page
+          description: 'O que mostrar depois do envio. Padrão: `thanks_page`.'
+        thanksPage:
+          type: string
+          description: Mensagem de agradecimento, em `thanks_page`.
+        redirectPage:
+          type: string
+          description: Endereço de destino, em `redirect_page`.
+        publicTitle:
+          type: string
+          description: Título mostrado na página pública.
+        layout:
+          type: string
+          enum:
+          - clean
+          - card
+          - split
+          description: Desenho da página pública.
+        color:
+          type: string
+          description: Cor principal.
+        logoImage:
+          type: string
+          description: URL do logotipo.
+        backgroundImage:
+          type: string
+          description: URL da imagem de fundo.
+        hideBranding:
+          type: boolean
+          description: Esconde a marca da Magnet Customer.
+        notifyOnSubmit:
+          type: boolean
+          description: Avisa por e-mail a cada resposta.
+        notifyEmails:
+          type: array
+          items:
+            type: string
+          description: E-mails avisados.
+        dealCreation:
+          type: object
+          description: Cria uma oportunidade a cada resposta.
+          properties:
+            enabled:
+              type: boolean
+            pipeline:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+              description: ID do pipeline.
+            stage:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+              description: ID da etapa.
+            owner:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+              description: ID do responsável.
+            titleTemplate:
+              type: string
+              description: Modelo do título da oportunidade.
+    FormInput:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Nome do formulário.
+          example: Fale com um especialista
+        settings:
+          $ref: '#/components/schemas/FormSettings'
+        grid:
+          $ref: '#/components/schemas/FormGrid'
+        styles:
+          type: object
+          description: 'Aparência dos campos e do botão: fonte, cores, bordas.'
+    Form:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        title:
+          type: string
+          description: Nome do formulário.
+          example: Fale com um especialista
+        settings:
+          $ref: '#/components/schemas/FormSettings'
+        grid:
+          $ref: '#/components/schemas/FormGrid'
+        styles:
+          type: object
+          description: 'Aparência dos campos e do botão: fonte, cores, bordas.'
+        status:
+          type: string
+          enum:
+          - draft
+          - published
+          - archived
+          description: Situação. Muda pela publicação, não pela atualização.
+        published:
+          type: boolean
+          description: Publicado.
+        shareLink:
+          type: string
+          nullable: true
+          description: Endereço público do formulário, depois de publicado.
+        components:
+          type: array
+          items:
+            type: object
+          description: 'Os campos da grade, em lista, com o campo do contato completo. Só leitura: é derivado de `grid`.'
+        active:
+          type: boolean
+          description: '`false` quando excluído.'
+        createdAt:
+          type: string
+          format: date-time
+          description: Criação.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    FormSubmission:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: 'Identificador da resposta: texto de 10 caracteres, não um ID de 24.'
+          example: X2TOyH5DGw
+        form:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: ID do formulário.
+        payload:
+          type: object
+          description: O que foi respondido, no formato de um contato.
+        createdInCrm:
+          type: boolean
+          description: A resposta já virou contato.
+        crmContact:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Contato criado ou vinculado.
+        crmDeal:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Oportunidade criada.
+        pendingLink:
+          type: boolean
+          description: Aguarda vínculo com um contato.
+        pendingReason:
+          type: string
+          enum:
+          - auto_create_disabled
+          - contact_creation_failed
+          description: Por que está pendente.
+        createdAt:
+          type: string
+          format: date-time
+          description: Envio.
+          example: '2026-05-15T14:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última alteração.
+          example: '2026-05-15T14:00:00Z'
+    WorkflowNode:
+      type: object
+      description: Um passo do workflow.
+      required:
+      - id
+      - type
+      properties:
+        id:
+          type: string
+          description: Identificador do passo dentro do workflow. Você escolhe; precisa ser único.
+          example: n1
+        type:
+          type: string
+          enum:
+          - manual_trigger
+          - segment_trigger
+          - form_trigger
+          - crm_event_trigger
+          - send_email
+          - wait
+          - wait_reaction
+          - if_else
+          - split
+          - create_task
+          - create_deal
+          - update_contact
+          - end
+          description: Tipo do passo. A configuração de cada tipo está descrita em "Workflows", na introdução.
+        config:
+          type: object
+          description: Configuração do passo, conforme o `type`.
+        label:
+          type: string
+          description: Nome mostrado no desenho.
+        disabled:
+          type: boolean
+          description: Passo desligado.
+        position:
+          type: object
+          description: Posição no desenho da tela.
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+    WorkflowEdge:
+      type: object
+      description: Ligação entre dois passos.
+      required:
+      - id
+      - from
+      - port
+      - to
+      properties:
+        id:
+          type: string
+          description: Identificador da ligação.
+          example: e1
+        from:
+          type: string
+          description: '`id` do passo de origem.'
+          example: n1
+        port:
+          type: string
+          description: 'Saída do passo de origem: `default` na maioria; `yes` ou `no` em `if_else`; o `id` do caminho ou `none` em `split`; o
+            `id` da reação ou `timeout` em `wait_reaction`.'
+          example: default
+        to:
+          type: string
+          description: '`id` do passo de destino.'
+          example: n2
+    WorkflowGraph:
+      type: object
+      description: 'Desenho do workflow: passos e ligações.'
+      required:
+      - nodes
+      - edges
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowNode'
+          description: Passos.
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowEdge'
+          description: Ligações.
+    WorkflowSettings:
+      type: object
+      properties:
+        reentry:
+          type: object
+          required:
+          - mode
+          description: Se o mesmo contato pode entrar de novo.
+          properties:
+            mode:
+              type: string
+              enum:
+              - never
+              - after_days
+              - always
+              - once_per_cycle
+              description: 'Padrão: `once_per_cycle`.'
+            days:
+              type: integer
+              description: 'Em `after_days`: depois de quantos dias.'
+        sendWindow:
+          type: object
+          description: Quando os e-mails podem sair.
+          properties:
+            days:
+              type: array
+              items:
+                type: integer
+                minimum: 0
+                maximum: 6
+              description: Dias da semana, de 0 (domingo) a 6.
+            start:
+              type: string
+              description: Início, `HH:mm`.
+              example: 09:00
+            end:
+              type: string
+              description: Fim, `HH:mm`.
+              example: '18:00'
+        contactLimit:
+          type: object
+          description: Máximo de e-mails por contato.
+          properties:
+            useAccountDefault:
+              type: boolean
+              description: Usa o limite da conta.
+            perDay:
+              type: integer
+            perWeek:
+              type: integer
+        utm:
+          type: object
+          description: Parâmetros UTM nos links dos e-mails.
+          properties:
+            enabled:
+              type: boolean
+            source:
+              type: string
+            medium:
+              type: string
+            campaign:
+              type: string
+        sender:
+          type: object
+          properties:
+            fallbackStaff:
+              type: string
+              pattern: ^[a-fA-F0-9]{24}$
+              example: 507f1f77bcf86cd799439011
+              description: Remetente quando o contato não tem responsável.
+        notifyOnError:
+          type: array
+          items:
+            type: string
+            pattern: ^[a-fA-F0-9]{24}$
+            example: 507f1f77bcf86cd799439011
+          description: Usuários avisados quando um passo falha.
+        goal:
+          type: object
+          description: 'Meta do workflow: o que conta como sucesso.'
+          properties:
+            kind:
+              type: string
+              enum:
+              - condition
+              - event
+            ruleset:
+              $ref: '#/components/schemas/Ruleset'
+            event:
+              type: object
+              properties:
+                key:
+                  type: string
+                  description: Evento do CRM.
+                  example: deal.won
+                filter:
+                  type: object
+                  properties:
+                    pipelineId:
+                      type: string
+                      pattern: ^[a-fA-F0-9]{24}$
+                      example: 507f1f77bcf86cd799439011
+                    stageId:
+                      type: string
+                      pattern: ^[a-fA-F0-9]{24}$
+                      example: 507f1f77bcf86cd799439011
+                    formId:
+                      type: string
+                      pattern: ^[a-fA-F0-9]{24}$
+                      example: 507f1f77bcf86cd799439011
+            windowDays:
+              type: integer
+              description: Em quantos dias a meta precisa acontecer.
+    Workflow:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+        name:
+          type: string
+          description: Nome.
+          example: Boas-vindas a novos clientes
+        description:
+          type: string
+          description: Descrição.
+        status:
+          type: string
+          enum:
+          - draft
+          - active
+          - paused
+          - archived
+          description: '`draft`: nunca publicado. `active`: em execução. `paused`: pausado. `archived`: excluído.'
+        draftGraph:
+          $ref: '#/components/schemas/WorkflowGraph'
+        settings:
+          $ref: '#/components/schemas/WorkflowSettings'
+        timezone:
+          type: string
+          description: Fuso horário.
+          example: America/Sao_Paulo
+        triggerKinds:
+          type: array
+          items:
+            type: string
+          description: Gatilhos da versão publicada, como `manual` ou `segment`.
+        activeVersion:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Versão em execução.
+        hasUnpublishedChanges:
+          type: boolean
+          description: O rascunho difere da versão publicada.
+        owner:
+          type: string
+          pattern: ^[a-fA-F0-9]{24}$
+          example: 507f1f77bcf86cd799439011
+          description: Usuário dono.
+        active:
+          type: boolean
+        draftUpdatedAt:
+          type: string
+          format: date-time
+          description: Última alteração do rascunho.
           example: '2026-05-15T14:00:00Z'
         createdAt:
           type: string
