@@ -67,6 +67,8 @@ Cada método devolve a resposta do [axios](https://axios-http.com): o corpo est�
 | `crm.dashboards` | Dashboards, widgets, filtros e resultados |
 | `crm.resourceKeywords` | Campos que podem entrar em regras de filtro |
 | `crm.automations` | Automações de processo |
+| `crm.workflows` | Workflows: desenho, publicação, inscrições e resultados |
+| `crm.forms` | Formulários e respostas |
 | `crm.meetings` | Reuniões, tipos e salas |
 | `crm.tasks`, `crm.taskTypes` | Tarefas e tipos de tarefa |
 | `crm.observations` | Observações |

@@ -2,9 +2,9 @@ import axios, { AxiosInstance } from 'axios';
 import { ServiceAccountCredentials, TokenManager } from './auth';
 import { Configuration } from './generated/configuration';
 import {
-    AutomationsApi, ContactsApi, CustomFieldsApi, CustomersApi, DashboardsApi, DealsApi, JourneysApi, LeadsApi, MeetingsApi, ObservationsApi,
+    AutomationsApi, ContactsApi, CustomFieldsApi, CustomersApi, DashboardsApi, DealsApi, FormsApi, JourneysApi, LeadsApi, MeetingsApi, ObservationsApi,
     OrganizationsApi, PipelinesApi, PricebooksApi, ProductItemsApi, ProductsApi, ProspectsApi, ResourceKeywordsApi, StaffsApi, TaskTypesApi, TasksApi, TeamsApi, TicketsApi,
-    TreatmentsApi, WebhooksApi,
+    TreatmentsApi, WebhooksApi, WorkflowsApi,
 } from './generated/api';
 
 export interface MagnetCustomerOptions extends ServiceAccountCredentials {
@@ -52,6 +52,8 @@ export class MagnetCustomer {
     readonly dashboards: DashboardsApi;
     readonly resourceKeywords: ResourceKeywordsApi;
     readonly automations: AutomationsApi;
+    readonly forms: FormsApi;
+    readonly workflows: WorkflowsApi;
 
     readonly tokens: TokenManager;
     readonly baseUrl: string;
@@ -104,5 +106,7 @@ export class MagnetCustomer {
         this.dashboards = build(DashboardsApi);
         this.resourceKeywords = build(ResourceKeywordsApi);
         this.automations = build(AutomationsApi);
+        this.forms = build(FormsApi);
+        this.workflows = build(WorkflowsApi);
     }
 }
